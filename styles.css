@@ -9,3 +9,5 @@
 @media(max-width:900px){.latest-layout{grid-template-columns:1fr}.latest-article{min-height:300px}.latest-categories{grid-template-columns:1fr 1fr;grid-template-rows:none}.latest-category-card{min-height:190px}}
 @media(max-width:600px){.latest-article{min-height:310px;padding:30px 24px}.latest-article h3{font-size:24px}.latest-categories{grid-template-columns:1fr}.latest-category-card{min-height:175px;padding:25px 24px}.latest-category-card .card-arrow{left:24px}.latest-list-link{justify-content:flex-start;margin-top:20px}}
 .signal{display:block}.principles a{padding:20px 10px;color:var(--gold-light);font:700 11px Arial;letter-spacing:.14em;border-right:1px solid var(--line)}.principles a:last-child{border:0}.latest-categories{grid-template-rows:1fr}@media(max-width:900px){.latest-categories{grid-template-columns:1fr;grid-template-rows:none}}@media(max-width:600px){.principles a{border-right:0;border-bottom:1px solid var(--line)}}
+
+.about:after{pointer-events:none}
