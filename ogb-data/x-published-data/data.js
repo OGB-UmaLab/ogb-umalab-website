@@ -1,4 +1,5 @@
 window.ogbXPublishedData = [
+  { date: "2026-09-21", races: "神戸新聞杯", url: "https://note.com/gichu_omoto/n/n0f774de7b630" },
   { date: "2026-09-20", races: "オールカマー", url: "https://note.com/gichu_omoto/n/n575e0dbef61d" },
   { date: "2026-09-13", races: "ローズステークス・セントライト記念", url: "https://note.com/gichu_omoto/n/n9c33f0a60495" },
   { date: "2026-09-12", races: "チャレンジカップ", url: "https://note.com/gichu_omoto/n/n3ca531401856" },
