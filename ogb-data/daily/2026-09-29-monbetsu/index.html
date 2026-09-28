@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/><link rel="icon" href="../../../assets/icons/favicon.ico?v=20260831" sizes="any"/><link rel="icon" type="image/png" sizes="32x32" href="../../../assets/icons/favicon-32.png?v=20260831"/><link rel="icon" type="image/png" sizes="16x16" href="../../../assets/icons/favicon-16.png?v=20260831"/><link rel="apple-touch-icon" sizes="512x512" href="../../../assets/icons/favicon-512.png?v=20260831"/><title>2026年9月29日 門別競馬｜OGB DATA</title><style>
+:root{--ink:#172033;--muted:#657086;--line:#dfe5ee;--navy:#111a2e;--panel:#fff;--bg:#f4f6f9;--accent:#2b5cff}
+*{box-sizing:border-box} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:1500px;margin:auto;padding:22px}.brand{font-weight:900;font-size:28px;letter-spacing:.02em}.sub{color:var(--muted);margin:5px 0 22px}
+.race{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin:0 0 22px;overflow:hidden;box-shadow:0 2px 10px rgba(20,30,50,.04)}
+.racehead{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:16px 18px;background:var(--navy);color:white}.rno{font-size:24px;font-weight:900}.distance{font-size:15px;opacity:.9}.metrics{display:flex;gap:10px;flex-wrap:wrap;margin-left:0}.pill{background:rgba(255,255,255,.1);padding:8px 11px;border-radius:9px;font-size:13px}.pill b{font-size:15px}.stars{letter-spacing:1px}
+.tablewrap{overflow-x:auto;overflow-y:visible;max-height:none}table{border-collapse:separate;border-spacing:0;min-width:1740px;width:100%;font-size:13px}th,td{padding:5px 8px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center;white-space:nowrap;background:#fff}th{position:sticky;top:0;background:#eef2f7;z-index:4;font-weight:800;cursor:pointer;user-select:none}th:hover{background:#e4eaf3}.horse{text-align:left;font-weight:700}.sticky1{position:sticky;left:0;z-index:3}.sticky2{position:sticky;left:58px;z-index:3}.sticky1,.sticky2{background:#fff}th.sticky1,th.sticky2{z-index:6;background:#eef2f7}.num{font-variant-numeric:tabular-nums}.sortmark{font-size:10px;color:#8a94a6;margin-left:4px}
+@media(max-width:700px){.wrap{padding:10px}.brand{font-size:22px}.racehead{gap:9px;padding:13px}.metrics{margin-left:0;width:auto;gap:6px}.pill{padding:7px 8px}.rno{font-size:21px}table{font-size:12px;min-width:1630px}th,td{padding:4px 6px}.sticky2{left:48px}.sub{font-size:13px}}
+
+/* OGB DATA prototype v2 */
+.sticky-mark{position:sticky;left:0;z-index:3;background:#fff}.sticky-num{position:sticky;left:66px;z-index:3;background:#fff}.sticky-name{position:sticky;left:124px;z-index:3;background:#fff}
+th.sticky-mark,th.sticky-num,th.sticky-name{z-index:6;background:#eef2f7}.mymark{min-width:66px;width:66px;padding-left:5px;padding-right:5px}.mark-select{width:52px;min-width:52px;border:1px solid #cfd6e2;border-radius:6px;background:#fff;padding:2px 2px;font-weight:800;text-align:center;color:#172033}
+@media(max-width:700px){.sticky-num{left:58px}.sticky-name{left:106px}.mymark{min-width:58px;width:58px}.mark-select{width:46px;min-width:46px}.sticky2{left:auto}}
+
+/* 馬番は内部色を使わず、枠色を表示 */
+.horse-no{font-weight:800;}
+.frame-1{background:#ffffff!important;color:#111!important;box-shadow:inset 0 0 0 2px #b8bec8;}
+.frame-2{background:#222222!important;color:#fff!important;}
+.frame-3{background:#e53935!important;color:#fff!important;}
+.frame-4{background:#1976d2!important;color:#fff!important;}
+.frame-5{background:#f4d03f!important;color:#111!important;}
+.frame-6{background:#43a047!important;color:#fff!important;}
+.frame-7{background:#ef8b2c!important;color:#111!important;}
+.frame-8{background:#ef9bb7!important;color:#111!important;}
+
+.compact-col{min-width:54px!important;width:54px!important;padding-left:7px!important;padding-right:7px!important}.weight-cell{min-width:54px;width:54px}
+
+/* v12: compact fixed columns for MY印・馬番・馬名 */
+:root{--my-w:58px;--num-w:44px;--name-w:15em}
+.mymark{box-sizing:border-box!important;min-width:var(--my-w)!important;width:var(--my-w)!important;max-width:var(--my-w)!important;padding-left:3px!important;padding-right:3px!important}
+.mark-select{box-sizing:border-box!important;width:48px!important;min-width:48px!important;max-width:48px!important}
+.sticky-num{box-sizing:border-box!important;left:var(--my-w)!important;min-width:var(--num-w)!important;width:var(--num-w)!important;max-width:var(--num-w)!important;padding-left:3px!important;padding-right:3px!important}
+.sticky-name{box-sizing:border-box!important;left:calc(var(--my-w) + var(--num-w))!important;min-width:var(--name-w)!important;width:var(--name-w)!important;max-width:var(--name-w)!important;padding-left:7px!important;padding-right:7px!important;overflow:hidden;text-overflow:clip}
+th.sticky-num,td.sticky-num,th.sticky-name,td.sticky-name{flex:none!important}
+@media(max-width:700px){:root{--my-w:54px;--num-w:40px;--name-w:15em}.mark-select{width:44px!important;min-width:44px!important;max-width:44px!important}}
+
+/* v13: smartphone-first compact data columns */
+table{min-width:0!important;width:max-content!important}
+th,td{padding-left:5px!important;padding-right:5px!important}
+/* General data columns: fixed to content-oriented widths */
+th[data-special="weight"],td.weight-cell{min-width:46px!important;width:46px!important;max-width:46px!important}
+th[data-col="2"]{min-width:58px;width:58px;max-width:58px}
+th[data-col="3"]{min-width:48px;width:48px;max-width:48px}
+th[data-col="4"]{min-width:42px;width:42px;max-width:42px}
+th[data-col="5"]{min-width:42px!important;width:42px!important;max-width:42px!important}
+th[data-col="6"],th[data-col="7"]{min-width:52px;width:52px;max-width:52px;white-space:normal;line-height:1.05}
+th[data-col="8"]{min-width:52px;width:52px;max-width:52px;white-space:normal;line-height:1.05}
+th[data-col="9"]{min-width:52px;width:52px;max-width:52px}
+th[data-col="10"]{min-width:42px;width:42px;max-width:42px}
+th[data-col="13"]{min-width:52px;width:52px;max-width:52px;white-space:normal;line-height:1.05}
+th[data-col="19"]{min-width:52px;width:52px;max-width:52px;white-space:normal;line-height:1.05}
+th[data-col="14"]{min-width:48px;width:48px;max-width:48px;white-space:normal;line-height:1.05}
+/* Match body cells to sortable header columns (after the six identity columns) */
+tbody td:nth-child(7){min-width:58px;width:58px;max-width:58px}
+tbody td:nth-child(8){min-width:48px;width:48px;max-width:48px}
+tbody td:nth-child(9){min-width:42px;width:42px;max-width:42px}
+tbody td:nth-child(10){min-width:42px;width:42px;max-width:42px}
+tbody td:nth-child(11),tbody td:nth-child(12),tbody td:nth-child(13),tbody td:nth-child(14){min-width:52px;width:52px;max-width:52px}
+tbody td:nth-child(15){min-width:42px;width:42px;max-width:42px}
+tbody td:nth-child(16),tbody td:nth-child(17){min-width:52px;width:52px;max-width:52px}
+tbody td:nth-child(18){min-width:48px;width:48px;max-width:48px}
+@media(max-width:700px){th,td{padding-left:4px!important;padding-right:4px!important}}
+
+/* v15: 次級基準情報を馬名セル2段目に収める試作 */
+td.sticky-name{padding-top:1px!important;padding-bottom:1px!important;vertical-align:middle!important;}
+.horse-main{display:block;line-height:13px;font-weight:700;white-space:nowrap;}
+.promotion-sub{display:block;height:9px;line-height:9px;font-size:9px;font-weight:700;color:#596579;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.promotion-sub.is-target{color:#a43b28;}
+.demo-note{font-size:11px;color:#7c879b;margin:-4px 0 10px 2px;}
+</style><style>
+/* Existing repository navigation */
+.back{display:inline-block;margin-bottom:12px;color:#43506a;text-decoration:none;font-weight:700}.racenav{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 18px}.racenav a{display:inline-flex;align-items:center;justify-content:center;min-width:42px;padding:7px 9px;border-radius:8px;background:#e5ebf3;color:var(--ink);text-decoration:none;font-weight:800}.race{scroll-margin-top:12px}
+/* User-approved Blitz 44px correction */
+th[data-col="9"],tbody td:nth-child(14){min-width:44px!important;width:44px!important;max-width:44px!important}th[data-col="9"]{white-space:normal;line-height:1.05;padding-left:2px!important;padding-right:2px!important}
+</style><style id="ogb-race-return-style">.ogb-race-return{display:block;width:fit-content;margin:10px 14px 12px auto;padding:8px 10px;border:1px solid #dfe5ee;border-radius:8px;background:#e5ebf3;color:#172033;text-decoration:none;font-size:13px;line-height:20px;font-weight:700}</style></head><body><div class="wrap"><a class="back" href="../">← 開催競馬場一覧へ</a><div class="brand">2026年9月29日 門別競馬｜OGB DATA</div><div class="sub">地方競馬データ比較ビュー｜列見出しをクリック／タップすると並べ替えできます。</div><a href="https://ogb-umalab.com/ogb-data/major-8-items/" style="display:inline-block;margin:0 0 14px;color:#2563a6;font-size:14px;font-weight:700;text-decoration:underline;text-underline-offset:3px">各項目・色の見方はこちら →</a><div class="racenav" id="race-jump-top"><a href="#r1">1R</a><a href="#r2">2R</a><a href="#r4">4R</a><a href="#r5">5R</a><a href="#r6">6R</a><a href="#r9">9R</a><a href="#r11">11R</a><a href="#r12">12R</a></div><!--RACES--><script>
+document.querySelectorAll('.mark-select').forEach(sel=>{
+  const saved=localStorage.getItem(sel.dataset.key);
+  if(saved!==null) sel.value=saved;
+  sel.addEventListener('change',()=>localStorage.setItem(sel.dataset.key,sel.value));
+  sel.addEventListener('click',e=>e.stopPropagation());
+});
+document.querySelectorAll('table').forEach(table=>{
+  let state={col:-1,asc:false};
+  table.querySelectorAll('th').forEach((th,i)=>{
+    if(th.dataset.nosort==='1') return;
+    th.addEventListener('click',()=>{
+      const body=table.tBodies[0], rows=[...body.rows];
+      const label=th.textContent.replace('↕','').trim();
+      let asc=state.col===i ? !state.asc : (label==='脚質値');
+      if(th.dataset.special==='weight'){
+        asc=th.dataset.dir!=='asc';
+        th.dataset.dir=asc?'asc':'desc';
+      }
+      state={col:i,asc};
+      rows.sort((a,b)=>{
+        let av=a.cells[i].dataset.sort ?? a.cells[i].textContent.trim();
+        let bv=b.cells[i].dataset.sort ?? b.cells[i].textContent.trim();
+        let an=parseFloat(av), bn=parseFloat(bv);
+        let cmp=(!Number.isNaN(an)&&!Number.isNaN(bn)) ? an-bn : String(av).localeCompare(String(bv),'ja');
+        return asc?cmp:-cmp;
+      });
+      rows.forEach(r=>body.appendChild(r));
+      table.querySelectorAll('.sortmark').forEach(x=>x.textContent='↕');
+      const mark=th.querySelector('.sortmark'); if(mark) mark.textContent=asc?'↑':'↓';
+    });
+  });
+});
+
+</script></body></html>
