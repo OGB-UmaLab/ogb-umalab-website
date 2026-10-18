@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://ogb-umalab.com/</loc>
+  </url>
+  <url>
     <loc>https://ogb-umalab.com/about/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/class-promotion/2026-08-28-sonoda/</loc>
@@ -106,13 +112,82 @@
     <loc>https://ogb-umalab.com/class-promotion/2026-09-29-funabashi/</loc>
   </url>
   <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-09-30-funabashi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-09-30-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-01-funabashi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-01-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-02-funabashi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-02-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-04-ohi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-05-ohi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-06-ohi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-07-ohi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-07-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-08-ohi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-08-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-09-ohi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-09-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-12-kawasaki/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-13-kawasaki/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-14-kawasaki/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-14-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-15-kawasaki/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-15-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-16-kawasaki/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/class-promotion/2026-10-16-sonoda/</loc>
+  </url>
+  <url>
     <loc>https://ogb-umalab.com/class-promotion/archive/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/class-promotion/guide/</loc>
   </url>
   <url>
-    <loc>https://ogb-umalab.com/class-promotion/</loc>
+    <loc>https://ogb-umalab.com/global-news/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/global-news/2026-08-28-evening/</loc>
@@ -295,19 +370,118 @@
     <loc>https://ogb-umalab.com/global-news/2026-09-29-morning/</loc>
   </url>
   <url>
-    <loc>https://ogb-umalab.com/global-news/evening-archive/</loc>
+    <loc>https://ogb-umalab.com/global-news/2026-09-30-morning/</loc>
   </url>
   <url>
-    <loc>https://ogb-umalab.com/global-news/</loc>
+    <loc>https://ogb-umalab.com/global-news/2026-10-01-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-02-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-02-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-03-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-03-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-04-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-05-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-05-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-06-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-06-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-07-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-07-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-08-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-08-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-09-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-09-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-10-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-10-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-11-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-11-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-12-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-12-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-13-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-13-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-14-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-14-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-15-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-15-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-16-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-16-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-17-evening/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-17-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-18-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/evening-archive/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/global-news/morning-archive/</loc>
   </url>
   <url>
-    <loc>https://ogb-umalab.com/</loc>
+    <loc>https://ogb-umalab.com/knowledge/</loc>
   </url>
   <url>
-    <loc>https://ogb-umalab.com/knowledge/</loc>
+    <loc>https://ogb-umalab.com/knowledge/other/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/knowledge/other/2026-08-31-forever-young-vs-sovereignty/</loc>
@@ -316,7 +490,7 @@
     <loc>https://ogb-umalab.com/knowledge/other/archive/</loc>
   </url>
   <url>
-    <loc>https://ogb-umalab.com/knowledge/other/</loc>
+    <loc>https://ogb-umalab.com/knowledge/rules/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/knowledge/rules/2026-08-27-flexor-tendonitis/</loc>
@@ -325,7 +499,7 @@
     <loc>https://ogb-umalab.com/knowledge/rules/archive/</loc>
   </url>
   <url>
-    <loc>https://ogb-umalab.com/knowledge/rules/</loc>
+    <loc>https://ogb-umalab.com/knowledge/world-racing/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/knowledge/world-racing/2026-07-07-world-pool/</loc>
@@ -358,16 +532,22 @@
     <loc>https://ogb-umalab.com/knowledge/world-racing/2026-09-29-central-european-arabian-derby/</loc>
   </url>
   <url>
+    <loc>https://ogb-umalab.com/knowledge/world-racing/2026-10-06-santa-teresa-bush-races/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/knowledge/world-racing/2026-10-16-eureka-downs/</loc>
+  </url>
+  <url>
     <loc>https://ogb-umalab.com/knowledge/world-racing/archive/</loc>
   </url>
   <url>
-    <loc>https://ogb-umalab.com/knowledge/world-racing/</loc>
+    <loc>https://ogb-umalab.com/ogb-data/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/ogb-data/axis-theory/</loc>
   </url>
   <url>
-    <loc>https://ogb-umalab.com/ogb-data/central/2026-09-27-sprinters/</loc>
+    <loc>https://ogb-umalab.com/ogb-data/daily/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/ogb-data/daily/2026-09-24-kasamatsu/</loc>
@@ -430,13 +610,208 @@
     <loc>https://ogb-umalab.com/ogb-data/daily/2026-09-29-nagoya/</loc>
   </url>
   <url>
-    <loc>https://ogb-umalab.com/ogb-data/daily/</loc>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-09-30-funabashi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-09-30-monbetsu/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-09-30-nagoya/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-09-30-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-01-funabashi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-01-monbetsu/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-01-nagoya/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-01-saga/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-01-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-02-funabashi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-02-nagoya/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-02-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-03-kochi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-04-kanazawa/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-04-kochi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-04-morioka/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-04-ohi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-05-kanazawa/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-05-morioka/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-05-ohi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-06-kanazawa/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-06-kasamatsu/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-06-monbetsu/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-06-morioka/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-06-ohi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-07-kasamatsu/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-07-monbetsu/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-07-ohi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-07-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-08-kasamatsu/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-08-monbetsu/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-08-ohi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-08-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-09-kasamatsu/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-09-ohi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-09-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-10-kochi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-10-saga/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-11-kanazawa/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-11-kochi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-11-morioka/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-11-saga/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-12-kawasaki/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-12-morioka/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-12-saga/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-13-kanazawa/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-13-kawasaki/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-13-monbetsu/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-13-morioka/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-13-nagoya/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-14-kawasaki/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-14-monbetsu/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-14-nagoya/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-14-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-15-kawasaki/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-15-monbetsu/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-15-nagoya/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-15-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-16-kawasaki/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-16-nagoya/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-16-sonoda/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-17-kochi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-17-saga/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-18-kanazawa/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-18-kochi/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-18-morioka/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-18-saga/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/ogb-data/daily/ooi/</loc>
-  </url>
-  <url>
-    <loc>https://ogb-umalab.com/ogb-data/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/ogb-data/major-8-items/</loc>
