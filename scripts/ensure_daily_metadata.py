@@ -18,6 +18,9 @@ H1 = re.compile(r'<h1\b', re.I)
 
 def update_page(file: Path) -> bool:
     content = file.read_text(encoding="utf-8")
+    # Newer pages already have both semantic elements; leave them unchanged.
+    if H1.search(content) and META_DESCRIPTION.search(content):
+        return False
     brand = BRAND.search(content)
     title = TITLE.search(content)
     if not brand or not title:
