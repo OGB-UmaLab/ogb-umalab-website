@@ -24,10 +24,12 @@ def update_page(file: Path) -> bool:
     brand = BRAND.search(content)
     title = TITLE.search(content)
     if not brand or not title:
-        raise ValueError(f"Unrecognized daily DATA format: {file}")
+        print(f"SKIP: unsupported daily DATA layout (metadata unchanged): {file.relative_to(ROOT)}")
+        return False
     label = unescape(brand.group(1)).strip()
     if not label.endswith("｜OGB DATA"):
-        raise ValueError(f"Unexpected heading: {file}: {label}")
+        print(f"SKIP: unexpected daily DATA heading (metadata unchanged): {file.relative_to(ROOT)}")
+        return False
     if H1.search(content) or META_DESCRIPTION.search(content):
         # Already processed or generated in a newer format.
         if H1.search(content) and META_DESCRIPTION.search(content):
