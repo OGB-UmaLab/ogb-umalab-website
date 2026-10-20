@@ -5,6 +5,8 @@ on:
     paths:
       - "index.html"
       - "**/index.html"
+      - "scripts/ensure_daily_metadata.py"
+      - "scripts/update_sitemap.py"
   workflow_dispatch:
 
 permissions:
