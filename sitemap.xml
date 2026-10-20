@@ -481,7 +481,13 @@
     <loc>https://ogb-umalab.com/global-news/2026-10-18-morning/</loc>
   </url>
   <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-19-evening/</loc>
+  </url>
+  <url>
     <loc>https://ogb-umalab.com/global-news/2026-10-19-morning/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/global-news/2026-10-20-morning/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/global-news/evening-archive/</loc>
@@ -835,7 +841,16 @@
     <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-19-urawa/</loc>
   </url>
   <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-20-kanazawa/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-20-monbetsu/</loc>
+  </url>
+  <url>
     <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-20-morioka/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/ogb-data/daily/2026-10-20-urawa/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/ogb-data/major-8-items/</loc>
