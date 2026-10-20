@@ -7,6 +7,7 @@ on:
       - "**/index.html"
       - "scripts/ensure_daily_metadata.py"
       - "scripts/update_sitemap.py"
+      - ".github/workflows/update-sitemap.yml"
   workflow_dispatch:
 
 permissions:
@@ -23,8 +24,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # Metadata enrichment is optional; it must not block sitemap generation.
+      - name: Check daily metadata script syntax
+        id: metadata-syntax
+        continue-on-error: true
+        run: python3 -m py_compile scripts/ensure_daily_metadata.py
       - name: Ensure daily OGB DATA page metadata
+        if: steps.metadata-syntax.outcome == 'success'
+        continue-on-error: true
         run: python3 scripts/ensure_daily_metadata.py
+      - name: Check sitemap script syntax
+        run: python3 -m py_compile scripts/update_sitemap.py
       - name: Generate sitemap from published pages
         run: python3 scripts/update_sitemap.py
       - name: Commit sitemap changes if needed
