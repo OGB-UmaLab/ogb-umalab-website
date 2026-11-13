@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>X太字貼り付け検証｜OGBデータ研究所</title>
+<style>
+:root{font-family:"Yu Gothic",Meiryo,system-ui,sans-serif;color:#17243a;background:#f4f6fa}*{box-sizing:border-box}body{margin:0}main{max-width:880px;margin:auto;padding:30px 18px 70px}h1{font-size:clamp(23px,4vw,34px);margin:0 0 12px}p{line-height:1.75}.muted{color:#536079}.panel{background:white;border:1px solid #dce2ea;border-radius:14px;padding:22px;margin:20px 0;box-shadow:0 5px 24px #18263b0a}textarea,.editor{width:100%;min-height:205px;padding:15px;border:1px solid #aab7c8;border-radius:9px;font:16px/1.8 "Yu Gothic",Meiryo,sans-serif;background:#fff;white-space:pre-wrap;overflow-wrap:anywhere}textarea{resize:vertical}.editor:focus,textarea:focus{outline:2px solid #2563a4;outline-offset:1px}.editor p{margin:.3em 0}.editor h2,.editor h3{font-size:inherit;margin:.4em 0;font-weight:700}button{background:#153b6d;color:white;border:0;border-radius:9px;padding:13px 18px;font-weight:700;cursor:pointer;font-size:15px;margin:5px 7px 5px 0}button.secondary{background:#e9eff8;color:#173a65}button:hover{filter:brightness(1.08)}.note{font-size:13px;color:#536079}.status{min-height:24px;font-weight:700}.ok{color:#136b40}.err{color:#a32a2a}.steps{padding-left:22px;line-height:1.85}.pill{display:inline-block;background:#e6edf7;color:#153b6d;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700}.editor strong,.editor b{font-weight:800}label{font-weight:700;display:block;margin-bottom:9px}
+</style></head><body><main>
+<span class="pill">X貼り付け技術検証・試作版</span><h1>見出しを太字にして、Xへ貼り付けられるか試す</h1>
+<p>ChatGPT・メモ帳・Wordなどの文章を貼り付け、見出しを太字にした原稿をコピーします。<strong>X側で太字が保持されるかは未確認です。</strong> このページは検証専用で、Xへの自動投稿は行いません。</p>
+<section class="panel"><label for="source">① 原稿を貼り付ける（Markdown・メモ帳向け）</label>
+<textarea id="source" spellcheck="false">## 国内競馬NEWS
+
+### 【大井競馬】重賞結果
+大井競馬場で注目の一戦が行われました。
+
+### 【園田競馬】新記録
+園田競馬場では**新記録**が誕生しました。</textarea>
+<button id="convert">見出し・太字を変換</button><button id="sample" class="secondary">サンプルに戻す</button>
+<p class="note">「## 見出し」「### 小見出し」「**強調**」を変換します。Markdownの記号がない場合は、行頭の【 】で始まる行も見出しとして太字にします。</p></section>
+<section class="panel"><label for="editor">② 書式付き原稿（直接編集も可能）</label>
+<div id="editor" class="editor" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="false"></div>
+<p class="note">Wordなどの書式付き文章は、この編集欄へ直接貼り付けても構いません。必要に応じて文字を選択して太字ボタンを押してください。</p>
+<button id="bold" class="secondary">選択部分を太字／解除</button><button id="copy">書式付きでコピー</button><button id="copyPlain" class="secondary">文字だけコピー</button>
+<p id="status" class="status" aria-live="polite"></p></section>
+<section class="panel"><h2>③ Xで確認する</h2><ol class="steps"><li>「書式付きでコピー」をクリックします。</li><li>X Premiumの長文投稿画面を開き、本文欄に通常の貼り付け（Ctrl + V）をします。</li><li>「国内競馬NEWS」「【大井競馬】重賞結果」などが太字のまま表示されるか確認してください。</li></ol>
+<p class="note">このページで太字に見えても、Xへの転送成功を意味しません。Xが貼り付け時に書式を破棄する場合、HTMLのコピー方法を変えるだけでは解決しない可能性があります。</p></section>
+</main>
+<script>
+const $=id=>document.getElementById(id),source=$('source'),editor=$('editor'),status=$('status');
+const sample=source.value;
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function inline(s){return escapeHtml(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}
+function convert(){const lines=source.value.replace(/\r\n?/g,'\n').split('\n');editor.innerHTML=lines.map(line=>{if(!line.trim())return '<div><br></div>';const m=line.match(/^\s*#{1,6}\s+(.+)$/);if(m)return '<div><strong>'+inline(m[1])+'</strong></div>';if(/^\s*【[^】]+】/.test(line))return '<div><strong>'+inline(line)+'</strong></div>';return '<div>'+inline(line)+'</div>'}).join('');message('プレビューを更新しました。Xへの貼り付けは未検証です。',true)}
+function message(s,ok){status.textContent=s;status.className='status '+(ok?'ok':'err')}
+function clean(node){const copy=node.cloneNode(true);copy.querySelectorAll('script,style,iframe,object,embed').forEach(n=>n.remove());copy.querySelectorAll('*').forEach(n=>{for(const a of [...n.attributes])if(a.name.startsWith('on')||a.name==='style'||a.name==='class'||a.name==='contenteditable')n.removeAttribute(a.name)});return copy.innerHTML}
+async function richCopy(){const body=clean(editor);const html='<html><body><div>'+body+'</div></body></html>';const plain=editor.innerText;if(!navigator.clipboard||!window.ClipboardItem){message('このブラウザでは書式付きコピーAPIを利用できません。ChromeのHTTPSページでお試しください。',false);return}try{await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([plain],{type:'text/plain'})})]);message('HTMLと文字列の両形式でコピーしました。Xで太字が残るか確認してください。',true)}catch(e){message('書式付きコピーに失敗しました：'+e.message,false)}}
+$('convert').addEventListener('click',convert);
+$('sample').addEventListener('click',()=>{source.value=sample;convert()});
+$('copy').addEventListener('click',richCopy);
+$('copyPlain').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(editor.innerText);message('文字だけコピーしました（太字は含まれません）。',true)}catch(e){message('コピーに失敗しました：'+e.message,false)}});
+$('bold').addEventListener('click',()=>{editor.focus();document.execCommand('bold');message('選択部分の書式を変更しました。',true)});
+convert();
+</script></body></html>
