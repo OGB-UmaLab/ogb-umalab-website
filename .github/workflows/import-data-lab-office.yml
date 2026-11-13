@@ -17,8 +17,8 @@ jobs:
       - name: Fetch and validate original image
         run: |
           mkdir -p assets/data-lab-images
-          curl --fail --location --retry 3 --silent --show-error \\
-            "https://raw.githubusercontent.com/OGB-UmaLab/ogb-data-lab-website/main/assets/images/ogb-data-lab-office.png" \\
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://raw.githubusercontent.com/OGB-UmaLab/ogb-data-lab-website/main/assets/images/ogb-data-lab-office.png" \
             -o assets/data-lab-images/ogb-data-lab-office.png
           test "$(wc -c < assets/data-lab-images/ogb-data-lab-office.png)" -gt 100000
           file assets/data-lab-images/ogb-data-lab-office.png | grep -q 'PNG image data'
