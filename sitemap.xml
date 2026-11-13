@@ -283,6 +283,15 @@
     <loc>https://ogb-umalab.com/class-promotion/guide/</loc>
   </url>
   <url>
+    <loc>https://ogb-umalab.com/data-lab/about/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/data-lab/approach/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/data-lab/organization/</loc>
+  </url>
+  <url>
     <loc>https://ogb-umalab.com/global-news/</loc>
   </url>
   <url>
@@ -728,6 +737,12 @@
   </url>
   <url>
     <loc>https://ogb-umalab.com/global-news/morning-archive/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/guides/csv-analysis-basics/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/guides/pricing-profit-basics/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/knowledge/</loc>
@@ -1460,5 +1475,23 @@
   </url>
   <url>
     <loc>https://ogb-umalab.com/privacy/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/research/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/research/blitz-index/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/csv-analyzer/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/pricing-simulator/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/umalab/</loc>
   </url>
 </urlset>
