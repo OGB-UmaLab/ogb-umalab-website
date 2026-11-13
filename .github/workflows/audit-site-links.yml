@@ -7,11 +7,22 @@ on:
       - ".github/workflows/audit-site-links.yml"
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Scan all HTML links
-        run: python3 scripts/audit_site_links.py
+        run: |
+          mkdir -p reports
+          python3 scripts/audit_site_links.py | tee reports/site-links-audit.txt
+      - name: Save audit report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/site-links-audit.txt
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Update whole-site link audit report"
+          git pull --rebase origin main
+          git push origin HEAD:main
