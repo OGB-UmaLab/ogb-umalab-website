@@ -6,7 +6,7 @@ if (/^\/(?:global-news|ogb-data|class-promotion|knowledge|about|privacy|umalab)(
     if (!raw || raw.startsWith('#')) return;
     try {
       const target = new URL(raw, document.baseURI);
-      if (target.origin === location.origin && target.pathname === '/' && !target.search && !target.hash) {
+      if (target.origin === location.origin && target.pathname === '/' && !target.search && !target.hash && !link.textContent.includes('OGBデータ研究所') && !link.closest('.official-link-card, .relationship-card')) {
         link.setAttribute('href', '/umalab/');
       }
     } catch (_) { /* Leave malformed or unsupported URLs unchanged. */ }
