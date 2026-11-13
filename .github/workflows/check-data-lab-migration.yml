@@ -1,0 +1,22 @@
+name: Check Data Lab migration links and assets
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "data-lab/**"
+      - "research/**"
+      - "tools/**"
+      - "guides/**"
+      - "assets/data-lab-**"
+      - "scripts/check_data_lab_migration.py"
+      - ".github/workflows/check-data-lab-migration.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/check_data_lab_migration.py
