@@ -1,0 +1,17 @@
+name: Audit all site links
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/audit_site_links.py"
+      - ".github/workflows/audit-site-links.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan all HTML links
+        run: python3 scripts/audit_site_links.py
