@@ -1,15 +1,17 @@
-// Keep legacy UmaLab home links pointing to the preserved UmaLab homepage.
-// This also covers newly generated articles that still use the original root link.
+// Only rewrite explicit UmaLab-home links; never rewrite research-site links.
 if (/^\/(?:global-news|ogb-data|class-promotion|knowledge|about|privacy|umalab)(?:\/|$)/.test(location.pathname)) {
   document.querySelectorAll('a[href]').forEach(link => {
     const raw = link.getAttribute('href');
     if (!raw || raw.startsWith('#')) return;
+    const label = (link.textContent || '').trim();
+    const isUmaLabHome = /^(OGBうまラボ|うまラボ|ホーム|トップページ|HOME)$/i.test(label) || link.classList.contains('brand');
+    if (!isUmaLabHome) return;
     try {
       const target = new URL(raw, document.baseURI);
-      if (target.origin === location.origin && target.pathname === '/' && !target.search && !target.hash && !link.textContent.includes('OGBデータ研究所') && !link.closest('.official-link-card, .relationship-card')) {
+      if (target.origin === location.origin && target.pathname === '/' && !target.search && !target.hash) {
         link.setAttribute('href', '/umalab/');
       }
-    } catch (_) { /* Leave malformed or unsupported URLs unchanged. */ }
+    } catch (_) { /* Keep original link. */ }
   });
 }
 const GA_MEASUREMENT_ID='G-KF9P62K5M8';window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config',GA_MEASUREMENT_ID);const gaScript=document.createElement('script');gaScript.async=true;gaScript.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(GA_MEASUREMENT_ID);document.head.append(gaScript);
