@@ -1,4 +1,11 @@
 window.ogbXPublishedData = [
+  { date: "2026-11-08", races: "アルゼンチン共和国杯", url: "https://note.com/gichu_omoto/n/n243703e58b06" },
+  { date: "2026-11-08", races: "みやこステークス", url: "https://note.com/gichu_omoto/n/n3a4213f6b41b" },
+  { date: "2026-11-07", races: "京王杯2歳ステークス", url: "https://note.com/gichu_omoto/n/n20c33e640015" },
+  { date: "2026-11-01", races: "天皇賞（秋）", url: "https://note.com/gichu_omoto/n/n2534180d70a4" },
+  { date: "2026-10-31", races: "ファンタジーステークス", url: "https://note.com/gichu_omoto/n/ndecdb136afd3" },
+  { date: "2026-10-25", races: "菊花賞", url: "https://note.com/gichu_omoto/n/n2843b15ca901" },
+  { date: "2026-10-24", races: "アルテミスステークス", url: "https://note.com/gichu_omoto/n/n7445b1f583c8" },
   { date: "2026-10-18", races: "秋華賞", url: "https://note.com/gichu_omoto/n/n430d0025a854" },
   { date: "2026-10-17", races: "富士ステークス", url: "https://note.com/gichu_omoto/n/n51cd42b7a9f5" },
   { date: "2026-10-11", races: "アイルランドトロフィー", url: "https://note.com/gichu_omoto/n/n48aea82daa01" },
