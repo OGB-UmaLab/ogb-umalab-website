@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CSV分析・グラフ作成ツール｜OGBデータ研究所</title>
-<meta name="description" content="売上・経費・商品販売・アンケートのCSVを読み込み、棒・折れ線・円・ヒストグラム・散布図と集計表を作成。サンプルで試せる無料のデータ分析ツール。">
+<title>売上・経費の自動診断レポート｜CSV分析ツール｜OGBデータ研究所</title>
+<meta name="description" content="CSVを読み込むと、売上や経費の合計、増減、上位項目、データの欠損や外れ値を自動チェック。分析結果の説明とグラフをまとめて確認できる無料ツール。">
 <link rel="canonical" href="https://ogb-umalab.com/tools/csv-analyzer/">
 <style>
 :root{--ink:#173038;--blue:#075e78;--muted:#536d75;--line:#d8e4e6;--bg:#f4f8f9}
@@ -11,14 +11,20 @@
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-7KHMXV2NFC"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-7KHMXV2NFC');</script>
 </head><body><header><nav><a href="../../">OGBデータ研究所</a><a href="../">無料ツール一覧</a><a href="https://ogb-umalab.com/umalab/">OGBうまラボ</a></nav></header>
 <main class="wrap">
-<p class="pill">登録不要・無料・ブラウザ内で分析</p>
-<h1>CSVを読み込むだけ。売上や経費の「見えなかった傾向」をグラフに。</h1>
-<p class="lead">Excelなどの表をCSV形式で保存して読み込むと、日別・月別の推移、商品別の比較、構成比、数値のばらつき、2項目の関係を調べられます。グラフの種類も自分で選べます。</p>
-<div class="grid">
-<div class="mini"><strong>折れ線・棒グラフ</strong>月別売上や商品別販売数を比較</div>
-<div class="mini"><strong>円・ヒストグラム</strong>構成比や数値の分布を確認</div>
-<div class="mini"><strong>散布図・集計表</strong>2項目の関係や合計・平均を確認</div>
-</div>
+<p class="pill">無料・登録不要・CSVを端末内で分析</p>
+<h1>売上・経費データを入れると、気になる数字と確認ポイントが自動で分かる。</h1>
+<p class="lead">グラフを自分で作るだけのツールではありません。CSVを読み込むと、合計・平均・増減・上位項目・欠損・外れ値などを自動チェックし、<strong>数字とその読み方をまとめた診断レポート</strong>を表示します。難しい集計式やグラフ設定から始める必要はありません。</p>
+<section class="card" id="showcase"><div class="actions" style="justify-content:space-between"><h2>まず、完成結果をご覧ください</h2><span class="pill">架空の売上サンプルから計算した表示例</span></div>
+<p>例えば「日付・売上・客数」の10日分のCSVを読み込むと、次のような結果が得られます。</p>
+<div class="grid"><div class="mini"><span>売上合計</span><strong>518,000円</strong><small>10日分の合計</small></div><div class="mini"><span>1日平均売上</span><strong>51,800円</strong><small>売上列の平均</small></div><div class="mini"><span>売上最高日</span><strong>11月6日</strong><small>100,000円</small></div></div>
+<div class="grid" style="margin-top:14px"><div class="mini"><h3>自動で分かること①</h3><p>売上が最も高い日は11月6日、最も低い日は11月3日。日ごとのばらつきが見えます。</p></div><div class="mini"><h3>自動で分かること②</h3><p>売上と客数を両方記録していれば、客数あたりの売上や両者の相関も確認できます。</p></div><div class="mini"><h3>自動で分かること③</h3><p>欠損した数値や、他の値から大きく離れた値を検出し、確認ポイントとして表示します。</p></div></div>
+<p class="note">これは診断結果の表示例です。実際のレポートは読み込んだデータの列名・内容に応じて変わります。原因の断定や将来の売上予測は行いません。</p>
+<div class="actions"><button id="tryHero">この売上データで実際の診断を試す</button><a href="#load">自分のCSVを読み込む</a></div></section>
+<section class="card"><h2>Excelでグラフを作るのと、何が違う？</h2>
+<div class="grid"><div class="mini"><h3>集計の設定を省ける</h3><p>合計・平均・最大・最小、上位項目などを、読み込んだデータから自動計算します。最初に数式やピボットテーブルを作る必要はありません。</p></div>
+<div class="mini"><h3>確認ポイントを文章で表示</h3><p>数字を並べるだけでなく、どの項目が大きいか、欠損や外れ値があるか、何を確認すべきかを自動で示します。</p></div>
+<div class="mini"><h3>必要なら詳しく掘り下げる</h3><p>自動レポートを見た後、棒・折れ線・円・ヒストグラム・散布図や集計方法を自分で選び、追加分析できます。</p></div></div>
+<p class="muted">Excelにも同様の分析機能があります。このツールの利点は、あらかじめ用意された診断項目を自動で確認できる点です。現在の入力形式はCSVです（Excelの.xlsxを直接開く機能はありません）。</p></section>
 <section class="card" id="examples"><h2>どんなファイルが使える？</h2><p>表の1行目が項目名、2行目以降がデータのCSVファイルを想定しています。以下は読み込み可能な形式の例です（数値は架空です）。</p>
 <div class="grid">
 <div class="demo"><h3>① 店舗の売上管理</h3><div class="scroll"><table><tr><th>日付</th><th>売上</th><th>客数</th></tr><tr><td>2026-11-01</td><td>30000</td><td>30</td></tr><tr><td>2026-11-02</td><td>45000</td><td>40</td></tr><tr><td>2026-11-03</td><td>25000</td><td>25</td></tr></table></div><p>日別の売上推移、平均売上、売上と客数の関係を分析できます。</p><button class="secondary" data-sample="sales">この例で試す</button></div>
@@ -42,7 +48,7 @@
 <p id="status" role="status" class="muted">ファイルを選ぶか、サンプルデータで試してください。</p>
 <p class="muted">ファイルは端末のブラウザ内で処理し、分析のためにサーバーへアップロードしません。CSVは最大10万データ行・200列まで。大量データでは端末に負荷がかかる場合があります。</p>
 </section>
-<div id="results" hidden>
+<div id="results" hidden><section class="card" id="autoReport"><h2>自動診断レポート</h2><p class="muted">ファイルの数値・分類・日付から確認できる項目を自動で抽出しました。列の内容によって表示項目は異なります。</p><div id="reportMetrics" class="grid"></div><div id="reportFindings" class="grid" style="margin-top:14px"></div><div class="actions"><button id="downloadReport" class="secondary">診断結果をCSV保存</button></div></section>
 <section class="card" id="analyze"><h2>2. どんな分析をしますか？</h2><div class="grid">
 <div><label for="purpose">調べたいこと</label><select id="purpose"><option value="trend">日付・月別の推移</option><option value="compare">商品・項目別の比較</option><option value="share">内訳・構成比</option><option value="hist">数値の分布・ばらつき</option><option value="scatter">2項目の関係（散布図）</option></select></div>
 <div><label for="chartType">グラフ形式</label><select id="chartType"><option value="auto">おすすめを自動選択</option><option value="line">折れ線グラフ</option><option value="bar">棒グラフ</option><option value="pie">円グラフ</option><option value="hist">ヒストグラム</option><option value="scatter">散布図</option></select></div>
@@ -72,7 +78,7 @@
 </main><footer>OGBデータ研究所 ｜ <a href="../../data-lab/organization/">運営情報</a></footer>
 <script>
 "use strict";
-const $=id=>document.getElementById(id),state={headers:[],rows:[],stats:[],group:[],chartType:"bar"};
+const $=id=>document.getElementById(id),state={headers:[],rows:[],stats:[],group:[],chartType:"bar",reportRows:[]};
 const fmt=n=>Number.isFinite(n)?Number(n.toFixed(4)).toLocaleString("ja-JP"):"—";
 const samples={
 sales:"日付,売上,客数\n2026-11-01,30000,30\n2026-11-02,45000,40\n2026-11-03,25000,25\n2026-11-04,50000,45\n2026-11-05,60000,55\n2026-11-06,100000,90\n2026-11-07,75000,65\n2026-11-08,33000,31\n2026-11-09,52000,48\n2026-11-10,48000,43",
@@ -87,7 +93,7 @@ function el(tag,txt){const e=document.createElement(tag);if(txt!==undefined)e.te
 function option(select,val,label){const o=el("option",label);o.value=val;select.append(o)}
 function cell(tr,val,tag="td"){tr.append(el(tag,val))}
 function track(action){if(typeof gtag==="function")gtag("event","tool_interaction",{tool_name:"csv_analyzer",tool_action:action})}
-function load(s){try{let parsed=parseCSV(s.replace(/^\uFEFF/,""));if(!parsed.length)throw Error("データがありません。");if(parsed.length>100001)throw Error("データ行は10万行以下にしてください。");let n=parsed[0].length;if(n>200)throw Error("列数は200列以下にしてください。");if(parsed.some(r=>r.length!==n))throw Error("行ごとの列数が一致しません。");let heads=$("hasHeader").checked?parsed.shift().map((v,i)=>v.trim()||"列"+(i+1)):Array.from({length:n},(_,i)=>"列"+(i+1));if(!parsed.length)throw Error("データ行がありません。");state.headers=heads.map((v,i)=>v+"（"+(i+1)+"列）");state.rows=parsed;analyze();if(!state.stats.length)throw Error("数値列が見つかりません。数字だけを入力した列を用意してください。");$("results").hidden=false;$("status").className="muted";$("status").textContent=parsed.length+"行・"+n+"列を読み込みました。数値列は"+state.stats.length+"列です。";setup();renderStats();$("results").scrollIntoView({behavior:"smooth",block:"start"});track("load")}catch(e){$("results").hidden=true;$("status").className="error";$("status").textContent="読み込みできませんでした："+e.message}}
+function load(s){try{let parsed=parseCSV(s.replace(/^\uFEFF/,""));if(!parsed.length)throw Error("データがありません。");if(parsed.length>100001)throw Error("データ行は10万行以下にしてください。");let n=parsed[0].length;if(n>200)throw Error("列数は200列以下にしてください。");if(parsed.some(r=>r.length!==n))throw Error("行ごとの列数が一致しません。");let heads=$("hasHeader").checked?parsed.shift().map((v,i)=>v.trim()||"列"+(i+1)):Array.from({length:n},(_,i)=>"列"+(i+1));if(!parsed.length)throw Error("データ行がありません。");state.headers=heads.map((v,i)=>v+"（"+(i+1)+"列）");state.rows=parsed;analyze();if(!state.stats.length)throw Error("数値列が見つかりません。数字だけを入力した列を用意してください。");$("results").hidden=false;$("status").className="muted";$("status").textContent=parsed.length+"行・"+n+"列を読み込みました。数値列は"+state.stats.length+"列です。";setup();renderStats();renderReport();$("results").scrollIntoView({behavior:"smooth",block:"start"});track("load")}catch(e){$("results").hidden=true;$("status").className="error";$("status").textContent="読み込みできませんでした："+e.message}}
 function setup(){for(const id of ["xcol","ycol"])$(id).replaceChildren();state.headers.forEach((h,i)=>option($("xcol"),i,h));state.stats.forEach(t=>option($("ycol"),t.index,t.name));let dateIdx=state.headers.findIndex(h=>/日付|年月|月|date/i.test(h)),categoryIdx=state.headers.findIndex(h=>/商品|項目|費目|カテゴリ|回答者/i.test(h));$("xcol").value=String(dateIdx>=0?dateIdx:categoryIdx>=0?categoryIdx:0);$("ycol").value=String(state.stats.find(t=>/売上|金額|販売数|満足度/i.test(t.name))?.index??state.stats[0].index);$("purpose").value=dateIdx>=0?"trend":categoryIdx>=0?"compare":"hist";$("chartType").value="auto";$("agg").value="sum";$("dateGroup").value="raw";if(dateIdx>=0)$("dateGroup").value="day";if(state.headers.some(h=>/項目|費目/i.test(h)))$("purpose").value="share";renderChart()}
 function getNum(row,i){let s=(row[i]??"").trim();return s!==""&&Number.isFinite(Number(s))?Number(s):null}
 function groupKey(raw,mode){if(mode==="raw")return raw;let m=/^(\d{4})[-\/](\d{1,2})(?:[-\/](\d{1,2}))?$/.exec(raw.trim());if(!m)return raw;let y=m[1],month=Number(m[2]),day=m[3]?Number(m[3]):null;if(month<1||month>12||day!==null&&(day<1||day>31))return raw;return mode==="month"?y+"-"+String(month).padStart(2,"0"):day===null?raw:y+"-"+String(month).padStart(2,"0")+"-"+String(day).padStart(2,"0")}
@@ -102,13 +108,43 @@ if(type==="pie"){let positive=data.filter(p=>p.value>0).sort((a,b)=>b.value-a.va
 if(type==="scatter"){let pts=data.slice(0,5000),xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);axis(ctx,w,h,fmt(ymax),fmt(ymin));for(let p of pts){let x=85+(p.x-xmin)/(xmax-xmin||1)*(w-130),y=h-75-(p.y-ymin)/(ymax-ymin||1)*(h-145);ctx.fillStyle="rgba(8,113,138,.55)";ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill()}ctx.fillStyle="#173038";ctx.fillText(fmt(xmin),85,h-30);ctx.fillText(fmt(xmax),w-115,h-30);return}
 let visible=data.filter(p=>p.value!==null).slice(0,type==="hist"?10:30),vals=visible.map(p=>p.value),min=Math.min(0,...vals),max=Math.max(0,...vals);if(min===max){min=Math.min(0,min-1);max=Math.max(1,max+1)}axis(ctx,w,h,fmt(max),fmt(min));let x0=85,y0=h-75,pw=w-130,ph=h-145,zero=y0-(0-min)/(max-min)*ph;ctx.strokeStyle="#bacbd0";ctx.beginPath();ctx.moveTo(x0,zero);ctx.lineTo(x0+pw,zero);ctx.stroke();let step=pw/visible.length,points=[];visible.forEach((p,i)=>{let x=x0+(i+.5)*step,y=y0-(p.value-min)/(max-min)*ph;if(type==="line"){points.push([x,y])}else{let bw=Math.max(3,step*.72);ctx.fillStyle=colors[0];ctx.fillRect(x-bw/2,Math.min(y,zero),bw,Math.max(1,Math.abs(y-zero)))}if(visible.length<=16||i%Math.ceil(visible.length/12)===0){ctx.save();ctx.translate(x,h-60);ctx.rotate(-Math.PI/4);ctx.textAlign="right";ctx.fillStyle="#173038";ctx.font="13px system-ui";ctx.fillText(p.label.slice(0,15),0,0);ctx.restore()}});if(type==="line"){ctx.strokeStyle=colors[0];ctx.lineWidth=3;ctx.beginPath();points.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.stroke();for(const [x,y] of points){ctx.fillStyle=colors[0];ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill()}}}
 function axis(ctx,w,h,top,bottom){ctx.strokeStyle="#a8bcc2";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(85,65);ctx.lineTo(85,h-75);ctx.lineTo(w-45,h-75);ctx.stroke();ctx.fillStyle="#173038";ctx.font="15px system-ui";ctx.fillText(top,12,78);ctx.fillText(bottom,12,h-77)}
+
+function renderReport(){
+ const metrics=$("reportMetrics"),findings=$("reportFindings");metrics.replaceChildren();findings.replaceChildren();
+ let report=[["診断項目","結果","説明"]],addMetric=(title,value,desc)=>{let d=el("div");d.className="mini";d.append(el("span",title),el("strong",value),el("small",desc));metrics.append(d);report.push([title,value,desc])},addFinding=(title,desc)=>{let d=el("div");d.className="mini";d.append(el("h3",title),el("p",desc));findings.append(d);report.push([title,"",desc])};
+ addMetric("読み込んだデータ",fmt(state.rows.length)+"行",fmt(state.headers.length)+"列・数値列"+fmt(state.stats.length)+"列");
+ let primary=state.stats.find(t=>/売上|金額|経費|支出|販売数|数量|利益/i.test(t.name))||state.stats[0];
+ let money=/売上|金額|経費|支出|利益|費用/i.test(primary.name),unit=money?"円":"";
+ addMetric(primary.name+"の合計",fmt(primary.sum)+unit,"空欄を除いた"+fmt(primary.n)+"件の合計");
+ addMetric(primary.name+"の平均",fmt(primary.mean)+unit,"空欄を除いた1件あたりの平均");
+ addMetric(primary.name+"の範囲",fmt(primary.min)+" ～ "+fmt(primary.max)+unit,"最小値から最大値");
+ if(primary.missing>0)addFinding("欠損データを確認",primary.name+"に空欄が"+primary.missing+"件あります。合計・平均は空欄を除いて計算しています。");
+ if(primary.outliers>0)addFinding("大きく離れた数値を検出",primary.name+"にIQR基準の外れ値が"+primary.outliers+"件あります。入力ミスとは限りませんが、明細を確認してください。");
+ let dates=state.headers.findIndex(h=>/日付|年月|月|date/i.test(h));
+ if(dates>=0){
+   let map=new Map();for(let row of state.rows){let k=groupKey((row[dates]||"").trim(),"month"),v=getNum(row,primary.index);if(v!==null&&k){map.set(k,(map.get(k)||0)+v)}}
+   let periods=[...map].filter(([k])=>/^\d{4}-\d{2}$/.test(k)).sort((a,b)=>a[0].localeCompare(b[0]));
+   if(periods.length>=2){let [prev,cur]=periods.slice(-2),delta=cur[1]-prev[1],rate=prev[1]!==0?fmt(delta/Math.abs(prev[1])*100)+"%":"算出不可";
+   addFinding("直近2か月の比較",prev[0]+"の"+fmt(prev[1])+unit+"に対し、"+cur[0]+"は"+fmt(cur[1])+unit+"。差は"+(delta>=0?"+":"")+fmt(delta)+unit+"（変化率："+rate+"）。対象月の日数やデータの欠けに注意してください。")}
+   let byDate=new Map();for(let row of state.rows){let k=(row[dates]||"").trim(),v=getNum(row,primary.index);if(k&&v!==null)byDate.set(k,(byDate.get(k)||0)+v)}
+   if(byDate.size>1){let ranked=[...byDate].sort((a,b)=>b[1]-a[1]);addFinding("日付別の最大・最小",primary.name+"が最大の日付は"+ranked[0][0]+"（"+fmt(ranked[0][1])+unit+"）、最小は"+ranked[ranked.length-1][0]+"（"+fmt(ranked[ranked.length-1][1])+unit+"）です。")}}
+ let cat=state.headers.findIndex((h,i)=>i!==primary.index&&/商品|項目|費目|分類|カテゴリ|店舗|部門|担当/i.test(h));
+ if(cat>=0){let map=new Map();for(let row of state.rows){let k=(row[cat]||"").trim(),v=getNum(row,primary.index);if(k&&v!==null)map.set(k,(map.get(k)||0)+v)}
+ let ranked=[...map].sort((a,b)=>b[1]-a[1]);if(ranked.length){let total=ranked.reduce((n,p)=>n+p[1],0),p=ranked[0];addFinding("分類別の上位項目",state.headers[cat]+"のうち"+p[0]+"が"+fmt(p[1])+unit+"で最大です。"+(total>0&&p[1]>=0?"全分類の合計に占める割合は"+fmt(p[1]/total*100)+"%。":"")+" 分類別の内訳は下のグラフで確認できます。")}}
+ let second=state.stats.find(t=>t.index!==primary.index&&/客数|来店|人数|数量|販売数/i.test(t.name));
+ if(second){let pairs=state.rows.map(r=>[getNum(r,primary.index),getNum(r,second.index)]).filter(p=>p[0]!==null&&p[1]!==null&&p[1]>0);
+ if(pairs.length){let sum1=pairs.reduce((n,p)=>n+p[0],0),sum2=pairs.reduce((n,p)=>n+p[1],0);addMetric(second.name+"あたりの"+primary.name,fmt(sum1/sum2)+unit,"両方の数値があり、"+second.name+"が正の行のみで計算")}}
+ if(findings.children.length===0)addFinding("まず確認したいこと",primary.name+"の合計・平均・最大・最小を確認できます。より詳しく比較する場合は下のグラフで分類列と数値列を選んでください。");
+ addFinding("診断結果の注意", "このレポートは列名と数値から機械的に計算しています。売上の増減理由や事業上の改善策を断定するものではありません。月別比較は期間が同じ長さとは限りません。");
+ state.reportRows=report;
+}
 function renderStats(){let box=$("overview");box.replaceChildren();for(const [label,value] of [["データ行数",state.rows.length],["列数",state.headers.length],["数値列数",state.stats.length]]){let d=el("div");d.className="mini";d.append(el("span",label),el("strong",value));box.append(d)}$("summary").replaceChildren();for(const t of state.stats){let r=el("tr");[t.name,t.n,t.missing,t.sum,t.mean,t.median,t.sd,t.min,t.max,t.outliers].forEach(v=>cell(r,typeof v==="number"?fmt(v):v));$("summary").append(r)}let stats=state.stats.slice(0,12);$("corrHead").replaceChildren();$("corrBody").replaceChildren();let head=el("tr");cell(head,"列","th");stats.forEach(t=>cell(head,t.name,"th"));$("corrHead").append(head);for(let a of stats){let r=el("tr");cell(r,a.name);for(let b of stats)cell(r,fmt(correlation(a.index,b.index)));$("corrBody").append(r)}}
 function correlation(ai,bi){let pairs=state.rows.map(r=>[getNum(r,ai),getNum(r,bi)]).filter(p=>p[0]!==null&&p[1]!==null);if(pairs.length<2)return NaN;let mx=pairs.reduce((s,p)=>s+p[0],0)/pairs.length,my=pairs.reduce((s,p)=>s+p[1],0)/pairs.length,xx=0,yy=0,xy=0;for(const [x,y] of pairs){xx+=(x-mx)**2;yy+=(y-my)**2;xy+=(x-mx)*(y-my)}return xx&&yy?xy/Math.sqrt(xx*yy):NaN}
 function csvCell(v){let s=String(v??"");return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
 function save(text,name,type){let blob=new Blob([type==="text/csv;charset=utf-8"?"\uFEFF":"",text],{type}),url=URL.createObjectURL(blob),a=el("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function saveRows(rows,name){save(rows.map(r=>r.map(csvCell).join(",")).join("\r\n"),name,"text/csv;charset=utf-8")}
 $("file").addEventListener("change",async()=>{let f=$("file").files[0];if(!f)return;if(f.size>5000000){$("status").className="error";$("status").textContent="5MB以下のCSVを選んでください。";return}try{let bytes=await f.arrayBuffer(),s=new TextDecoder($("encoding").value,{fatal:true}).decode(bytes);load(s)}catch(e){$("status").className="error";$("status").textContent="文字コードを変更して再度読み込んでください："+e.message}});
-$("sample").onclick=()=>load(samples.sales);document.querySelectorAll("[data-sample]").forEach(b=>b.onclick=()=>{load(samples[b.dataset.sample]);$("file").value=""});$("downloadSample").onclick=()=>save(samples.sales,"sample_sales.csv","text/csv;charset=utf-8");
+$("sample").onclick=()=>load(samples.sales);$("tryHero").onclick=()=>load(samples.sales);$("downloadReport").onclick=()=>{saveRows(state.reportRows,"csv-auto-report.csv");track("export_report")};document.querySelectorAll("[data-sample]").forEach(b=>b.onclick=()=>{load(samples[b.dataset.sample]);$("file").value=""});$("downloadSample").onclick=()=>save(samples.sales,"sample_sales.csv","text/csv;charset=utf-8");
 ["purpose","chartType","xcol","ycol","agg","dateGroup"].forEach(id=>$(id).addEventListener("change",()=>{renderChart();track("change_"+id)}));
 $("png").onclick=()=>{let a=el("a");a.download="csv-analysis-chart.png";a.href=$("chart").toDataURL("image/png");a.click();track("export_png")};
 $("exportGroup").onclick=()=>{let scatterMode=state.chartType==="scatter",head=[scatterMode?state.headers[Number($("xcol").value)]:"分類",scatterMode?state.headers[Number($("ycol").value)]:"値"],rows=state.group.map(p=>scatterMode?[p.x,p.y]:[p.label,p.value]);saveRows([head,...rows],"csv-analysis-group.csv");track("export_group")};
