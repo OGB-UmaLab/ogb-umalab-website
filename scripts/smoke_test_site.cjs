@@ -21,22 +21,31 @@ const base = 'https://ogb-umalab.com';
      const link=page.locator('a.official-link-card').filter({hasText:'OGBデータ研究所'}).first();
      if(!await link.count()) throw new Error('Data Lab card not found');
      if(new URL(await link.getAttribute('href'),base).pathname!=='/') throw new Error('Data Lab link rewritten');
+     await link.click();
+     await page.waitForTimeout(250);
+     const href = await link.getAttribute('href');
+     if(new URL(href,base).pathname!=='/') throw new Error('Data Lab card click target incorrect');
    });
    await test('/',async()=>{
      if(!(await page.title()).includes('OGBデータ研究所')) throw new Error('Wrong main homepage');
    });
    await test('/tools/csv-analyzer/',async()=>{
      await page.locator('#sample').click();
-     if(!(await page.locator('body').innerText()).includes('平均')) throw new Error('CSV sample failed');
+     if(!(await page.locator('#results').isVisible())) throw new Error('CSV results did not appear');
+     if(!(await page.locator('#summary tr').count())) throw new Error('CSV statistical rows missing');
    });
    await test('/tools/pricing-simulator/',async()=>{
      await page.locator('#calculate').click();
      const body=await page.locator('body').innerText();
-     if(!body.includes('販売価格')) throw new Error('Pricing output missing');
+     if(!(await page.locator('#result').innerText()).trim()) throw new Error('Pricing output empty');
    });
    await test('/tools/',async()=>{
      await page.locator('#calc-profit').click();
-     if(!(await page.locator('body').innerText()).includes('利益')) throw new Error('Profit calculator failed');
+     if(!(await page.locator('#profit-result').innerText()).trim()) throw new Error('Profit result empty');
+     await page.locator('#calc-stats').click();
+     if(!(await page.locator('#stats-result').innerText()).trim()) throw new Error('Statistics result empty');
+     await page.locator('#calc-corr').click();
+     if(!(await page.locator('#corr-result').innerText()).trim()) throw new Error('Correlation result empty');
    });
    await test('/ogb-data/daily/',async()=>{});
    await test('/global-news/',async()=>{});
