@@ -82,6 +82,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const download=await downloadPromise;
      if(download.suggestedFilename()!=='order-payment-reconciliation.csv') throw new Error('Wrong reconciliation export filename');
    });
+   await test(local('tools/order-payment-reconcile/index.html'),async()=>{
+     await page.locator('#demo').click();
+     await page.locator('#run').click();
+     if(await page.locator('#export').isDisabled()) throw new Error('Initial export not available');
+     await page.locator('#orderAmount').selectOption('0');
+     await page.locator('#run').click();
+     if(!await page.locator('#export').isDisabled()) throw new Error('Stale reconciliation export remains enabled after error');
+     if(await page.locator('#results tr').count()) throw new Error('Stale reconciliation rows remain after error');
+   });
+   await test(local('tools/order-payment-reconcile/index.html'),async()=>{
+     await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\nC001,10.25\nC002,10.123','utf8')});
+     await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\nC001,10.25\nC002,10.12','utf8')});
+     await page.locator('#load').click();
+     await page.waitForFunction(() => document.querySelector('#run')?.disabled === false);
+     await page.locator('#run').click();
+     const summary=await page.locator('#summary').innerText();
+     if(!summary.includes('一致 1件')||!summary.includes('金額不正 1件')) throw new Error('Cent precision validation failed: '+summary);
+   });
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
      if(!css||css==='Times New Roman') throw new Error('UmaLab stylesheet not applied');
