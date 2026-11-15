@@ -2,11 +2,13 @@ const { chromium } = require('playwright');
 const base = 'https://ogb-umalab.com';
 const { pathToFileURL } = require('url');
 const path = require('path');
+const fs = require('fs');
 const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
 (async () => {
  const browser = await chromium.launch({headless:true});
  const page = await browser.newPage();
  const errors=[];
+ fs.mkdirSync(path.resolve(__dirname,'../test-results'),{recursive:true});
  const test=async (path,fn)=>{
   try {
    const target=path.startsWith('file:')?path:base+path;
@@ -18,6 +20,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    const message=path+': '+String(e);
    errors.push(message);
    console.error('FAIL',message);
+   try { await page.screenshot({path:path.resolve(__dirname,'../test-results/failure-'+errors.length+'.png'),fullPage:true}); } catch(_) {}
   }
  };
  try {
