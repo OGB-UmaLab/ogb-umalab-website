@@ -100,6 +100,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const summary=await page.locator('#summary').innerText();
      if(!summary.includes('一致 1件')||!summary.includes('金額不正 1件')) throw new Error('Cent precision validation failed: '+summary);
    });
+   await test(local('tools/order-line-aggregate/index.html'),async()=>{
+     const csv='注文番号,明細金額,商品名\n"Q,001",100,"商品,特別"\n"Q,001",250,"複数行\nの商品"\nQ002,900,通常';
+     await page.locator('#file').setInputFiles({name:'quoted.csv',mimeType:'text/csv',buffer:Buffer.from(csv,'utf8')});
+     await page.locator('#load').click();
+     await page.waitForFunction(() => document.querySelector('#run')?.disabled === false);
+     await page.locator('#run').click();
+     const rows=await page.locator('#result tr').allTextContents();
+     if(rows.length!==2||!rows.some(x=>x.includes('Q,001')&&x.includes('350'))) throw new Error('Quoted CSV parsing failed: '+rows);
+   });
+   await test(local('tools/order-line-aggregate/index.html'),async()=>{
+     const csv='注文番号,明細金額\nA001,100\n,200';
+     await page.locator('#file').setInputFiles({name:'invalid.csv',mimeType:'text/csv',buffer:Buffer.from(csv,'utf8')});
+     await page.locator('#load').click();
+     await page.waitForFunction(() => document.querySelector('#run')?.disabled === false);
+     await page.locator('#run').click();
+     if(!(await page.locator('#runStatus').innerText()).includes('注文番号が空欄')) throw new Error('Missing order ID not rejected');
+     if(!await page.locator('#save').isDisabled()) throw new Error('Invalid aggregation still exportable');
+   });
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
      if(!css||css==='Times New Roman') throw new Error('UmaLab stylesheet not applied');
