@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - "scripts/smoke_test_site.cjs"
+      - "tools/order-line-aggregate/**"
+      - "tools/order-payment-reconcile/**"
       - ".github/workflows/smoke-test-site.yml"
   workflow_dispatch:
 permissions:
