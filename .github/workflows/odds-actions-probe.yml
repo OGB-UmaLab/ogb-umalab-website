@@ -1,0 +1,23 @@
+name: Rakuten trifecta odds probe
+on:
+  push:
+    branches: [codex/odds-actions-probe]
+    paths: [.github/workflows/odds-actions-probe.yml]
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Fetch public sample and verify odds HTML
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --max-time 15 -o odds.html 'https://keiba.rakuten.co.jp/odds/sanrenfuku/RACEID/202611151106070110'
+          python3 - <<'PY'
+          from pathlib import Path
+          html = Path("odds.html").read_text(encoding="utf-8")
+          assert "水沢競馬場" in html and "11/15 10R" in html, "Unexpected race"
+          assert "三連複オッズ" in html and 'data-grouping=' in html, "Odds matrix missing"
+          print("PASS: Rakuten trifecta odds HTML and matrix received from GitHub Actions")
+          PY
