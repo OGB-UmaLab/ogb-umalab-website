@@ -47,6 +47,24 @@ const base = 'https://ogb-umalab.com';
      await page.locator('#calc-corr').click();
      if(!(await page.locator('#corr-result').innerText()).trim()) throw new Error('Correlation result empty');
    });
+   await test('/tools/order-line-aggregate/',async()=>{
+     await page.locator('#demo').click();
+     await page.locator('#run').click();
+     const rows=await page.locator('#result tr').allTextContents();
+     if(rows.length!==3) throw new Error('Order aggregation count incorrect');
+     if(!rows.some(x=>x.includes('A001')&&x.includes('1200')&&x.includes('2'))) throw new Error('A001 aggregation incorrect');
+     await page.locator('#save').click();
+   });
+   await test('/tools/order-payment-reconcile/',async()=>{
+     await page.locator('#demo').click();
+     await page.locator('#run').click();
+     const summary=await page.locator('#summary').innerText();
+     for(const status of ['一致 1件','金額不一致 1件','受注のみ 1件','決済のみ 1件','ID重複 1件']){
+       if(!summary.includes(status)) throw new Error('Reconciliation missing '+status+': '+summary);
+     }
+     if(await page.locator('#results tr').count()!==5) throw new Error('Reconciliation result count incorrect');
+     await page.locator('#export').click();
+   });
    await test('/ogb-data/daily/',async()=>{});
    await test('/global-news/',async()=>{});
    await test('/class-promotion/',async()=>{});
