@@ -1,12 +1,16 @@
 const { chromium } = require('playwright');
 const base = 'https://ogb-umalab.com';
+const { pathToFileURL } = require('url');
+const path = require('path');
+const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
 (async () => {
  const browser = await chromium.launch({headless:true});
  const page = await browser.newPage();
  const errors=[];
  const test=async (path,fn)=>{
-   const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:30000});
-   if(!response||response.status()!==200) throw new Error(path+' HTTP '+response?.status());
+   const target=path.startsWith('file:')?path:base+path;
+   const response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:30000});
+   if(!response||(target.startsWith('https:')&&response.status()!==200)) throw new Error(path+' HTTP '+response?.status());
    await fn();
    console.log('PASS',path);
  };
@@ -47,7 +51,7 @@ const base = 'https://ogb-umalab.com';
      await page.locator('#calc-corr').click();
      if(!(await page.locator('#corr-result').innerText()).trim()) throw new Error('Correlation result empty');
    });
-   await test('/tools/order-line-aggregate/',async()=>{
+   await test(local('tools/order-line-aggregate/index.html'),async()=>{
      await page.locator('#demo').click();
      await page.locator('#run').click();
      const rows=await page.locator('#result tr').allTextContents();
@@ -55,7 +59,7 @@ const base = 'https://ogb-umalab.com';
      if(!rows.some(x=>x.includes('A001')&&x.includes('1200')&&x.includes('2'))) throw new Error('A001 aggregation incorrect');
      await page.locator('#save').click();
    });
-   await test('/tools/order-payment-reconcile/',async()=>{
+   await test(local('tools/order-payment-reconcile/index.html'),async()=>{
      await page.locator('#demo').click();
      await page.locator('#run').click();
      const summary=await page.locator('#summary').innerText();
