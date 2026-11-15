@@ -8,11 +8,17 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
  const page = await browser.newPage();
  const errors=[];
  const test=async (path,fn)=>{
+  try {
    const target=path.startsWith('file:')?path:base+path;
    const response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:30000});
    if(!response||(target.startsWith('https:')&&response.status()!==200)) throw new Error(path+' HTTP '+response?.status());
    await fn();
    console.log('PASS',path);
+  } catch(e) {
+   const message=path+': '+String(e);
+   errors.push(message);
+   console.error('FAIL',message);
+  }
  };
  try {
    await test(local('tools/order-line-aggregate/index.html'),async()=>{
