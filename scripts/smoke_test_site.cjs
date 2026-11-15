@@ -35,6 +35,17 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    await test(local('tools/order-payment-reconcile/index.html'),async()=>{
      await page.locator('#demo').click();
      await page.locator('#run').click();
+     if(await page.locator('#export').isDisabled()) throw new Error('Expected demo export');
+     await page.locator('#load').click();
+     if(!await page.locator('#export').isDisabled()) throw new Error('Stale export after missing file');
+     if(await page.locator('#results tr').count()) throw new Error('Stale rows after missing file');
+     await page.locator('#demo').click();
+     await page.locator('#run').click();
+     if(await page.locator('#export').isDisabled()) throw new Error('Failed to recover from missing file');
+   });
+   await test(local('tools/order-payment-reconcile/index.html'),async()=>{
+     await page.locator('#demo').click();
+     await page.locator('#run').click();
      const summary=await page.locator('#summary').innerText();
      for(const status of ['一致 1件','金額不一致 1件','受注のみ 1件','決済のみ 1件','ID重複 1件']){
        if(!summary.includes(status)) throw new Error('Reconciliation missing '+status+': '+summary);
