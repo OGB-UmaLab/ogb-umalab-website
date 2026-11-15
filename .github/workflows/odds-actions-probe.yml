@@ -2,22 +2,31 @@ name: Rakuten trifecta odds probe
 on:
   push:
     branches: [codex/odds-actions-probe]
-    paths: [.github/workflows/odds-actions-probe.yml]
+    paths:
+      - .github/workflows/odds-actions-probe.yml
+      - tools/odds-probe/snapshot.mjs
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: odds-actions-probe
 jobs:
   snapshot:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Fetch public sample and verify odds HTML
+      - uses: actions/checkout@v4
+      - name: Fetch and validate the Rakuten trifecta snapshot
         shell: bash
         run: |
-          curl --fail --silent --show-error --max-time 15 -o odds.html 'https://keiba.rakuten.co.jp/odds/sanrenfuku/RACEID/202611151106070110'
-          python3 - <<'PY'
-          from pathlib import Path
-          html = Path("odds.html").read_text(encoding="utf-8")
-          assert "水沢競馬場" in html and "11/15 10R" in html, "Unexpected race"
-          assert "三連複オッズ" in html and 'data-grouping=' in html, "Odds matrix missing"
-          print("PASS: Rakuten trifecta odds HTML and matrix received from GitHub Actions")
-          PY
+          race_id=202611151106070110
+          curl --fail --silent --show-error --max-time 15 -o "$RUNNER_TEMP/odds.html" "https://keiba.rakuten.co.jp/odds/sanrenfuku/RACEID/$race_id"
+          node tools/odds-probe/snapshot.mjs "$race_id" "$RUNNER_TEMP/odds.html" tools/odds-probe/snapshot.json
+      - name: Store the verified snapshot on the test branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- tools/odds-probe/snapshot.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Save verified trifecta test snapshot"
+          git push
