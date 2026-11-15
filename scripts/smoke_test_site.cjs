@@ -33,6 +33,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(await page.locator('#results tr').count()!==5) throw new Error('Reconciliation result count incorrect');
      await page.locator('#export').click();
    });
+   await test(local('tools/order-line-aggregate/index.html'),async()=>{
+     await page.locator('#demo').click();
+     await page.locator('#amtcol').selectOption('0');
+     await page.locator('#run').click();
+     if(!(await page.locator('#runStatus').innerText()).includes('集計エラー')) throw new Error('Same-column validation failed');
+     await page.locator('#amtcol').selectOption('1');
+     await page.locator('#run').click();
+     if(!(await page.locator('#summary').innerText()).includes('3注文')) throw new Error('Recovery after validation error failed');
+   });
+   await test(local('tools/order-payment-reconcile/index.html'),async()=>{
+     await page.locator('#demo').click();
+     await page.locator('#orderAmount').selectOption('0');
+     await page.locator('#run').click();
+     if(!(await page.locator('#runStatus').innerText()).includes('照合エラー')) throw new Error('Same-column validation failed');
+     await page.locator('#orderAmount').selectOption('1');
+     await page.locator('#run').click();
+     if(!(await page.locator('#summary').innerText()).includes('ID重複 1件')) throw new Error('Recovery after validation error failed');
+   });
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
      if(!css||css==='Times New Roman') throw new Error('UmaLab stylesheet not applied');
