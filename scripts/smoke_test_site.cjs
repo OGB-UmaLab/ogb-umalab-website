@@ -60,6 +60,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    await test(local('tools/order-line-aggregate/index.html'),async()=>{
      await page.locator('#file').setInputFiles({name:'lines.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,明細金額\nZ001,300\nZ001,200\nZ002,800','utf8')});
      await page.locator('#load').click();
+     await page.waitForFunction(() => document.querySelector('#run')?.disabled === false);
      await page.locator('#run').click();
      const rows=await page.locator('#result tr').allTextContents();
      if(rows.length!==2||!rows.some(x=>x.includes('Z001')&&x.includes('500'))) throw new Error('Uploaded CSV aggregation failed: '+rows);
@@ -72,6 +73,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,税込注文総額\nZ001,500\nZ002,800','utf8')});
      await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,決済金額\nZ001,500\nZ002,700','utf8')});
      await page.locator('#load').click();
+     await page.waitForFunction(() => document.querySelector('#run')?.disabled === false);
      await page.locator('#run').click();
      const summary=await page.locator('#summary').innerText();
      if(!summary.includes('一致 1件')||!summary.includes('金額不一致 1件')) throw new Error('Uploaded CSV reconciliation failed: '+summary);
