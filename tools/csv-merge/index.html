@@ -32,7 +32,7 @@
 <li><strong>結果を確認して保存する：</strong>ファイルごとの行数・列の差異・削除件数を確認し、結合済みCSVを保存します。元ファイルは変更されません。</li></ol>
 <h3>対応できること・できないこと</h3><p>カンマや改行を含む引用符付きセル、UTF-8とShift_JISのCSVを読み込めます。ただし、各ファイルの1行目は列名が必要です。列名が重複しているファイルや、行ごとに列数が異なるファイルは誤結合を避けるためエラーにします。複数ファイルの文字コードが混在している場合は、同じ文字コードにそろえてから読み込んでください。</p>
 <h3>データの取り扱い</h3><p>ファイルの内容はこのページ内のJavaScriptで処理し、結合処理のためにサーバーへ送信しません。ページにはアクセス解析用の外部スクリプトが読み込まれます。機密性の高い情報については利用環境・組織の取り扱い規程も確認してください。</p></section>
-</main><footer>OGBデータ研究所 ｜ <a href="../">無料ツール一覧</a></footer>
+</main><footer>OGBデータ研究所 ｜ <a href="../">無料ツール一覧</a>　｜　<a href="/privacy/">プライバシーポリシー</a>　｜　<a href="/data-lab/organization/">運営情報</a></footer>
 <script>
 "use strict";const $=id=>document.getElementById(id),state={headers:[],rows:[],log:[]};
 function parse(s){s=s.replace(/^\uFEFF/,"");let rows=[],row=[],v="",q=false;for(let i=0;i<s.length;i++){let c=s[i];if(q){if(c==='"'&&s[i+1]==='"'){v+='"';i++}else if(c==='"')q=false;else v+=c}else if(c==='"'){if(v!=="")throw Error("引用符の位置が不正です");q=true}else if(c===","){row.push(v);v=""}else if(c==="\r"||c==="\n"){if(c==="\r"&&s[i+1]==="\n")i++;row.push(v);if(row.some(x=>x!==""))rows.push(row);row=[];v=""}else v+=c}if(q)throw Error("引用符が閉じられていません");row.push(v);if(row.some(x=>x!==""))rows.push(row);return rows}
