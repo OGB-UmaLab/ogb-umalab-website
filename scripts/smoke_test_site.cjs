@@ -251,6 +251,12 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const remaining=await page.evaluate(()=>state.reportRows.length);
      if(remaining) throw new Error('Overflowing analysis retained old report');
    });
+   await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.locator('#sample').click();
+     await page.locator('#file').setInputFiles({name:'variance-overflow.csv',mimeType:'text/csv',buffer:Buffer.from('数値\n-1e155\n1e155','utf8')});
+     await page.waitForFunction(() => document.querySelector('#status')?.textContent?.includes('標準偏差が計算可能な範囲を超えました'));
+     if(!await page.locator('#results').isHidden()) throw new Error('Invalid standard deviation report visible');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
