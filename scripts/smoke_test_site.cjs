@@ -305,13 +305,13 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(await links.count()!==3) throw new Error('Expected three downloadable CSV examples');
      for(let i=0;i<await links.count();i++){
        const href=await links.nth(i).getAttribute('href');
-       const file=path.resolve(__dirname,'..',href.replace(/^\\//,''));
+       const file=path.resolve(__dirname,'..',href.replace(/^\//,''));
        if(!fs.existsSync(file)) throw new Error('Missing sample CSV: '+href);
      }
      const lines=fs.readFileSync(path.resolve(__dirname,'../examples/order-lines-sample.csv'),'utf8');
      const orders=fs.readFileSync(path.resolve(__dirname,'../examples/order-totals-sample.csv'),'utf8');
      const payments=fs.readFileSync(path.resolve(__dirname,'../examples/payments-sample.csv'),'utf8');
-     const parse=(csv)=>csv.trim().split(/\\r?\\n/).slice(1).map(row=>row.split(','));
+     const parse=(csv)=>csv.trim().split(/\r?\n/).slice(1).map(row=>row.split(','));
      const sums=new Map();
      for(const [id,amount] of parse(lines)) sums.set(id,(sums.get(id)||0)+Number(amount));
      for(const [id,amount] of parse(orders)) if(sums.get(id)!==Number(amount)) throw new Error('Sample totals mismatch: '+id);
