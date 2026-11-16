@@ -275,6 +275,10 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await result.innerText()).includes('算出できません')) throw new Error('Overflowing price was not rejected');
      if((await page.locator('#comparison').innerText()).includes('Infinity')) throw new Error('Invalid pricing comparison visible');
    });
+   await test(local('tools/index.html'),async()=>{
+     await page.locator('#csv').setInputFiles({name:'quoted.csv',mimeType:'text/csv',buffer:Buffer.from('項目,金額\\n"A,B",1200','utf8')});
+     if(!(await page.locator('#stats-result').innerText()).includes('引用符付きCSV')) throw new Error('Basic stats importer silently accepted quoted CSV');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
