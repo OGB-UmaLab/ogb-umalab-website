@@ -318,6 +318,42 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const pay=new Map(parse(payments).map(([id,amount])=>[id,Number(amount)]));
      if(pay.get('A001')!==sums.get('A001')||pay.get('A002')!==2400||pay.has('A003')||sums.has('A004')!==false) throw new Error('Sample reconciliation fixture mismatch');
    });
+   // Real file handoff: downloaded training lines -> aggregate export -> reconciliation.
+   let aggregatedCsv=null;
+   await test(local('tools/order-line-aggregate/index.html'),async()=>{
+     const input=path.resolve(__dirname,'../examples/order-lines-sample.csv');
+     await page.locator('#file').setInputFiles(input);
+     await page.locator('#load').click();
+     await page.waitForFunction(()=>document.querySelector('#run')?.disabled===false);
+     await page.locator('#run').click();
+     const summary=await page.locator('#summary').innerText();
+     if(!summary.includes('5明細行')||!summary.includes('3注文')) throw new Error('Training aggregation summary incorrect: '+summary);
+     const pending=page.waitForEvent('download');
+     await page.locator('#save').click();
+     const downloaded=await pending;
+     aggregatedCsv=fs.readFileSync(await downloaded.path());
+     const csv=aggregatedCsv.toString('utf8').replace(/^\\uFEFF/,'');
+     if(!csv.includes('A001,1200,2')||!csv.includes('A002,2500,2')||!csv.includes('A003,900,1')) throw new Error('Training aggregate export mismatch');
+   });
+   if(aggregatedCsv){
+     await test(local('tools/order-payment-reconcile/index.html'),async()=>{
+       await page.locator('#orders').setInputFiles({name:'order-totals.csv',mimeType:'text/csv',buffer:aggregatedCsv});
+       await page.locator('#payments').setInputFiles(path.resolve(__dirname,'../examples/payments-sample.csv'));
+       await page.locator('#load').click();
+       await page.waitForFunction(()=>document.querySelector('#run')?.disabled===false);
+       await page.locator('#run').click();
+       const summary=await page.locator('#summary').innerText();
+       for(const item of ['一致 1件','金額不一致 1件','受注のみ 1件','決済のみ 1件']){
+         if(!summary.includes(item)) throw new Error('Training handoff missing '+item+': '+summary);
+       }
+       if(await page.locator('#results tr').count()!==4) throw new Error('Training handoff should produce four statuses');
+       const pending=page.waitForEvent('download');
+       await page.locator('#export').click();
+       const downloaded=await pending;
+       const csv=fs.readFileSync(await downloaded.path(),'utf8');
+       if(!csv.includes('A002')||!csv.includes('A004')) throw new Error('Training reconciliation export incomplete');
+     });
+   }
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
