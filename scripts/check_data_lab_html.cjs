@@ -45,4 +45,15 @@ for (const [label, pattern] of [
   if (!pattern.test(guide)) { console.error(guidePath + ': missing ' + label); failures++; }
 }
 if (!failures) console.log('PASS', guidePath);
+const csvGuidePath = 'guides/csv-analysis-basics/index.html';
+const csvGuide = fs.readFileSync(path.join(root, csvGuidePath), 'utf8');
+for (const [label, pattern] of [
+  ['canonical', /<link\s+rel="canonical"\s+href="https:\/\/ogb-umalab\.com\/guides\/csv-analysis-basics\/"/],
+  ['tool link', /href="\.\.\/\.\.\/tools\/csv-analyzer\/"/],
+  ['worked IQR example', /IQR＝15−11＝4/],
+  ['outlier threshold', /上限＝15＋1\.5×4＝21/]
+]) {
+  if (!pattern.test(csvGuide)) { console.error(csvGuidePath + ': missing ' + label); failures++; }
+}
+if (!failures) console.log('PASS', csvGuidePath);
 if (failures) process.exitCode = 1;
