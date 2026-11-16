@@ -8,6 +8,7 @@ on:
       - 'tools/order-line-aggregate/index.html'
       - 'tools/order-payment-reconcile/index.html'
       - 'scripts/smoke_test_site.cjs'
+      - 'scripts/check_data_lab_html.cjs'
       - '.github/workflows/data-lab-smoke.yml'
 jobs:
   smoke:
@@ -18,6 +19,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Check Data Lab HTML scripts and DOM references
+        run: node scripts/check_data_lab_html.cjs
       - name: Install Playwright and Chromium
         run: |
           npm install --no-save playwright
