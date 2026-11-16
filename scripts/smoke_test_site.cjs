@@ -176,7 +176,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!exported.includes("'=1+1")||!exported.includes("'+SUM(1)")) throw new Error('Aggregation CSV formula escaping failed');
    });
    await test(local('tools/order-line-aggregate/index.html'),async()=>{
-     await page.locator('#file').setInputFiles({name:'refund.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,明細金額\\nR001,-100','utf8')});
+     await page.locator('#file').setInputFiles({name:'refund.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,明細金額\nR001,-100','utf8')});
      await page.locator('#load').click();
      await page.locator('#run').click();
      const downloadPromise=page.waitForEvent('download');
@@ -187,8 +187,8 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    });
    await test(local('tools/csv-merge/index.html'),async()=>{
      const files=[
-       {name:'a.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\\n=1+1,-100','utf8')},
-       {name:'b.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\\n+SUM(1),200','utf8')}
+       {name:'a.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\n=1+1,-100','utf8')},
+       {name:'b.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\n+SUM(1),200','utf8')}
      ];
      await page.locator('#files').setInputFiles(files);
      await page.locator('#merge').click();
