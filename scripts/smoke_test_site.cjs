@@ -224,6 +224,14 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#status').innerText()).includes('閉じ引用符の後に文字')) throw new Error('Analyzer accepted malformed quoted field');
      if(!await page.locator('#results').isHidden()) throw new Error('Analyzer retained stale results after invalid CSV');
    });
+   await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#results').isHidden()) throw new Error('Initial sample load failed');
+     await page.locator('#file').setInputFiles({name:'bad-data.csv',mimeType:'text/csv',buffer:Buffer.from('日付,売上\nA,"100"oops','utf8')});
+     if(!await page.locator('#results').isHidden()) throw new Error('Stale analyzer results visible');
+     const cleared=await page.evaluate(()=>({rows:state.rows.length,report:state.reportRows.length}));
+     if(cleared.rows||cleared.report) throw new Error('Stale analyzer data retained: '+JSON.stringify(cleared));
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
