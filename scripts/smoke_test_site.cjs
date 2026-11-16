@@ -206,6 +206,17 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.trim()) throw new Error('CSV analyzer report empty');
    });
+   await test(local('tools/csv-merge/index.html'),async()=>{
+     await page.locator('#demo').click();
+     if(await page.locator('#output').isHidden()) throw new Error('Demo merge failed');
+     await page.locator('#files').setInputFiles([
+       {name:'bad.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\nA001,"100"oops','utf8')},
+       {name:'good.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\nA002,200','utf8')}
+     ]);
+     await page.locator('#merge').click();
+     if(!(await page.locator('#status').innerText()).includes('閉じ引用符の後に文字')) throw new Error('Malformed quoted CSV accepted');
+     if(!await page.locator('#output').isHidden()) throw new Error('Stale merge output visible after failure');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
