@@ -232,6 +232,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const cleared=await page.evaluate(()=>({rows:state.rows.length,report:state.reportRows.length}));
      if(cleared.rows||cleared.report) throw new Error('Stale analyzer data retained: '+JSON.stringify(cleared));
    });
+   await test(local('tools/csv-merge/index.html'),async()=>{
+     await page.locator('#demo').click();
+     if(await page.locator('#output').isHidden()) throw new Error('Merge sample failed');
+     await page.locator('#merge').click();
+     if(!(await page.locator('#status').innerText()).includes('CSVを2〜50ファイル')) throw new Error('Missing files not rejected');
+     if(!await page.locator('#output').isHidden()) throw new Error('Old merge results still visible');
+     const remaining=await page.evaluate(()=>state.rows.length);
+     if(remaining!==0) throw new Error('Old merge rows still exportable');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
