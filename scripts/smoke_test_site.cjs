@@ -257,6 +257,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.waitForFunction(() => document.querySelector('#status')?.textContent?.includes('標準偏差が計算可能な範囲を超えました'));
      if(!await page.locator('#results').isHidden()) throw new Error('Invalid standard deviation report visible');
    });
+   await test(local('tools/pricing-simulator/index.html'),async()=>{
+     const result=page.locator('#result');
+     if(!(await result.innerText()).includes('1,223円')) throw new Error('Default pricing example differs from documented calculation');
+     await page.locator('#count').fill('50');
+     await page.locator('#calculate').click();
+     if(!(await result.innerText()).includes('2,000円')) throw new Error('50-sale pricing example incorrect');
+     await page.locator('#count').fill('200');
+     await page.locator('#calculate').click();
+     if(!(await result.innerText()).includes('834円')) throw new Error('200-sale pricing example incorrect');
+     await page.locator('#fee').fill('100');
+     await page.locator('#calculate').click();
+     if(!(await result.innerText()).includes('算出できません')) throw new Error('100 percent fee was not rejected');
+     await page.locator('#fee').fill('10');
+     await page.locator('#cost').fill('1e308');
+     await page.locator('#calculate').click();
+     if(!(await result.innerText()).includes('算出できません')) throw new Error('Overflowing price was not rejected');
+     if((await page.locator('#comparison').innerText()).includes('Infinity')) throw new Error('Invalid pricing comparison visible');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
