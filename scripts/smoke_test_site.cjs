@@ -243,6 +243,14 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const remaining=await page.evaluate(()=>state.rows.length);
      if(remaining!==0) throw new Error('Old merge rows still exportable');
    });
+   await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.locator('#sample').click();
+     await page.locator('#file').setInputFiles({name:'overflow.csv',mimeType:'text/csv',buffer:Buffer.from('数値\n1e308\n1e308','utf8')});
+     await page.waitForFunction(() => document.querySelector('#status')?.textContent?.includes('数値が大きすぎて'));
+     if(!await page.locator('#results').isHidden()) throw new Error('Overflowing analysis results visible');
+     const remaining=await page.evaluate(()=>state.reportRows.length);
+     if(remaining) throw new Error('Overflowing analysis retained old report');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
