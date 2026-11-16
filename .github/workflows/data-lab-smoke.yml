@@ -1,0 +1,31 @@
+name: Data Lab browser smoke tests
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/order-line-aggregate/index.html'
+      - 'tools/order-payment-reconcile/index.html'
+      - 'scripts/smoke_test_site.cjs'
+      - '.github/workflows/data-lab-smoke.yml'
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Run browser smoke tests
+        run: node scripts/smoke_test_site.cjs
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-lab-smoke-failures
+          path: test-results/
+          if-no-files-found: ignore
