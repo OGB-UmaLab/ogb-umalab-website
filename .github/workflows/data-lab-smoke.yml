@@ -9,6 +9,7 @@ on:
       - 'tools/order-payment-reconcile/index.html'
       - 'scripts/smoke_test_site.cjs'
       - 'scripts/check_data_lab_html.cjs'
+      - 'guides/order-payment-reconciliation/index.html'
       - '.github/workflows/data-lab-smoke.yml'
 jobs:
   smoke:
