@@ -10,6 +10,8 @@ const homepage = read('index.html');
 const tools = read('tools/index.html');
 const guide = read('guides/order-reconciliation-hands-on/index.html');
 const sitemap = read('sitemap.xml');
+const aggregate = read('tools/order-line-aggregate/index.html');
+const reconcile = read('tools/order-payment-reconcile/index.html');
 
 check(homepage.includes('id="choose-task"'), 'Homepage task section missing');
 check((homepage.match(/class="task-card"/g) || []).length === 6, 'Homepage must show six task choices');
@@ -17,6 +19,8 @@ check(homepage.includes('href="#choose-task"'), 'Hero CTA must target task secti
 check(homepage.includes('href="guides/order-reconciliation-hands-on/"'), 'Homepage must link to hands-on guide');
 check(tools.includes('id="task-quick-title"'), 'Tools directory task navigation missing');
 check(tools.includes('href="../guides/order-reconciliation-hands-on/"'), 'Tools directory hands-on guide link missing');
+check(aggregate.includes('href="/guides/order-reconciliation-hands-on/"'), 'Order aggregation tool must link to walkthrough');
+check(reconcile.includes('href="/guides/order-reconciliation-hands-on/"'), 'Payment reconciliation tool must link to walkthrough');
 check(sitemap.includes('<loc>https://ogb-umalab.com/guides/order-reconciliation-hands-on/</loc>'), 'Hands-on guide missing from sitemap');
 check(guide.includes('rel="canonical" href="https://ogb-umalab.com/guides/order-reconciliation-hands-on/"'), 'Hands-on guide canonical missing');
 
