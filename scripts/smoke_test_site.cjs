@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
 const base = 'https://ogb-umalab.com';
+const toolsOnly = process.argv.includes('--tools-only');
 const { pathToFileURL } = require('url');
 const path = require('path');
 const fs = require('fs');
@@ -13,7 +14,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
   try {
    const target=testPath.startsWith('file:')?testPath:base+testPath;
    const response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:30000});
-   if(!response||(target.startsWith('https:')&&response.status()!==200)) throw new Error(testPath+' HTTP '+response?.status());
+   if(target.startsWith('https:')&&(!response||response.status()!==200)) throw new Error(testPath+' HTTP '+response?.status());
    await fn();
    console.log('PASS',testPath);
   } catch(e) {
@@ -174,6 +175,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const exported=fs.readFileSync(await download.path(),'utf8');
      if(!exported.includes("'=1+1")||!exported.includes("'+SUM(1)")) throw new Error('Aggregation CSV formula escaping failed');
    });
+   if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
      if(!css||css==='Times New Roman') throw new Error('UmaLab stylesheet not applied');
@@ -213,6 +215,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    await test('/ogb-data/daily/',async()=>{});
    await test('/global-news/',async()=>{});
    await test('/class-promotion/',async()=>{});
+   }
  } catch(e) { errors.push(String(e)); }
  await browser.close();
  if(errors.length) {console.error(errors.join('\n')); process.exit(1);}
