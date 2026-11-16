@@ -217,6 +217,13 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#status').innerText()).includes('閉じ引用符の後に文字')) throw new Error('Malformed quoted CSV accepted');
      if(!await page.locator('#output').isHidden()) throw new Error('Stale merge output visible after failure');
    });
+   await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#results').isHidden()) throw new Error('Analyzer sample did not load');
+     await page.locator('#file').setInputFiles({name:'invalid-quote.csv',mimeType:'text/csv',buffer:Buffer.from('項目,金額\nA,"100"oops','utf8')});
+     if(!(await page.locator('#status').innerText()).includes('閉じ引用符の後に文字')) throw new Error('Analyzer accepted malformed quoted field');
+     if(!await page.locator('#results').isHidden()) throw new Error('Analyzer retained stale results after invalid CSV');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
