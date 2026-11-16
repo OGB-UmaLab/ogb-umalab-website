@@ -11,6 +11,8 @@ on:
       - 'scripts/check_data_lab_html.cjs'
       - 'guides/order-payment-reconciliation/index.html'
       - 'guides/csv-analysis-basics/index.html'
+      - 'guides/pricing-profit-basics/index.html'
+      - 'tools/pricing-simulator/index.html'
       - '.github/workflows/data-lab-smoke.yml'
 jobs:
   smoke:
