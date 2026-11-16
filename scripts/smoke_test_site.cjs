@@ -300,6 +300,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#task-quick-title').count())) throw new Error('Task quick navigation missing');
      if(!(await page.locator('a[href="../guides/order-payment-reconciliation/"]').count())) throw new Error('Reconciliation guide link missing');
    });
+   await test(local('guides/order-reconciliation-hands-on/index.html'),async()=>{
+     const links=page.locator('a[download]');
+     if(await links.count()!==3) throw new Error('Expected three downloadable CSV examples');
+     for(let i=0;i<await links.count();i++){
+       const href=await links.nth(i).getAttribute('href');
+       const file=path.resolve(__dirname,'..',href.replace(/^\\//,''));
+       if(!fs.existsSync(file)) throw new Error('Missing sample CSV: '+href);
+     }
+     const lines=fs.readFileSync(path.resolve(__dirname,'../examples/order-lines-sample.csv'),'utf8');
+     const orders=fs.readFileSync(path.resolve(__dirname,'../examples/order-totals-sample.csv'),'utf8');
+     const payments=fs.readFileSync(path.resolve(__dirname,'../examples/payments-sample.csv'),'utf8');
+     const parse=(csv)=>csv.trim().split(/\\r?\\n/).slice(1).map(row=>row.split(','));
+     const sums=new Map();
+     for(const [id,amount] of parse(lines)) sums.set(id,(sums.get(id)||0)+Number(amount));
+     for(const [id,amount] of parse(orders)) if(sums.get(id)!==Number(amount)) throw new Error('Sample totals mismatch: '+id);
+     const pay=new Map(parse(payments).map(([id,amount])=>[id,Number(amount)]));
+     if(pay.get('A001')!==sums.get('A001')||pay.get('A002')!==2400||pay.has('A003')||sums.has('A004')!==false) throw new Error('Sample reconciliation fixture mismatch');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
