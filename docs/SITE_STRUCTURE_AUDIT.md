@@ -49,6 +49,14 @@
 4. 実務分野候補を需要・競合・専門性・既存資産で比較する。
 5. 完了した調査結果を `DEVELOPMENT_MASTER_PLAN.md` に反映し、P0の完了条件を満たす。
 
-## 5. 変更管理
+## 5. 追加確認：サイトの役割と導線の重複
+
+- `knowledge/` の57 URLは、第一階層をさらに分類すると `world-racing/` 35、`rules/` 14、`other/` 7、`knowledge/` 入口1。実在する `knowledge/index.html` のタイトルは「競馬の知識・深掘り｜OGBうまラボ」。一般向け経営ノウハウと混同しない。
+- `data-lab/about/`、`data-lab/approach/`、`data-lab/organization/` の3ページはGitHub上で実在を確認。
+- **`data-lab/index.html` は実在するが、今回取得したサイトマップに `https://ogb-umalab.com/data-lab/` はない。** ルート `index.html` とページタイトル・主見出しが似ているため、公開URL、canonical、ナビゲーション上の位置づけを次に確認する。現段階では重複ページと断定しない。
+- `tools/x-richtext-test/index.html` は「X太字貼り付け検証」という個別ツール。業務向けツールと対象者が異なるため、研究所トップでの見せ方とサイトマップ掲載方針を検討する。削除はしない。
+- `about/index.html` は「OGBうまラボについて」、`data-lab/about/index.html` は「研究所について」。同じ「about」でも対象が違うため、サイト内の表記を区別する。
+
+## 6. 変更管理
 
 本監査は読み取りと文書作成のみ。競馬関連ページ、サイトマップ、robots設定、公開ツールの動作には変更を加えていない。
