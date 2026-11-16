@@ -80,3 +80,17 @@ GitHub上の `index.html` と `data-lab/index.html` の `<main>` 本文を確認
 ## 7. 変更管理
 
 本監査は読み取りと文書作成のみ。競馬関連ページ、サイトマップ、robots設定、公開ツールの動作には変更を加えていない。
+
+## 8. 主要公開ページの個別照合（2026-11-17）
+
+サイトマップのうち `tools/` 10件、`guides/` 3件、`research/` 2件、`data-lab/` 3件、`about/` 1件、`privacy/` 1件、計**20件**をGitHubから個別取得し、ファイルの実在・title・h1・canonicalを確認した。
+
+- 20件すべての `index.html` がGitHub上に実在し、titleとh1を持つ。
+- 20件中**18件**は、canonicalがサイトマップ記載URLと一致。
+- `tools/x-richtext-test/index.html` はcanonicalの記載がない。
+- `about/index.html` はcanonicalの記載がない。
+- サイトマップにない `data-lab/index.html` は実在し、`https://ogb-umalab.com/data-lab/` をcanonicalとして指定している。
+
+**優先判断**：これらは構造整備の候補であるが、既存ページの役割を確認する前にcanonicalを一括変更しない。特に `tools/x-richtext-test/` は検証用ページのため、インデックス方針を先に決める。
+
+この個別照合はサイトマップ528 URLすべての検証ではない。Googleによるインデックス状況やAdSense評価を示すものでもない。
