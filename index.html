@@ -39,10 +39,10 @@
 <div class="container hero-grid">
 <div>
 <p class="eyebrow">DATA ANALYSIS &amp; RESEARCH</p>
-<h1>データを整理し、<br>構造を読み解き、<br>次の検証へ。</h1>
-<p class="hero-lead">OGBデータ研究所は、数値データの整理・検証・構造分析を通じて、現象の背景や流れを読み解く研究所です。</p>
+<h1>面倒なデータ整理を、<br>無料ツールで手早く。</h1>
+<p class="hero-lead">複数CSVの結合、受注と決済の照合、売上データの分析、PDFや画像の一括整理まで。やりたい作業から選んで、ブラウザですぐに試せます。研究・検証の方法も公開しています。</p>
 <div class="hero-actions">
-<a class="button" href="tools/">無料ツールを使う</a>
+<a class="button" href="#choose-task">やりたい作業から選ぶ</a>
 <a class="button secondary" href="data-lab/about/">研究所について</a>
 </div>
 </div>
@@ -53,6 +53,27 @@
 <strong>データを蓄積し、検証を重ねる。</strong>
 </figcaption>
 </figure>
+</div>
+</section>
+<section class="section" id="choose-task" aria-labelledby="choose-task-title">
+<div class="container">
+<div class="section-heading"><h2 id="choose-task-title"><span class="kicker">START HERE</span>何をしたいですか？</h2><p>目的を選ぶと、使えるツールと手順が分かります。アカウント登録は不要です。</p></div>
+<style>
+#choose-task .task-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,265px),1fr));gap:18px;margin-top:24px}
+#choose-task .task-card{background:#fff;border:1px solid #d9e5eb;border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:10px;box-shadow:0 5px 18px rgba(13,48,74,.06)}
+#choose-task .task-card h3{font-size:1.22rem;margin:0;color:#163a52}
+#choose-task .task-card p{margin:0;line-height:1.75}
+#choose-task .task-card a{font-weight:700;margin-top:auto;padding-top:9px}
+#choose-task .task-example{font-size:.9rem;color:#435d6b}
+</style>
+<div class="task-grid">
+<article class="task-card"><h3>複数のCSVをまとめたい</h3><p>月別・店舗別のファイルを結合し、重複や列の違いを確認できます。</p><p class="task-example">例：3か月分の売上CSVを1つにまとめる</p><a href="tools/csv-merge/">CSV結合ツールを使う →</a></article>
+<article class="task-card"><h3>受注と決済の違いを調べたい</h3><p>注文明細を注文単位にまとめ、受注CSVと決済CSVの金額・注文番号を照合します。</p><p class="task-example">例：注文はあるのに決済データが見つからない行を探す</p><a href="guides/order-payment-reconciliation/">照合の手順を見る →</a></article>
+<article class="task-card"><h3>売上・経費の数字を分析したい</h3><p>CSVの欠損値・外れ値・統計量・グラフを確認し、データの特徴をつかみます。</p><p class="task-example">例：月別の売上データのばらつきを確認する</p><a href="tools/csv-analyzer/">CSV分析を試す →</a></article>
+<article class="task-card"><h3>販売価格と利益を計算したい</h3><p>原価・固定費・手数料・目標利益から、必要な販売価格を逆算します。</p><p class="task-example">例：手数料率が変わった場合の必要価格を比較する</p><a href="tools/pricing-simulator/">販売価格を計算する →</a></article>
+<article class="task-card"><h3>PDF・画像を一括整理したい</h3><p>PDFの分割・命名や、画像のサイズ・形式の一括変換を行えます。</p><p class="task-example">例：複数の商品画像をまとめて縮小する</p><a href="tools/">PDF・画像ツールを選ぶ →</a></article>
+<article class="task-card"><h3>ツールの使い方から知りたい</h3><p>具体例と計算方法を確認してから、無料ツールを使えます。</p><p class="task-example">例：CSV分析の平均・中央値・外れ値の意味を確認する</p><a href="guides/csv-analysis-basics/">CSV分析の基本を読む →</a></article>
+</div>
 </div>
 </section>
 <section class="section">
