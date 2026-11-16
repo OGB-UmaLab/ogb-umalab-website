@@ -286,6 +286,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.waitForFunction(() => document.querySelector('#stats-result')?.textContent?.includes('指定列が存在しない'));
      if(await page.locator('#values').inputValue()) throw new Error('Old statistics values remained after missing-column import');
    });
+   await test(local('index.html'),async()=>{
+     if((await page.locator('#choose-task .task-card').count())!==6) throw new Error('Homepage task choices missing');
+     if(!(await page.locator('.hero a[href="#choose-task"]').count())) throw new Error('Hero task CTA missing');
+     const links=page.locator('#choose-task .task-card a[href]');
+     for(let i=0;i<await links.count();i++){
+       const href=await links.nth(i).getAttribute('href');
+       const target=path.resolve(__dirname,'..',href,'index.html');
+       if(!fs.existsSync(target)) throw new Error('Homepage task link target missing: '+href);
+     }
+   });
+   await test(local('tools/index.html'),async()=>{
+     if(!(await page.locator('#task-quick-title').count())) throw new Error('Task quick navigation missing');
+     if(!(await page.locator('a[href="../guides/order-payment-reconciliation/"]').count())) throw new Error('Reconciliation guide link missing');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
