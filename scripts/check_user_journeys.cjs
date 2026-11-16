@@ -21,6 +21,9 @@ check(tools.includes('id="task-quick-title"'), 'Tools directory task navigation 
 check(tools.includes('href="../guides/order-reconciliation-hands-on/"'), 'Tools directory hands-on guide link missing');
 check(aggregate.includes('href="/guides/order-reconciliation-hands-on/"'), 'Order aggregation tool must link to walkthrough');
 check(reconcile.includes('href="/guides/order-reconciliation-hands-on/"'), 'Payment reconciliation tool must link to walkthrough');
+check(aggregate.includes('href="/examples/order-lines-sample.csv" download'), 'Aggregation tool must offer input CSV download');
+check(reconcile.includes('href="/examples/order-totals-sample.csv" download'), 'Reconciliation tool must offer order CSV download');
+check(reconcile.includes('href="/examples/payments-sample.csv" download'), 'Reconciliation tool must offer payment CSV download');
 check(sitemap.includes('<loc>https://ogb-umalab.com/guides/order-reconciliation-hands-on/</loc>'), 'Hands-on guide missing from sitemap');
 check(guide.includes('rel="canonical" href="https://ogb-umalab.com/guides/order-reconciliation-hands-on/"'), 'Hands-on guide canonical missing');
 
