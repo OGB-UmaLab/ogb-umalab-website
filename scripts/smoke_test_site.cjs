@@ -185,6 +185,27 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   await test(local('tools/csv-merge/index.html'),async()=>{
+     const files=[
+       {name:'a.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\\n=1+1,-100','utf8')},
+       {name:'b.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\\n+SUM(1),200','utf8')}
+     ];
+     await page.locator('#files').setInputFiles(files);
+     await page.locator('#merge').click();
+     if(await page.locator('#output').isHidden()) throw new Error('CSV merge output missing');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#download').click();
+     const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
+   });
+   await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#results').isHidden()) throw new Error('CSV analyzer results missing');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#downloadReport').click();
+     const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!csv.trim()) throw new Error('CSV analyzer report empty');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
