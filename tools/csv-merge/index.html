@@ -36,7 +36,7 @@
 <script>
 "use strict";const $=id=>document.getElementById(id),state={headers:[],rows:[],log:[]};
 function parse(s){s=s.replace(/^\uFEFF/,"");let rows=[],row=[],v="",q=false;for(let i=0;i<s.length;i++){let c=s[i];if(q){if(c==='"'&&s[i+1]==='"'){v+='"';i++}else if(c==='"')q=false;else v+=c}else if(c==='"'){if(v!=="")throw Error("引用符の位置が不正です");q=true}else if(c===","){row.push(v);v=""}else if(c==="\r"||c==="\n"){if(c==="\r"&&s[i+1]==="\n")i++;row.push(v);if(row.some(x=>x!==""))rows.push(row);row=[];v=""}else v+=c}if(q)throw Error("引用符が閉じられていません");row.push(v);if(row.some(x=>x!==""))rows.push(row);return rows}
-function cell(s){let v=String(s??"");return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function cell(s){let v=String(s??"");const t=v.trimStart();if((/^[=+@]/.test(t)||(/^[-]/.test(t)&&!/^-(?:\d+(?:\.\d+)?|\.\d+)$/.test(t))))v="\u0027"+v;return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
 function csv(rows){return "\uFEFF"+rows.map(r=>r.map(cell).join(",")).join("\r\n")}
 function download(content,name){let url=URL.createObjectURL(new Blob([content],{type:"text/csv;charset=utf-8"})),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function td(row,value,tag="td"){let e=document.createElement(tag);e.textContent=value;row.append(e)}
