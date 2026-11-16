@@ -9,15 +9,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
  const page = await browser.newPage();
  const errors=[];
  fs.mkdirSync(path.resolve(__dirname,'../test-results'),{recursive:true});
- const test=async (path,fn)=>{
+ const test=async (testPath,fn)=>{
   try {
-   const target=path.startsWith('file:')?path:base+path;
+   const target=testPath.startsWith('file:')?testPath:base+testPath;
    const response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:30000});
-   if(!response||(target.startsWith('https:')&&response.status()!==200)) throw new Error(path+' HTTP '+response?.status());
+   if(!response||(target.startsWith('https:')&&response.status()!==200)) throw new Error(testPath+' HTTP '+response?.status());
    await fn();
-   console.log('PASS',path);
+   console.log('PASS',testPath);
   } catch(e) {
-   const message=path+': '+String(e);
+   const message=testPath+': '+String(e);
    errors.push(message);
    console.error('FAIL',message);
    try { await page.screenshot({path:path.resolve(__dirname,'../test-results/failure-'+errors.length+'.png'),fullPage:true}); } catch(_) {}
