@@ -279,6 +279,13 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#csv').setInputFiles({name:'quoted.csv',mimeType:'text/csv',buffer:Buffer.from('項目,金額\\n"A,B",1200','utf8')});
      if(!(await page.locator('#stats-result').innerText()).includes('引用符付きCSV')) throw new Error('Basic stats importer silently accepted quoted CSV');
    });
+   await test(local('tools/index.html'),async()=>{
+     await page.locator('#values').fill('999');
+     await page.locator('#col').fill('3');
+     await page.locator('#csv').setInputFiles({name:'short.csv',mimeType:'text/csv',buffer:Buffer.from('A,B\\n10,20','utf8')});
+     await page.waitForFunction(() => document.querySelector('#stats-result')?.textContent?.includes('指定列が存在しない'));
+     if(await page.locator('#values').inputValue()) throw new Error('Old statistics values remained after missing-column import');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
