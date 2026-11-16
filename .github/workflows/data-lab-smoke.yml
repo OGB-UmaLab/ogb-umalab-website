@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
   push:
     paths:
+      - 'index.html'
       - 'tools/csv-merge/index.html'
       - 'tools/index.html'
       - 'tools/csv-analyzer/index.html'
