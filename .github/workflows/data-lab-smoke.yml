@@ -11,6 +11,10 @@ on:
       - 'tools/order-payment-reconcile/index.html'
       - 'scripts/smoke_test_site.cjs'
       - 'scripts/check_data_lab_html.cjs'
+      - 'scripts/check_user_journeys.cjs'
+      - 'guides/order-reconciliation-hands-on/index.html'
+      - 'examples/**'
+      - 'sitemap.xml'
       - 'guides/order-payment-reconciliation/index.html'
       - 'guides/csv-analysis-basics/index.html'
       - 'guides/pricing-profit-basics/index.html'
@@ -27,6 +31,8 @@ jobs:
           node-version: '22'
       - name: Check Data Lab HTML scripts and DOM references
         run: node scripts/check_data_lab_html.cjs
+      - name: Check user journeys and downloadable sample data
+        run: node scripts/check_user_journeys.cjs
       - name: Install Playwright and Chromium
         run: |
           npm install --no-save playwright
