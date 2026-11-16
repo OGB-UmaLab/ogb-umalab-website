@@ -175,6 +175,16 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const exported=fs.readFileSync(await download.path(),'utf8');
      if(!exported.includes("'=1+1")||!exported.includes("'+SUM(1)")) throw new Error('Aggregation CSV formula escaping failed');
    });
+   await test(local('tools/order-line-aggregate/index.html'),async()=>{
+     await page.locator('#file').setInputFiles({name:'refund.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,明細金額\\nR001,-100','utf8')});
+     await page.locator('#load').click();
+     await page.locator('#run').click();
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#save').click();
+     const downloaded=await downloadPromise;
+     const csv=fs.readFileSync(await downloaded.path(),'utf8');
+     if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
