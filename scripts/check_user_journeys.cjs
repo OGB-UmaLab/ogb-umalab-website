@@ -1,0 +1,66 @@
+'use strict';
+// Static acceptance checks for the public task-first navigation and CSV walkthrough.
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
+const failures = [];
+const check = (condition, message) => { if (!condition) failures.push(message); };
+const homepage = read('index.html');
+const tools = read('tools/index.html');
+const guide = read('guides/order-reconciliation-hands-on/index.html');
+const sitemap = read('sitemap.xml');
+
+check(homepage.includes('id="choose-task"'), 'Homepage task section missing');
+check((homepage.match(/class="task-card"/g) || []).length === 6, 'Homepage must show six task choices');
+check(homepage.includes('href="#choose-task"'), 'Hero CTA must target task section');
+check(homepage.includes('href="guides/order-reconciliation-hands-on/"'), 'Homepage must link to hands-on guide');
+check(tools.includes('id="task-quick-title"'), 'Tools directory task navigation missing');
+check(tools.includes('href="../guides/order-reconciliation-hands-on/"'), 'Tools directory hands-on guide link missing');
+check(sitemap.includes('<loc>https://ogb-umalab.com/guides/order-reconciliation-hands-on/</loc>'), 'Hands-on guide missing from sitemap');
+check(guide.includes('rel="canonical" href="https://ogb-umalab.com/guides/order-reconciliation-hands-on/"'), 'Hands-on guide canonical missing');
+
+const expectedFiles = [
+  'examples/order-lines-sample.csv',
+  'examples/order-totals-sample.csv',
+  'examples/payments-sample.csv'
+];
+for (const file of expectedFiles) {
+  check(fs.existsSync(path.join(root, file)), 'Missing sample file: ' + file);
+  check(guide.includes('href="/' + file + '"'), 'Missing guide download link: ' + file);
+}
+for (const href of [...homepage.matchAll(/<article class="task-card">[\s\S]*?<\/article>/g)].flatMap(m => [...m[0].matchAll(/href="([^"]+)"/g)].map(x => x[1]))) {
+  if (href.startsWith('#') || href.includes('://')) continue;
+  check(fs.existsSync(path.join(root, href, 'index.html')), 'Homepage target missing: ' + href);
+}
+function parseCSV(file) {
+  const rows = read(file).replace(/^\uFEFF/, '').trim().split(/\r?\n/).map(line => line.split(','));
+  const width = rows[0].length;
+  check(rows.every(row => row.length === width), 'CSV columns mismatch: ' + file);
+  return rows.slice(1);
+}
+const lineRows = parseCSV(expectedFiles[0]);
+const totalRows = parseCSV(expectedFiles[1]);
+const paymentRows = parseCSV(expectedFiles[2]);
+const totals = new Map();
+for (const [id, amount] of lineRows) {
+  const value = Number(amount);
+  check(id && Number.isSafeInteger(value) && value >= 0, 'Invalid order line: ' + id);
+  totals.set(id, (totals.get(id) || 0) + value);
+}
+const orders = new Map(totalRows.map(([id, amount]) => [id, Number(amount)]));
+const payments = new Map(paymentRows.map(([id, amount]) => [id, Number(amount)]));
+check(orders.size === totalRows.length && payments.size === paymentRows.length, 'Sample IDs must be unique');
+check(totals.size === orders.size, 'Aggregated order count mismatch');
+for (const [id, amount] of totals) check(orders.get(id) === amount, 'Sample total mismatch: ' + id);
+check(orders.get('A001') === 1200 && payments.get('A001') === 1200, 'Expected matching order missing');
+check(orders.get('A002') === 2500 && payments.get('A002') === 2400, 'Expected 100 yen mismatch missing');
+check(orders.has('A003') && !payments.has('A003'), 'Expected order-only row missing');
+check(!orders.has('A004') && payments.get('A004') === 700, 'Expected payment-only row missing');
+
+if (failures.length) {
+  for (const failure of failures) console.error('FAIL', failure);
+  process.exitCode = 1;
+} else {
+  console.log('PASS task navigation, guide links, sitemap, and sample CSV reconciliation fixtures');
+}
