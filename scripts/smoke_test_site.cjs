@@ -25,15 +25,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
  };
  try {
    await test(local('tools/order-payment-reconcile/index.html'),async()=>{
-     await page.locator('#orders').setInputFiles({name:'duplicate.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額,金額\\nA001,100,200','utf8')});
-     await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\\nA001,100','utf8')});
+     await page.locator('#orders').setInputFiles({name:'duplicate.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額,金額\nA001,100,200','utf8')});
+     await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\nA001,100','utf8')});
      await page.locator('#load').click();
      if(!(await page.locator('#loadStatus').innerText()).includes('同じ名前の見出し')) throw new Error('Duplicate headers not rejected');
      if(!await page.locator('#run').isDisabled()) throw new Error('Run enabled after invalid headers');
    });
    await test(local('tools/order-payment-reconcile/index.html'),async()=>{
-     await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\\n=1+1,100\\n+SUM(1),200','utf8')});
-     await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\\n=1+1,100\\n+SUM(1),200','utf8')});
+     await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\n=1+1,100\n+SUM(1),200','utf8')});
+     await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\n=1+1,100\n+SUM(1),200','utf8')});
      await page.locator('#load').click();
      await page.waitForFunction(() => document.querySelector('#run')?.disabled === false);
      await page.locator('#run').click();
@@ -157,14 +157,14 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#demo').click();
      await page.locator('#run').click();
      if(await page.locator('#save').isDisabled()) throw new Error('Demo aggregation not exportable');
-     await page.locator('#file').setInputFiles({name:'bad.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額,金額\\nA001,100,200','utf8')});
+     await page.locator('#file').setInputFiles({name:'bad.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額,金額\nA001,100,200','utf8')});
      await page.locator('#load').click();
      if(!(await page.locator('#loadStatus').innerText()).includes('同じ名前の見出し')) throw new Error('Duplicate aggregation headers not rejected');
      if(!await page.locator('#save').isDisabled()) throw new Error('Stale aggregation export after load failure');
      if(await page.locator('#result tr').count()) throw new Error('Stale aggregation results after load failure');
    });
    await test(local('tools/order-line-aggregate/index.html'),async()=>{
-     await page.locator('#file').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,明細金額\\n=1+1,100\\n+SUM(1),200','utf8')});
+     await page.locator('#file').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,明細金額\n=1+1,100\n+SUM(1),200','utf8')});
      await page.locator('#load').click();
      await page.waitForFunction(() => document.querySelector('#run')?.disabled === false);
      await page.locator('#run').click();
