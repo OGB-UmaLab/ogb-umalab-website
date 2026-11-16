@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'tools/csv-merge/index.html'
+      - 'tools/index.html'
       - 'tools/csv-analyzer/index.html'
       - 'tools/order-line-aggregate/index.html'
       - 'tools/order-payment-reconcile/index.html'
