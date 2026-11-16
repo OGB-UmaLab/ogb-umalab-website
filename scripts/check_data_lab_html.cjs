@@ -7,7 +7,8 @@ const files = [
   'tools/csv-merge/index.html',
   'tools/csv-analyzer/index.html',
   'tools/order-line-aggregate/index.html',
-  'tools/order-payment-reconcile/index.html'
+  'tools/order-payment-reconcile/index.html',
+  'tools/pricing-simulator/index.html'
 ];
 let failures = 0;
 for (const file of files) {
@@ -56,4 +57,15 @@ for (const [label, pattern] of [
   if (!pattern.test(csvGuide)) { console.error(csvGuidePath + ': missing ' + label); failures++; }
 }
 if (!failures) console.log('PASS', csvGuidePath);
+const pricingGuidePath = 'guides/pricing-profit-basics/index.html';
+const pricingGuide = fs.readFileSync(path.join(root, pricingGuidePath), 'utf8');
+for (const [label, pattern] of [
+  ['canonical', /ogb-umalab\.com\/guides\/pricing-profit-basics\//],
+  ['tool link', /href="\.\.\/\.\.\/tools\/pricing-simulator\/"/],
+  ['50-sale calculation', /2,000円/],
+  ['200-sale calculation', /834円/]
+]) {
+  if (!pattern.test(pricingGuide)) { console.error(pricingGuidePath + ': missing ' + label); failures++; }
+}
+if (!failures) console.log('PASS', pricingGuidePath);
 if (failures) process.exitCode = 1;
