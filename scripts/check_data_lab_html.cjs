@@ -32,4 +32,17 @@ for (const file of files) {
   if (!checked) { console.error(file + ': no inline JavaScript checked'); failures++; }
   else console.log('PASS', file, checked + ' script(s)');
 }
+// Content checks for the original reconciliation walkthrough.
+const guidePath = 'guides/order-payment-reconciliation/index.html';
+const guide = fs.readFileSync(path.join(root, guidePath), 'utf8');
+for (const [label, pattern] of [
+  ['canonical', /<link\s+rel="canonical"\s+href="https:\/\/ogb-umalab\.com\/guides\/order-payment-reconciliation\/"/],
+  ['page title', /<title>[^<]+<\/title>/],
+  ['primary heading', /<h1>[^<]+<\/h1>/],
+  ['working tool link', /href="\/tools\/order-payment-reconcile\/"/],
+  ['exception handling', /判定別の調査記録を残す/]
+]) {
+  if (!pattern.test(guide)) { console.error(guidePath + ': missing ' + label); failures++; }
+}
+if (!failures) console.log('PASS', guidePath);
 if (failures) process.exitCode = 1;
