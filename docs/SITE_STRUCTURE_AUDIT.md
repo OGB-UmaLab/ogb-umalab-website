@@ -104,3 +104,12 @@ GitHub上の `index.html` と `data-lab/index.html` の `<main>` 本文を確認
 - 4つの実践ガイド（注文照合、CSV結合、CSV分析、販売価格）はGitHub上で `index.html` の存在とcanonical一致を個別確認した。
 - **残件**：531 URLの実ファイル全件照合と、実ブラウザ・GitHub Actionsの合否確認。リポジトリ上の再取得と実サイトの配信成功は別。PR向けに限定されたGitHub Actions照会では対象コミットの実行履歴を取得できなかった。
 - `data-lab/` とトップ `/` の重複に近い位置づけは引き続き判断保留。URLの削除・転送は実施していない。
+
+
+## 2026-11-17 監査の自動判定と結果保存
+
+- `scripts/audit_site_architecture.cjs` を、全サイトマップURLの実ファイル欠落・canonical不一致・noindex混入・重複を**エラー**として終了コード1で通知する方式へ変更。主要なツール・ガイド・トップページのcanonical欠落もエラーとする。
+- その他の既存ページのcanonical欠落は**警告**に分離。古いページの警告だけで全テストを止めない。
+- 実行結果は `test-results/architecture-audit.json` に全件保存し、GitHub Actionsの `architecture-audit` アーティファクトとして収集する。
+- ブラウザテストの成否にかかわらず監査が実行されるよう、ワークフローの後段に `if: always()` で配置。
+- GitHubの更新・再取得、JavaScript構文の検査は完了。**実際のCIジョブの実行結果は未確認**。次はActionsの監査結果からエラーを抽出して修正する。
