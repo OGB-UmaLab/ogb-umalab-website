@@ -65,6 +65,38 @@ check(orders.get('A002') === 2500 && payments.get('A002') === 2400, 'Expected 10
 check(orders.has('A003') && !payments.has('A003'), 'Expected order-only row missing');
 check(!orders.has('A004') && payments.get('A004') === 700, 'Expected payment-only row missing');
 
+
+const mergeGuide = read('guides/csv-merge-hands-on/index.html');
+const mergeTool = read('tools/csv-merge/index.html');
+check(homepage.includes('href="guides/csv-merge-hands-on/"'), 'Homepage must link to CSV merge walkthrough');
+check(tools.includes('href="../guides/csv-merge-hands-on/"'), 'Tool directory must link to CSV merge walkthrough');
+check(mergeTool.includes('href="/guides/csv-merge-hands-on/"'), 'CSV merge tool must link to walkthrough');
+check(sitemap.includes('<loc>https://ogb-umalab.com/guides/csv-merge-hands-on/</loc>'), 'CSV merge walkthrough missing from sitemap');
+check(mergeGuide.includes('rel="canonical" href="https://ogb-umalab.com/guides/csv-merge-hands-on/"'), 'CSV merge canonical missing');
+const mergeInputs = [
+  'examples/csv-merge-tokyo.csv',
+  'examples/csv-merge-osaka.csv',
+  'examples/csv-merge-nagoya.csv'
+];
+const mergedRows = [];
+let mergeHeaders = [];
+for (const file of mergeInputs) {
+  check(fs.existsSync(path.join(root, file)), 'Missing merge exercise file: ' + file);
+  check(mergeGuide.includes('href="/' + file + '"'), 'Missing merge exercise download: ' + file);
+  const rows = read(file).trim().split(/\r?\n/).map(line => line.split(','));
+  const headers = rows.shift();
+  check(headers.length === 3 && new Set(headers).size === 3, 'Merge exercise headers invalid: ' + file);
+  if (!mergeHeaders.length) mergeHeaders = headers;
+  for (const row of rows) {
+    check(row.length === headers.length, 'Merge exercise column count invalid: ' + file);
+    mergedRows.push(Object.fromEntries(headers.map((h, i) => [h, row[i]])));
+  }
+}
+check(mergedRows.length === 5, 'Merge exercise must contain five data rows');
+check(mergedRows.reduce((sum, row) => sum + Number(row['売上']), 0) === 11000, 'Merge exercise sales total must be 11000');
+const unique = new Set(mergedRows.map(row => JSON.stringify(mergeHeaders.map(h => row[h]))));
+check(unique.size === 4, 'Merge exercise should have four unique rows without source filenames');
+
 if (failures.length) {
   for (const failure of failures) console.error('FAIL', failure);
   process.exitCode = 1;
