@@ -139,6 +139,21 @@ check(sales.reduce((a,b)=>a+b,0)/sales.length===51800, 'Analysis sales mean mism
 check(Math.min(...sales)===25000 && Math.max(...sales)===100000, 'Analysis sales range mismatch');
 
 
+// Guard the actual next-step links on each workflow tool, and the research-first homepage.
+const flowLinks = [
+  ['tools/csv-merge/index.html', '/tools/csv-analyzer/', '/guides/csv-merge-hands-on/'],
+  ['tools/csv-analyzer/index.html', '/tools/csv-merge/', '/guides/csv-analysis-hands-on/'],
+  ['tools/order-line-aggregate/index.html', '/tools/order-payment-reconcile/', '/guides/order-reconciliation-hands-on/'],
+  ['tools/order-payment-reconcile/index.html', '/tools/order-line-aggregate/', '/guides/order-reconciliation-hands-on/']
+];
+for (const [page, next, guide] of flowLinks) {
+  const html = read(page);
+  check(html.includes('href="' + next + '"'), 'Missing next-step tool link: ' + page + ' -> ' + next);
+  check(html.includes('href="' + guide + '"'), 'Missing workflow guide link: ' + page + ' -> ' + guide);
+}
+check(homepage.includes('<h1>データを整理し、<br>構造を読み解き、<br>次の検証へ。</h1>'), 'Research-first homepage headline must not be replaced by a tool advertisement');
+check(homepage.indexOf('id="choose-task"') > homepage.indexOf('<section class="hero">'), 'Tool selection must follow the institute introduction');
+
 check(!fs.existsSync(path.join(root, 'tools/x-richtext-test/index.html')), 'Obsolete X-format test page must stay removed');
 check(!sitemap.includes('<loc>https://ogb-umalab.com/tools/x-richtext-test/</loc>'), 'Experimental X-format test must stay outside sitemap');
 check(read('about/index.html').includes('<link rel="canonical" href="https://ogb-umalab.com/about/">'), 'UmaLab about canonical missing');
