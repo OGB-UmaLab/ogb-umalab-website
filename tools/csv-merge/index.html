@@ -15,7 +15,7 @@
 <p class="note">同じ内容でも別店舗の取引なら残す必要があります。重複削除は任意で、元ファイル名を含めて重複判定する設定も選べます。日付形式や表記ゆれは自動変換しません。</p>
 <div class="grid"><div class="tile"><strong>列名の自動照合</strong>列の並びが違っても同じ項目に結合</div><div class="tile"><strong>重複の検出・削除</strong>重複行数を確認し、必要な場合だけ削除</div><div class="tile"><strong>ファイル別の処理結果</strong>読み込んだ行数や列の違いを一覧表示</div></div>
 <button id="demo" type="button">この3ファイルを実際に結合してみる</button></section>
-<section class="card" id="use"><h2>自分のCSVファイルをまとめる</h2><label for="files">結合したいCSVファイルを複数選択</label><input id="files" type="file" accept=".csv,text/csv" multiple><p class="muted">1ファイル最大5MB、合計20MB、最大50ファイル・合計10万行・200列まで。UTF-8またはShift_JISに対応。</p>
+<p><a href="/guides/csv-merge-hands-on/">架空の3店舗CSVをダウンロードして操作する実践ガイド →</a></p><section class="card" id="use"><h2>自分のCSVファイルをまとめる</h2><label for="files">結合したいCSVファイルを複数選択</label><input id="files" type="file" accept=".csv,text/csv" multiple><p class="muted">1ファイル最大5MB、合計20MB、最大50ファイル・合計10万行・200列まで。UTF-8またはShift_JISに対応。</p>
 <div class="grid"><div><label for="encoding">文字コード</label><select id="encoding"><option value="utf-8">UTF-8</option><option value="shift_jis">Shift_JIS</option></select></div><div><label for="mode">列の結合方法</label><select id="mode"><option value="name">列名で対応させる（推奨）</option><option value="position">列の位置で対応させる（同じ列数のみ）</option></select></div></div>
 <label><input type="checkbox" id="source" checked>元ファイル名を追加する</label>
 <label><input type="checkbox" id="dedup">重複行を削除する</label>
