@@ -119,6 +119,25 @@ for (const c of pricingCases) {
 check(Math.ceil((700)/(1-0.10)-1e-10)===778, 'Digital fee comparison mismatch');
 check(Math.ceil((830+900)/(1-0.10)-1e-10)===1923, 'Physical count comparison mismatch');
 
+
+const analysisGuide = read('guides/csv-analysis-hands-on/index.html');
+const analyzerTool = read('tools/csv-analyzer/index.html');
+check(homepage.includes('href="guides/csv-analysis-hands-on/"'), 'Homepage analysis hands-on link missing');
+check(tools.includes('href="../guides/csv-analysis-hands-on/"'), 'Tools directory analysis hands-on link missing');
+check(analyzerTool.includes('href="/guides/csv-analysis-hands-on/"'), 'Analyzer must link to hands-on guide');
+check(sitemap.includes('<loc>https://ogb-umalab.com/guides/csv-analysis-hands-on/</loc>'), 'Analysis hands-on guide missing from sitemap');
+check(analysisGuide.includes('rel="canonical" href="https://ogb-umalab.com/guides/csv-analysis-hands-on/"'), 'Analysis hands-on canonical missing');
+const analysisFile='examples/csv-analysis-sales-sample.csv';
+check(fs.existsSync(path.join(root,analysisFile)), 'Missing analysis exercise CSV');
+check(analysisGuide.includes('href="/'+analysisFile+'"'), 'Analysis exercise download link missing');
+const analysisRows=parseCSV(analysisFile);
+const sales=analysisRows.map(row=>Number(row[1]));
+check(analysisRows.length===10, 'Analysis exercise should have ten rows');
+check(sales.every(Number.isFinite), 'Analysis exercise contains invalid sales values');
+check(sales.reduce((a,b)=>a+b,0)===518000, 'Analysis sales sum mismatch');
+check(sales.reduce((a,b)=>a+b,0)/sales.length===51800, 'Analysis sales mean mismatch');
+check(Math.min(...sales)===25000 && Math.max(...sales)===100000, 'Analysis sales range mismatch');
+
 if (failures.length) {
   for (const failure of failures) console.error('FAIL', failure);
   process.exitCode = 1;
