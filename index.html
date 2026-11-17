@@ -76,6 +76,45 @@
 </div>
 </div>
 </section>
+<section class="section mist" id="workflows" aria-labelledby="workflows-title">
+<div class="container">
+<div class="section-heading">
+<h2 id="workflows-title"><span class="kicker">PRACTICAL WORKFLOWS</span>単体のツールで終わらせない。実務の流れで試す。</h2>
+<p>サンプルファイルを使って、入力データの準備から結果の確認まで順番に体験できます。各手順は無料で公開しています。</p>
+</div>
+<style>
+#workflows .workflow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px;margin-top:24px}
+#workflows .workflow-card{background:#fff;border:1px solid #d9e5eb;border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px}
+#workflows .workflow-card h3{font-size:1.2rem;line-height:1.5;margin:0;color:#163a52}
+#workflows .workflow-card p{margin:0;line-height:1.75}
+#workflows .workflow-card ol{margin:0;padding-left:1.35em;line-height:1.85}
+#workflows .workflow-card a{margin-top:auto;font-weight:700}
+</style>
+<div class="workflow-grid">
+<article class="workflow-card">
+<h3>注文の集計から入金の照合まで</h3>
+<p>注文明細と決済データを突き合わせ、金額が合わない注文や片側にしかない注文を確認します。</p>
+<ol><li>注文明細CSVを注文番号ごとに集計</li><li>注文合計と決済CSVを照合</li><li>一致・不一致・未照合の行を確認</li></ol>
+<p>使うツール：<a href="tools/order-line-aggregate/">注文明細集計</a>・<a href="tools/order-payment-reconcile/">受注・決済照合</a></p>
+<a href="guides/order-reconciliation-hands-on/">サンプルで一連の作業を試す →</a>
+</article>
+<article class="workflow-card">
+<h3>複数CSVの統合から売上分析まで</h3>
+<p>店舗ごとに列順が違うCSVをまとめ、集計・分析する前のデータを整えます。</p>
+<ol><li>3店舗のCSVをダウンロード</li><li>列をそろえて結合し、重複を確認</li><li>結合結果をCSV分析ツールで調べる</li></ol>
+<p>使うツール：<a href="tools/csv-merge/">CSV結合</a>・<a href="tools/csv-analyzer/">CSV分析</a></p>
+<a href="guides/csv-merge-hands-on/">3店舗のサンプルで試す →</a>
+</article>
+<article class="workflow-card">
+<h3>販売価格を決める前に利益を検証</h3>
+<p>原価・販売手数料・固定費を入力し、目標利益に必要な価格と販売数量を考えます。</p>
+<ol><li>原価と手数料などの条件を入力</li><li>必要販売価格を逆算</li><li>販売数量を変えて利益の違いを確認</li></ol>
+<p>使うツール：<a href="tools/pricing-simulator/">販売価格逆算</a>・<a href="tools/#profit">利益計算</a></p>
+<a href="guides/pricing-simulator-hands-on/">計算例から試す →</a>
+</article>
+</div>
+</div>
+</section>
 <section class="section">
 <div class="container">
 <div class="section-heading">
