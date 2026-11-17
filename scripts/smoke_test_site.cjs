@@ -392,6 +392,14 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#calculate').click();
      if(!(await page.locator('#result').innerText()).includes('1,923円／件')) throw new Error('Physical quantity sensitivity mismatch');
    });
+   await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.locator('#file').setInputFiles(path.resolve(__dirname,'../examples/csv-analysis-sales-sample.csv'));
+     await page.waitForFunction(()=>document.querySelector('#results')?.hidden===false);
+     const status=await page.locator('#status').innerText();
+     if(!status.includes('10行・3列')) throw new Error('Analysis fixture row/column count mismatch: '+status);
+     const stats=await page.locator('#summary').innerText();
+     if(!stats.includes('売上')||!stats.includes('518,000')||!stats.includes('51,800')) throw new Error('Analysis fixture statistics mismatch: '+stats);
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
