@@ -354,6 +354,29 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        if(!csv.includes('A002')||!csv.includes('A004')) throw new Error('Training reconciliation export incomplete');
      });
    }
+   await test(local('tools/csv-merge/index.html'),async()=>{
+     const files=['tokyo','osaka','nagoya'].map(city=>path.resolve(__dirname,'../examples/csv-merge-'+city+'.csv'));
+     await page.locator('#files').setInputFiles(files);
+     await page.locator('#mode').selectOption('name');
+     await page.locator('#source').check();
+     await page.locator('#dedup').uncheck();
+     await page.locator('#merge').click();
+     if(await page.locator('#output').isHidden()) throw new Error('Training CSV merge output missing');
+     if(await page.locator('#body tr').count()!==5) throw new Error('Training CSV merge should contain five rows');
+     const headers=await page.locator('#head th').allTextContents();
+     if(headers.join(',')!=='日付,商品,売上,元ファイル') throw new Error('Training CSV merge headers wrong: '+headers);
+     const pending=page.waitForEvent('download');
+     await page.locator('#download').click();
+     const csv=fs.readFileSync(await (await pending).path(),'utf8');
+     if(!csv.includes('11/1,A,1000,csv-merge-tokyo.csv')||!csv.includes('11/1,A,1000,csv-merge-osaka.csv')) throw new Error('Different stores lost in merge');
+     await page.locator('#dedup').check();
+     await page.locator('#dedupMode').selectOption('all');
+     await page.locator('#merge').click();
+     if(await page.locator('#body tr').count()!==4) throw new Error('Data-only dedup should retain four rows');
+     await page.locator('#dedupMode').selectOption('source');
+     await page.locator('#merge').click();
+     if(await page.locator('#body tr').count()!==5) throw new Error('Source-aware dedup should retain five rows');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
