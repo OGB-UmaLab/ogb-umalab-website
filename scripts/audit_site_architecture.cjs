@@ -1,40 +1,53 @@
-// Read-only, dependency-free architecture audit. Run: node scripts/audit_site_architecture.cjs
+// Site architecture audit: node scripts/audit_site_architecture.cjs
+// Checks all sitemap entries against the checked-out repository.
+// Fail CI for broken/mismatched indexed URLs; report legacy missing canonicals separately.
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
+const host = 'https://ogb-umalab.com';
 const sitemap = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
-const urls = [...sitemap.matchAll(/<loc>\s*([^<]+?)\s*<\/loc>/g)].map(m => m[1]);
-const unique = new Set(urls);
+const urls = [...sitemap.matchAll(/<loc>\s*([^<]+?)\s*<\/loc>/g)].map(m => m[1].trim());
 const counts = new Map();
-const issues = [];
+const errors = [];
+const warnings = [];
+const canonicalOf = html => html.match(/<link\b(?=[^>]*\brel=["']canonical["'])(?=[^>]*\bhref=["']([^"']+)["'])[^>]*>/i)?.[1];
+const robotsNoindex = html => /<meta\b(?=[^>]*\bname=["']robots["'])(?=[^>]*\bcontent=["'][^"']*\bnoindex\b)[^>]*>/i.test(html);
+const seen = new Set();
 for (const url of urls) {
-  if (!url.startsWith('https://ogb-umalab.com/')) {
-    issues.push('Unexpected sitemap host: ' + url);
-    continue;
+  if (seen.has(url)) { errors.push('Duplicate sitemap URL: ' + url); continue; }
+  seen.add(url);
+  if (!url.startsWith(host + '/')) { errors.push('Unexpected sitemap host: ' + url); continue; }
+  const pathname = url.slice(host.length);
+  if (!/^\/(?:[a-zA-Z0-9._~%-]+\/)*$/.test(pathname)) {
+    errors.push('Non-directory or unsafe sitemap URL: ' + url); continue;
   }
-  const pathname = url.slice('https://ogb-umalab.com'.length);
   const segment = pathname.split('/').filter(Boolean)[0] || '(root)';
   counts.set(segment, (counts.get(segment) || 0) + 1);
-  const file = path.join(root, pathname.replace(/^\//, ''), 'index.html');
-  if (!fs.existsSync(file)) {
-    issues.push('Sitemap URL without index.html: ' + pathname);
-    continue;
-  }
+  const file = path.join(root, pathname.slice(1), 'index.html');
+  if (!fs.existsSync(file)) { errors.push('Sitemap URL without index.html: ' + pathname); continue; }
   const html = fs.readFileSync(file, 'utf8');
-  const canonical = html.match(/<link\b[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i)?.[1];
-  if (canonical && canonical !== url) issues.push('Canonical mismatch: ' + pathname + ' -> ' + canonical);
+  const canonical = canonicalOf(html);
+  if (canonical && canonical !== url) errors.push('Canonical mismatch: ' + pathname + ' -> ' + canonical);
+  if (!canonical) {
+    const issue = 'Missing canonical: ' + pathname;
+    if (segment === 'tools' || segment === 'guides' || pathname === '/') errors.push(issue);
+    else warnings.push(issue);
+  }
+  if (robotsNoindex(html)) errors.push('Noindex page present in sitemap: ' + pathname);
 }
-if (urls.length !== unique.size) issues.push('Duplicate sitemap URLs: ' + (urls.length - unique.size));
 for (const entry of ['index.html', 'data-lab/index.html']) {
-  const html = fs.readFileSync(path.join(root, entry), 'utf8');
-  const canonical = html.match(/<link\b[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i)?.[1];
-  if (!canonical) issues.push('Missing canonical on ' + entry);
-  else if (!unique.has(canonical)) issues.push('Canonical not in sitemap: ' + entry + ' -> ' + canonical);
+  const file = path.join(root, entry);
+  if (!fs.existsSync(file)) { errors.push('Missing key landing page: ' + entry); continue; }
+  const canonical = canonicalOf(fs.readFileSync(file, 'utf8'));
+  if (!canonical) errors.push('Missing canonical on ' + entry);
+  else if (entry === 'index.html' && canonical !== host + '/') errors.push('Homepage canonical incorrect: ' + canonical);
+  else if (entry !== 'index.html' && !seen.has(canonical)) warnings.push('Landing page canonical not in sitemap: ' + entry + ' -> ' + canonical);
 }
-console.log('Sitemap URLs:', urls.length, '| unique:', unique.size);
-for (const [segment, count] of [...counts].sort((a,b)=>b[1]-a[1])) console.log(segment.padEnd(20), count);
-console.log('Architecture findings:', issues.length);
-for (const issue of issues.slice(0, 100)) console.log(' -', issue);
-if (issues.length > 100) console.log(' ... additional findings:', issues.length - 100);
-// Findings are diagnostic: existing site content is not altered and the audit does not fail CI.
+console.log('Sitemap URLs:', urls.length, '| unique:', seen.size);
+for (const [segment, count] of [...counts].sort((a, b) => b[1] - a[1])) console.log(segment.padEnd(20), count);
+console.log('Architecture errors:', errors.length, '| warnings:', warnings.length);
+for (const issue of errors) console.error('ERROR', issue);
+for (const issue of warnings.slice(0, 100)) console.warn('WARN', issue);
+if (warnings.length > 100) console.warn('... additional warnings:', warnings.length - 100);
+if (errors.length) process.exitCode = 1;
