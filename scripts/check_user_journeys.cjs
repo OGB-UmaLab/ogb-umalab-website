@@ -154,6 +154,13 @@ for (const [page, next, guide] of flowLinks) {
 check(homepage.includes('<h1>データを整理し、<br>構造を読み解き、<br>次の検証へ。</h1>'), 'Research-first homepage headline must not be replaced by a tool advertisement');
 check(homepage.indexOf('id="choose-task"') > homepage.indexOf('<section class="hero">'), 'Tool selection must follow the institute introduction');
 
+check((homepage.match(/class="workflow-card"/g) || []).length === 3, 'Homepage must show the three complete practical workflows');
+for (const href of ['guides/order-reconciliation-hands-on/', 'guides/csv-merge-hands-on/', 'guides/pricing-simulator-hands-on/']) {
+  check(homepage.includes('href="' + href + '"'), 'Homepage workflow guide link missing: ' + href);
+}
+check(homepage.indexOf('id="workflows"') > homepage.indexOf('id="choose-task"'), 'Practical workflows must follow task choices');
+
+
 check(!fs.existsSync(path.join(root, 'tools/x-richtext-test/index.html')), 'Obsolete X-format test page must stay removed');
 check(!sitemap.includes('<loc>https://ogb-umalab.com/tools/x-richtext-test/</loc>'), 'Experimental X-format test must stay outside sitemap');
 check(read('about/index.html').includes('<link rel="canonical" href="https://ogb-umalab.com/about/">'), 'UmaLab about canonical missing');
