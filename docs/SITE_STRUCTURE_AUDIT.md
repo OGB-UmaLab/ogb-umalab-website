@@ -150,3 +150,10 @@ GitHub上の `index.html` と `data-lab/index.html` の `<main>` 本文を確認
 - `scripts/test_update_sitemap.py` を追加し、公開ページを残しつつ、robots/googlebot noindexページ、従来から除外する中央競馬ページとData Lab旧入口がサイトマップに入らないことを検査する。
 - `.github/workflows/update-sitemap.yml` はサイトマップ再生成の前に回帰テストを実行し、失敗時は公開更新を中止する。
 - GitHubへの保存と再取得は確認済み。**Actions上でのテスト実行結果は未取得**。今後は次回自動生成でnoindexが再混入しないことを確認する。
+
+
+## 2026-11-17 サイトマップ生成回帰テストの実行結果
+
+- GitHub上の `scripts/update_sitemap.py` と `scripts/test_update_sitemap.py` の処理をローカルの一時作業領域に再現し、`python3 -m py_compile` と `python3 -m unittest discover` を実行。**回帰テスト1件合格**、テスト用サイトマップは公開対象2 URLのみ生成。実GitHub Actionsのジョブ成功を示すものではない。
+- 最新 `sitemap.xml` をGitHubから再取得して全 `<loc>` を解析。**531 URL／重複0／辞書順整列／形式不正0**。削除したX検証用ページおよび旧Data Lab入口は未掲載。
+- なお、このチェックはURLの形式と重複・並び順の検査であり、531件それぞれのHTML実在・canonical一致・公開HTTP応答を保証しない。全件の実在監査は引き続き残件。
