@@ -113,3 +113,13 @@ GitHub上の `index.html` と `data-lab/index.html` の `<main>` 本文を確認
 - 実行結果は `test-results/architecture-audit.json` に全件保存し、GitHub Actionsの `architecture-audit` アーティファクトとして収集する。
 - ブラウザテストの成否にかかわらず監査が実行されるよう、ワークフローの後段に `if: always()` で配置。
 - GitHubの更新・再取得、JavaScript構文の検査は完了。**実際のCIジョブの実行結果は未確認**。次はActionsの監査結果からエラーを抽出して修正する。
+
+
+## 2026-11-17 更新処理によるサイトマップ再混入
+
+- GitHubコミット `da1fd12ce6b9b1a322573b0236525ddf91083c29`（`Update sitemap for newly published pages`）で、既に `noindex,follow` に設定した `tools/x-richtext-test/` がサイトマップに再登録されたことをコミット差分で確認した。
+- 当該URLを再除外し、サイトマップを531件へ復旧した（`876cc6b30276d958a93bd5739f9b982f2e489b1a`）。
+- **再発原因は未確定**。同名のサイトマップ更新コミットが過去にも存在する。今後のサイトマップ更新処理は、ページの `robots=noindex` を検査して除外する必要がある。現時点では更新元の実装は特定できていない。
+- `check_user_journeys.cjs` の再混入検査に加え、`audit_site_architecture.cjs` もサイトマップに含まれるnoindexページをエラーとして扱う。
+- 4つの実践ガイドについて、GitHubから12ファイル（トップページ・ツール一覧・4ガイド・対応4ツール・サイトマップほか）を再取得して、canonical・サイトマップ・トップ・一覧・ツールのリンクを照合。今回確認した範囲で不整合0件。
+- この検査はGitHub上のソースの照合であり、公開環境でのHTTPステータス確認やブラウザ実行の代替ではない。
