@@ -6,6 +6,7 @@ workflow begins at note, not at the website's navigation/search sitemap.
 Preview/test pages are also excluded.
 """
 from pathlib import Path
+from html.parser import HTMLParser
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE = "https://ogb-umalab.com/"
@@ -39,11 +40,35 @@ def included(path: str) -> bool:
     )
 
 
+class RobotsMetaParser(HTMLParser):
+    """Read robots directives regardless of HTML attribute order or case."""
+
+    def __init__(self):
+        super().__init__()
+        self.noindex = False
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() != "meta":
+            return
+        values = dict(attrs)
+        if (values.get("name") or "").strip().lower() not in ("robots", "googlebot"):
+            return
+        directives = (values.get("content") or "").lower().replace(";", ",").split(",")
+        if "noindex" in (directive.strip() for directive in directives):
+            self.noindex = True
+
+
+def is_noindex(index: Path) -> bool:
+    parser = RobotsMetaParser()
+    parser.feed(index.read_text(encoding="utf-8"))
+    return parser.noindex
+
+
 def main() -> None:
     urls = set()
     for index in ROOT.rglob("index.html"):
         relative = index.relative_to(ROOT).as_posix()
-        if included(relative):
+        if included(relative) and not is_noindex(index):
             suffix = "" if relative == "index.html" else relative[: -len("index.html")]
             urls.add(BASE + suffix)
 
