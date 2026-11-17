@@ -39,14 +39,15 @@ jobs:
         run: node scripts/check_data_lab_html.cjs
       - name: Check user journeys and downloadable sample data
         run: node scripts/check_user_journeys.cjs
-      - name: Audit sitemap and canonical URLs (diagnostic)
-        run: node scripts/audit_site_architecture.cjs
       - name: Install Playwright and Chromium
         run: |
           npm install --no-save playwright
           npx playwright install --with-deps chromium
       - name: Run browser smoke tests
         run: node scripts/smoke_test_site.cjs --tools-only
+      - name: Audit sitemap and canonical URLs
+        if: always()
+        run: node scripts/audit_site_architecture.cjs
       - name: Upload failure screenshots
         if: failure()
         uses: actions/upload-artifact@v4
