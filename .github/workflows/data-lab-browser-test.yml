@@ -1,0 +1,35 @@
+name: Data Lab browser tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/**'
+      - 'examples/**'
+      - 'guides/**'
+      - 'scripts/smoke_test_site.cjs'
+      - '.github/workflows/data-lab-browser-test.yml'
+  workflow_dispatch:
+jobs:
+  browser-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright
+          npx playwright install --with-deps chromium
+      - name: Run local Data Lab browser tests
+        run: node scripts/smoke_test_site.cjs --tools-only
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-lab-test-failures
+          path: test-results/
+          if-no-files-found: ignore
