@@ -240,7 +240,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!await page.locator('#save').isDisabled() || await page.locator('#result tr').count()) throw new Error('Old aggregation remained after option change');
      await page.locator('#run').click();
      if(await page.locator('#save').isDisabled()) throw new Error('Aggregation did not recover after option change');
-     await page.locator('#amtcol').selectOption('2');
+     await page.locator('#amtcol').selectOption('0');
      if(!await page.locator('#save').isDisabled() || await page.locator('#result tr').count()) throw new Error('Old aggregation remained after amount column change');
    });
    await test(local('tools/order-payment-reconcile/index.html'),async()=>{
