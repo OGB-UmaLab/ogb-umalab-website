@@ -8,6 +8,7 @@ on:
       - "scripts/ensure_daily_metadata.py"
       - "scripts/update_sitemap.py"
       - "scripts/test_update_sitemap.py"
+      - "scripts/audit_site_architecture.cjs"
       - ".github/workflows/update-sitemap.yml"
   workflow_dispatch:
 
