@@ -32,6 +32,7 @@
 <li><strong>結果を確認して保存する：</strong>ファイルごとの行数・列の差異・削除件数を確認し、結合済みCSVを保存します。元ファイルは変更されません。</li></ol>
 <h3>対応できること・できないこと</h3><p>カンマや改行を含む引用符付きセル、UTF-8とShift_JISのCSVを読み込めます。ただし、各ファイルの1行目は列名が必要です。列名が重複しているファイルや、行ごとに列数が異なるファイルは誤結合を避けるためエラーにします。複数ファイルの文字コードが混在している場合は、同じ文字コードにそろえてから読み込んでください。</p>
 <h3>データの取り扱い</h3><p>ファイルの内容はこのページ内のJavaScriptで処理し、結合処理のためにサーバーへ送信しません。ページにはアクセス解析用の外部スクリプトが読み込まれます。機密性の高い情報については利用環境・組織の取り扱い規程も確認してください。</p></section>
+<section class="card" aria-labelledby="next-csv"><h2 id="next-csv">次の作業：結合したCSVを分析する</h2><p>結合結果の行数・列名・重複削除件数を確認してCSVを保存したら、<a href="/tools/csv-analyzer/">CSV自動分析ツール</a>に読み込めます。売上などの数値列の合計・平均・外れ値を調べ、元データとの違いを確認してください。</p><p><a href="/guides/csv-merge-hands-on/">3店舗の架空CSVを使って結合から分析まで試す →</a></p></section>
 </main><footer>OGBデータ研究所 ｜ <a href="../">無料ツール一覧</a>　｜　<a href="/privacy/">プライバシーポリシー</a>　｜　<a href="/data-lab/organization/">運営情報</a></footer>
 <script>
 "use strict";const $=id=>document.getElementById(id),state={headers:[],rows:[],log:[]};
