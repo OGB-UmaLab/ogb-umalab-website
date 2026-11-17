@@ -9,6 +9,10 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
  const browser = await chromium.launch({headless:true});
  const page = await browser.newPage();
  const errors=[];
+ const waitForText=(selector,expected)=>page.waitForFunction(
+  ([selector,expected])=>document.querySelector(selector)?.textContent.includes(expected),
+  [selector,expected]
+ );
  fs.mkdirSync(path.resolve(__dirname,'../test-results'),{recursive:true});
  const test=async (testPath,fn)=>{
   try {
@@ -29,7 +33,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#orders').setInputFiles({name:'duplicate.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額,金額\nA001,100,200','utf8')});
      await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\nA001,100','utf8')});
      await page.locator('#load').click();
-     if(!(await page.locator('#loadStatus').innerText()).includes('同じ名前の見出し')) throw new Error('Duplicate headers not rejected');
+     await waitForText('#loadStatus','同じ名前の見出し');
      if(!await page.locator('#run').isDisabled()) throw new Error('Run enabled after invalid headers');
    });
    await test(local('tools/order-payment-reconcile/index.html'),async()=>{
@@ -160,7 +164,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(await page.locator('#save').isDisabled()) throw new Error('Demo aggregation not exportable');
      await page.locator('#file').setInputFiles({name:'bad.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額,金額\nA001,100,200','utf8')});
      await page.locator('#load').click();
-     if(!(await page.locator('#loadStatus').innerText()).includes('同じ名前の見出し')) throw new Error('Duplicate aggregation headers not rejected');
+     await waitForText('#loadStatus','同じ名前の見出し');
      if(!await page.locator('#save').isDisabled()) throw new Error('Stale aggregation export after load failure');
      if(await page.locator('#result tr').count()) throw new Error('Stale aggregation results after load failure');
    });
@@ -178,6 +182,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    await test(local('tools/order-line-aggregate/index.html'),async()=>{
      await page.locator('#file').setInputFiles({name:'refund.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,明細金額\nR001,-100','utf8')});
      await page.locator('#load').click();
+     await page.waitForFunction(() => document.querySelector('#run')?.disabled === false);
      await page.locator('#run').click();
      const downloadPromise=page.waitForEvent('download');
      await page.locator('#save').click();
@@ -276,7 +281,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      ];
      await page.locator('#files').setInputFiles(files);
      await page.locator('#merge').click();
-     if(await page.locator('#output').isHidden()) throw new Error('CSV merge output missing');
+     await page.locator('#output').waitFor({state:'visible'});
      const downloadPromise=page.waitForEvent('download');
      await page.locator('#download').click();
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
@@ -298,7 +303,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        {name:'good.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\nA002,200','utf8')}
      ]);
      await page.locator('#merge').click();
-     if(!(await page.locator('#status').innerText()).includes('閉じ引用符の後に文字')) throw new Error('Malformed quoted CSV accepted');
+     await waitForText('#status','閉じ引用符の後に文字');
      if(!await page.locator('#output').isHidden()) throw new Error('Stale merge output visible after failure');
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
@@ -360,13 +365,13 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if((await page.locator('#comparison').innerText()).includes('Infinity')) throw new Error('Invalid pricing comparison visible');
    });
    await test(local('tools/index.html'),async()=>{
-     await page.locator('#csv').setInputFiles({name:'quoted.csv',mimeType:'text/csv',buffer:Buffer.from('項目,金額\\n"A,B",1200','utf8')});
-     if(!(await page.locator('#stats-result').innerText()).includes('引用符付きCSV')) throw new Error('Basic stats importer silently accepted quoted CSV');
+     await page.locator('#csv').setInputFiles({name:'quoted.csv',mimeType:'text/csv',buffer:Buffer.from('項目,金額\n"A,B",1200','utf8')});
+     await waitForText('#stats-result','引用符付きCSV');
    });
    await test(local('tools/index.html'),async()=>{
      await page.locator('#values').fill('999');
      await page.locator('#col').fill('3');
-     await page.locator('#csv').setInputFiles({name:'short.csv',mimeType:'text/csv',buffer:Buffer.from('A,B\\n10,20','utf8')});
+     await page.locator('#csv').setInputFiles({name:'short.csv',mimeType:'text/csv',buffer:Buffer.from('A,B\n10,20','utf8')});
      await page.waitForFunction(() => document.querySelector('#stats-result')?.textContent?.includes('指定列が存在しない'));
      if(await page.locator('#values').inputValue()) throw new Error('Old statistics values remained after missing-column import');
    });
@@ -425,7 +430,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#save').click();
      const downloaded=await pending;
      aggregatedCsv=fs.readFileSync(await downloaded.path());
-     const csv=aggregatedCsv.toString('utf8').replace(/^\\uFEFF/,'');
+     const csv=aggregatedCsv.toString('utf8').replace(/^\uFEFF/,'');
      if(!csv.includes('A001,1200,2')||!csv.includes('A002,2500,2')||!csv.includes('A003,900,1')) throw new Error('Training aggregate export mismatch');
    });
    if(aggregatedCsv){
@@ -454,7 +459,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#source').check();
      await page.locator('#dedup').uncheck();
      await page.locator('#merge').click();
-     if(await page.locator('#output').isHidden()) throw new Error('Training CSV merge output missing');
+     await page.locator('#output').waitFor({state:'visible'});
      if(await page.locator('#body tr').count()!==5) throw new Error('Training CSV merge should contain five rows');
      const headers=await page.locator('#head th').allTextContents();
      if(headers.join(',')!=='日付,商品,売上,元ファイル') throw new Error('Training CSV merge headers wrong: '+headers);
@@ -465,9 +470,11 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#dedup').check();
      await page.locator('#dedupMode').selectOption('all');
      await page.locator('#merge').click();
+     await page.locator('#output').waitFor({state:'visible'});
      if(await page.locator('#body tr').count()!==4) throw new Error('Data-only dedup should retain four rows');
      await page.locator('#dedupMode').selectOption('source');
      await page.locator('#merge').click();
+     await page.locator('#output').waitFor({state:'visible'});
      if(await page.locator('#body tr').count()!==5) throw new Error('Source-aware dedup should retain five rows');
    });
    // Verify the second complete workflow using the CSV actually exported by the merge tool.
@@ -479,7 +486,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#source').check();
      await page.locator('#dedup').uncheck();
      await page.locator('#merge').click();
-     if(await page.locator('#output').isHidden()) throw new Error('Merge did not produce results');
+     await page.locator('#output').waitFor({state:'visible'});
      const pending=page.waitForEvent('download');
      await page.locator('#download').click();
      mergedFixture=fs.readFileSync(await (await pending).path());
@@ -503,6 +510,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#dedup').check();
      await page.locator('#dedupMode').selectOption('all');
      await page.locator('#merge').click();
+     await page.locator('#output').waitFor({state:'visible'});
      if(await page.locator('#body tr').count()!==4) throw new Error('Expected four rows after data-only dedup');
      const pending=page.waitForEvent('download');
      await page.locator('#download').click();
