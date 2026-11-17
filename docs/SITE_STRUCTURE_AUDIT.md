@@ -157,3 +157,11 @@ GitHub上の `index.html` と `data-lab/index.html` の `<main>` 本文を確認
 - GitHub上の `scripts/update_sitemap.py` と `scripts/test_update_sitemap.py` の処理をローカルの一時作業領域に再現し、`python3 -m py_compile` と `python3 -m unittest discover` を実行。**回帰テスト1件合格**、テスト用サイトマップは公開対象2 URLのみ生成。実GitHub Actionsのジョブ成功を示すものではない。
 - 最新 `sitemap.xml` をGitHubから再取得して全 `<loc>` を解析。**531 URL／重複0／辞書順整列／形式不正0**。削除したX検証用ページおよび旧Data Lab入口は未掲載。
 - なお、このチェックはURLの形式と重複・並び順の検査であり、531件それぞれのHTML実在・canonical一致・公開HTTP応答を保証しない。全件の実在監査は引き続き残件。
+
+
+## 2026-11-17 サイトマップ自動更新と全件監査の接続
+
+- `.github/workflows/update-sitemap.yml` のサイトマップ生成後に `node scripts/audit_site_architecture.cjs` を追加。生成されたサイトマップを、同じチェックアウトの実ファイルと照合する。
+- 監査結果 `test-results/architecture-audit.json` は `sitemap-architecture-audit` アーティファクトとしてアップロードする。監査コード変更も更新ワークフローの起動対象に加えた。
+- 既存の競馬・ニュース系ページに未知のcanonical不整合がある可能性があるため、**この全件監査は報告目的でcontinue-on-error** とし、既存の日次公開を止めない。一方、サイトマップ生成のPython回帰テストは失敗時に停止する。
+- GitHub更新と再取得確認は完了。Actionsの実行結果と531件のHTML照合結果は未取得であり、全件監査完了とはしない。
