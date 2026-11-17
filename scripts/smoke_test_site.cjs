@@ -377,6 +377,29 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#merge').click();
      if(await page.locator('#body tr').count()!==5) throw new Error('Source-aware dedup should retain five rows');
    });
+   // Verify the second complete workflow using the CSV actually exported by the merge tool.
+   let mergedFixture=null;
+   await test(local('tools/csv-merge/index.html'),async()=>{
+     const inputs=['tokyo','osaka','nagoya'].map(city=>path.resolve(__dirname,'../examples/csv-merge-'+city+'.csv'));
+     await page.locator('#files').setInputFiles(inputs);
+     await page.locator('#mode').selectOption('name');
+     await page.locator('#source').check();
+     await page.locator('#dedup').uncheck();
+     await page.locator('#merge').click();
+     if(await page.locator('#output').isHidden()) throw new Error('Merge did not produce results');
+     const pending=page.waitForEvent('download');
+     await page.locator('#download').click();
+     mergedFixture=fs.readFileSync(await (await pending).path());
+     if(!mergedFixture.toString('utf8').includes('csv-merge-nagoya.csv')) throw new Error('Merge export lost source names');
+   });
+   if(mergedFixture) await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.locator('#file').setInputFiles({name:'merged.csv',mimeType:'text/csv',buffer:mergedFixture});
+     await page.waitForFunction(()=>document.querySelector('#results')?.hidden===false);
+     const status=await page.locator('#status').innerText();
+     if(!status.includes('5行・4列')) throw new Error('Merged CSV import row count mismatch: '+status);
+     const stats=await page.locator('#summary').innerText();
+     if(!stats.includes('売上')||!stats.includes('11,000')||!stats.includes('2,200')) throw new Error('Merged sales statistics mismatch: '+stats);
+   });
    await test(local('tools/pricing-simulator/index.html'),async()=>{
      await page.locator('#example-digital').click();
      let result=await page.locator('#result').innerText();
