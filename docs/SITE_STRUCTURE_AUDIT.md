@@ -94,3 +94,13 @@ GitHub上の `index.html` と `data-lab/index.html` の `<main>` 本文を確認
 **優先判断**：これらは構造整備の候補であるが、既存ページの役割を確認する前にcanonicalを一括変更しない。特に `tools/x-richtext-test/` は検証用ページのため、インデックス方針を先に決める。
 
 この個別照合はサイトマップ528 URLすべての検証ではない。Googleによるインデックス状況やAdSense評価を示すものでもない。
+
+
+## 2026-11-17 優先監査：公開URLと検証用ページ
+
+- `sitemap.xml` をGitHubから直接取得して集計：変更前は532 URL、重複0、ホストはすべて `https://ogb-umalab.com/`。主な内訳：`ogb-data` 198、`global-news` 157、`class-promotion` 94、`knowledge` 57、`tools` 10、`guides` 7。
+- `tools/x-richtext-test/` はXへの太字貼り付けを試す検証ページで、公開サイトマップに載り、noindexがなかった。実用ページと検証ページを区別するため、**ページ自体は残したまま** `noindex,follow` を追加し、サイトマップから除外した。変更後のサイトマップは531 URL。
+- `about/` にcanonicalがなかったため `https://ogb-umalab.com/about/` を明記した。
+- 4つの実践ガイド（注文照合、CSV結合、CSV分析、販売価格）はGitHub上で `index.html` の存在とcanonical一致を個別確認した。
+- **残件**：531 URLの実ファイル全件照合と、実ブラウザ・GitHub Actionsの合否確認。リポジトリ上の再取得と実サイトの配信成功は別。PR向けに限定されたGitHub Actions照会では対象コミットの実行履歴を取得できなかった。
+- `data-lab/` とトップ `/` の重複に近い位置づけは引き続き判断保留。URLの削除・転送は実施していない。
