@@ -105,6 +105,32 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const download=await downloadPromise;
      if(download.suggestedFilename()!=='order-totals.csv') throw new Error('Wrong aggregation export filename');
    });
+   // Real two-tool handoff: aggregate the published fixture, download it, then reconcile that exact CSV.
+   let aggregatedFixture = null;
+   await test(local('tools/order-line-aggregate/index.html'),async()=>{
+     await page.locator('#file').setInputFiles(path.resolve(__dirname,'../examples/order-lines-sample.csv'));
+     await page.locator('#load').click();
+     await page.waitForFunction(() => document.querySelector('#run')?.disabled === false);
+     await page.locator('#run').click();
+     const rows = await page.locator('#result tr').allTextContents();
+     if(rows.length!==3 || !rows.some(x=>x.includes('A002')&&x.includes('2500'))) throw new Error('Published sample aggregation incorrect: '+rows);
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#save').click();
+     aggregatedFixture=fs.readFileSync(await (await downloadPromise).path());
+     if(!aggregatedFixture.includes(Buffer.from('A003,900,1'))) throw new Error('Downloaded aggregation CSV missing A003');
+   });
+   if(aggregatedFixture) await test(local('tools/order-payment-reconcile/index.html'),async()=>{
+     await page.locator('#orders').setInputFiles({name:'order-totals.csv',mimeType:'text/csv',buffer:aggregatedFixture});
+     await page.locator('#payments').setInputFiles(path.resolve(__dirname,'../examples/payments-sample.csv'));
+     await page.locator('#load').click();
+     await page.waitForFunction(() => document.querySelector('#run')?.disabled === false);
+     await page.locator('#run').click();
+     const summary=await page.locator('#summary').innerText();
+     for(const expected of ['一致 1件','金額不一致 1件','受注のみ 1件','決済のみ 1件']){
+       if(!summary.includes(expected)) throw new Error('Actual handoff missing '+expected+': '+summary);
+     }
+     if(await page.locator('#results tr').count()!==4) throw new Error('Actual handoff should produce four transaction statuses');
+   });
    await test(local('tools/order-payment-reconcile/index.html'),async()=>{
      await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,税込注文総額\nZ001,500\nZ002,800','utf8')});
      await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,決済金額\nZ001,500\nZ002,700','utf8')});
