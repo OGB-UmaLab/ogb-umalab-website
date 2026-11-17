@@ -14,6 +14,7 @@ on:
       - 'scripts/check_user_journeys.cjs'
       - 'guides/order-reconciliation-hands-on/index.html'
       - 'guides/csv-merge-hands-on/index.html'
+      - 'guides/pricing-simulator-hands-on/index.html'
       - 'examples/**'
       - 'sitemap.xml'
       - 'guides/order-payment-reconciliation/index.html'
