@@ -211,6 +211,19 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#run').click();
      if(!(await page.locator('#excluded').innerText()).includes('受注 1行')) throw new Error('Incomplete order row was silently ignored rather than counted');
    });
+   // Changing the decoding charset requires reloading, not exporting the previously decoded data.
+   for(const tool of [
+     {page:'tools/order-line-aggregate/index.html',save:'#save'},
+     {page:'tools/order-payment-reconcile/index.html',save:'#export'}
+   ]){
+     await test(local(tool.page),async()=>{
+       await page.locator('#demo').click();
+       await page.locator('#run').click();
+       if(await page.locator(tool.save).isDisabled()) throw new Error('Demo result missing');
+       await page.locator('#encoding').selectOption('shift_jis');
+       if(!await page.locator(tool.save).isDisabled()||!await page.locator('#run').isDisabled()) throw new Error('Stale export remained after encoding change');
+     });
+   }
    // A newly selected file must invalidate the old export even before the user presses Load.
    await test(local('tools/order-line-aggregate/index.html'),async()=>{
      await page.locator('#demo').click();
