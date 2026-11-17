@@ -97,6 +97,28 @@ check(mergedRows.reduce((sum, row) => sum + Number(row['売上']), 0) === 11000,
 const unique = new Set(mergedRows.map(row => JSON.stringify(mergeHeaders.map(h => row[h]))));
 check(unique.size === 4, 'Merge exercise should have four unique rows without source filenames');
 
+
+const pricingGuide = read('guides/pricing-simulator-hands-on/index.html');
+const pricingTool = read('tools/pricing-simulator/index.html');
+check(homepage.includes('href="guides/pricing-simulator-hands-on/"'), 'Homepage pricing hands-on link missing');
+check(tools.includes('href="../guides/pricing-simulator-hands-on/"'), 'Tool directory pricing hands-on link missing');
+check(pricingTool.includes('href="/guides/pricing-simulator-hands-on/"'), 'Pricing tool hands-on link missing');
+check(sitemap.includes('<loc>https://ogb-umalab.com/guides/pricing-simulator-hands-on/</loc>'), 'Pricing guide missing from sitemap');
+check(pricingGuide.includes('rel="canonical" href="https://ogb-umalab.com/guides/pricing-simulator-hands-on/"'), 'Pricing guide canonical missing');
+const pricingCases = [
+  {cost:0,fixed:5000,count:50,fee:15,flat:0,target:30000,price:824,breakEven:118,profit:30020},
+  {cost:800,fixed:30000,count:150,fee:10,flat:30,target:60000,price:1589,breakEven:1145,profit:60015}
+];
+for (const c of pricingCases) {
+  const price = Math.ceil((c.cost+c.flat+(c.fixed+c.target)/c.count)/(1-c.fee/100)-1e-10);
+  const breakEven = Math.ceil((c.cost+c.flat+c.fixed/c.count)/(1-c.fee/100)-1e-10);
+  const profit = price*c.count*(1-c.fee/100)-(c.cost+c.flat)*c.count-c.fixed;
+  check(price===c.price && breakEven===c.breakEven && Math.abs(profit-c.profit)<1e-6, 'Pricing exercise calculation mismatch');
+  check(pricingGuide.includes(c.price.toLocaleString('ja-JP')+'円'), 'Pricing guide expected price missing: '+c.price);
+}
+check(Math.ceil((700)/(1-0.10)-1e-10)===778, 'Digital fee comparison mismatch');
+check(Math.ceil((830+900)/(1-0.10)-1e-10)===1923, 'Physical count comparison mismatch');
+
 if (failures.length) {
   for (const failure of failures) console.error('FAIL', failure);
   process.exitCode = 1;
