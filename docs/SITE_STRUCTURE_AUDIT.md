@@ -140,3 +140,13 @@ GitHub上の `index.html` と `data-lab/index.html` の `<main>` 本文を確認
 - `.github/workflows/data-lab-smoke.yml` の変更監視を個別ファイル列挙から `tools/**`、`guides/**`、`data-lab/**` などの範囲指定に変更。将来の新しいツール・ガイドの追加やページ削除も監査対象に入る。
 - GitHubのコミットステータス取得では、対象コミットに従来型のステータス情報は返されなかった。Actions実行結果の取得には至っていない。静的検査・GitHub保存とCI成功は区別する。
 - 全531件の実ファイル存在・canonicalの実行監査は引き続き未完了。
+
+
+## 2026-11-17 サイトマップ再混入の発生源を修正
+
+- 再登録コミット `da1fd12ce6b9b1a322573b0236525ddf91083c29` の作成者が `github-actions[bot]` であることを確認。
+- `.github/workflows/update-sitemap.yml` と `scripts/update_sitemap.py` を特定。自動生成スクリプトは許可フォルダー内の `index.html` を列挙するだけで、HTMLのrobots `noindex` 指定を検査していなかった。これが手動削除後の再混入原因。
+- `scripts/update_sitemap.py` に標準ライブラリ `HTMLParser` によるrobots/googlebotの `noindex` 判定を追加。属性順序・大文字小文字が異なる指定も除外する。
+- `scripts/test_update_sitemap.py` を追加し、公開ページを残しつつ、robots/googlebot noindexページ、従来から除外する中央競馬ページとData Lab旧入口がサイトマップに入らないことを検査する。
+- `.github/workflows/update-sitemap.yml` はサイトマップ再生成の前に回帰テストを実行し、失敗時は公開更新を中止する。
+- GitHubへの保存と再取得は確認済み。**Actions上でのテスト実行結果は未取得**。今後は次回自動生成でnoindexが再混入しないことを確認する。
