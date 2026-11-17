@@ -75,6 +75,7 @@
 <h3>CSVファイルを作る際の注意</h3><p>数値列は <code>30000</code> や <code>12.5</code> のように記録してください。<code>30,000円</code> のような単位付き文字列は数値として認識しません。列に文字と数値が混在する場合、その列は数値分析の対象外です。分類名は日本語で構いません。</p>
 <p>日付の自動まとめは <code>YYYY-MM-DD</code>、<code>YYYY/MM/DD</code>、<code>YYYY-MM</code> 形式を想定しています。その他の形式では元の文字列で分類してください。</p>
 <p>統計の基礎は <a href="../../guides/csv-analysis-basics/">CSV分析の基本ガイド</a> でも解説しています。関連する <a href="../">利益・損益分岐点計算などの無料ツール</a> も利用できます。</p></section>
+<section class="card" aria-labelledby="before-analysis"><h2 id="before-analysis">分析の前に：複数ファイルを1つにまとめる</h2><p>月別・店舗別のCSVが複数ある場合は、先に<a href="/tools/csv-merge/">CSV結合ツール</a>で列名や重複行を確認してから分析できます。店舗ごとの別取引を誤って削除しないよう、元ファイル名も確認してください。</p><p><a href="/guides/csv-merge-hands-on/">3店舗のCSV結合から分析までの手順を見る →</a>　／　<a href="/guides/csv-analysis-hands-on/">10日分の売上データで分析を試す →</a></p></section>
 </main><footer>OGBデータ研究所 ｜ <a href="../../data-lab/organization/">運営情報</a>　｜　<a href="/privacy/">プライバシーポリシー</a></footer>
 <script>
 "use strict";
