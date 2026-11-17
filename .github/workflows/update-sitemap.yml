@@ -40,6 +40,15 @@ jobs:
         run: python3 scripts/test_update_sitemap.py
       - name: Generate sitemap from published pages
         run: python3 scripts/update_sitemap.py
+      - name: Audit generated sitemap against all HTML pages
+        run: node scripts/audit_site_architecture.cjs
+      - name: Upload sitemap architecture audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sitemap-architecture-audit
+          path: test-results/architecture-audit.json
+          if-no-files-found: warn
       - name: Commit sitemap changes if needed
         run: |
           if git diff --quiet -- sitemap.xml ogb-data/daily; then
