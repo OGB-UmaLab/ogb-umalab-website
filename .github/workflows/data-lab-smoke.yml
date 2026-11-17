@@ -23,7 +23,6 @@ on:
       - 'guides/csv-analysis-basics/index.html'
       - 'guides/pricing-profit-basics/index.html'
       - 'tools/pricing-simulator/index.html'
-      - 'tools/x-richtext-test/index.html'
       - 'about/index.html'
       - '.github/workflows/data-lab-smoke.yml'
 jobs:
