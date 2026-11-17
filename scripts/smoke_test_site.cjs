@@ -377,6 +377,21 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#merge').click();
      if(await page.locator('#body tr').count()!==5) throw new Error('Source-aware dedup should retain five rows');
    });
+   await test(local('tools/pricing-simulator/index.html'),async()=>{
+     await page.locator('#example-digital').click();
+     let result=await page.locator('#result').innerText();
+     for(const expected of ['824円／件','118円／件','41,200円','30,020円']){
+       if(!result.includes(expected)) throw new Error('Digital pricing scenario missing '+expected);
+     }
+     await page.locator('#example-physical').click();
+     result=await page.locator('#result').innerText();
+     for(const expected of ['1,589円／件','1,145円／件','238,350円','60,015円']){
+       if(!result.includes(expected)) throw new Error('Physical pricing scenario missing '+expected);
+     }
+     await page.locator('#count').fill('100');
+     await page.locator('#calculate').click();
+     if(!(await page.locator('#result').innerText()).includes('1,923円／件')) throw new Error('Physical quantity sensitivity mismatch');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
