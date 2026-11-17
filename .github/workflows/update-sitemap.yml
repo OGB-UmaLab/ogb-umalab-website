@@ -7,6 +7,7 @@ on:
       - "**/index.html"
       - "scripts/ensure_daily_metadata.py"
       - "scripts/update_sitemap.py"
+      - "scripts/test_update_sitemap.py"
       - ".github/workflows/update-sitemap.yml"
   workflow_dispatch:
 
@@ -35,6 +36,8 @@ jobs:
         run: python3 scripts/ensure_daily_metadata.py
       - name: Check sitemap script syntax
         run: python3 -m py_compile scripts/update_sitemap.py
+      - name: Test sitemap exclusions and robots directives
+        run: python3 scripts/test_update_sitemap.py
       - name: Generate sitemap from published pages
         run: python3 scripts/update_sitemap.py
       - name: Commit sitemap changes if needed
