@@ -50,4 +50,9 @@ console.log('Architecture errors:', errors.length, '| warnings:', warnings.lengt
 for (const issue of errors) console.error('ERROR', issue);
 for (const issue of warnings.slice(0, 100)) console.warn('WARN', issue);
 if (warnings.length > 100) console.warn('... additional warnings:', warnings.length - 100);
+const report = { checkedAt: new Date().toISOString(), sitemapUrls: urls.length, uniqueUrls: seen.size, categories: Object.fromEntries(counts), errors, warnings };
+const outDir = path.join(root, 'test-results');
+fs.mkdirSync(outDir, { recursive: true });
+fs.writeFileSync(path.join(outDir, 'architecture-audit.json'), JSON.stringify(report, null, 2) + '\\n', 'utf8');
+console.log('Saved test-results/architecture-audit.json');
 if (errors.length) process.exitCode = 1;
