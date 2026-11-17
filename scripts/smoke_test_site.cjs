@@ -409,6 +409,29 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const stats=await page.locator('#summary').innerText();
      if(!stats.includes('売上')||!stats.includes('11,000')||!stats.includes('2,200')) throw new Error('Merged sales statistics mismatch: '+stats);
    });
+   // Deleting data-only duplicates changes the sales total; verify this risk in the analyzer.
+   let deduplicatedFixture=null;
+   await test(local('tools/csv-merge/index.html'),async()=>{
+     const inputs=['tokyo','osaka','nagoya'].map(city=>path.resolve(__dirname,'../examples/csv-merge-'+city+'.csv'));
+     await page.locator('#files').setInputFiles(inputs);
+     await page.locator('#mode').selectOption('name');
+     await page.locator('#source').check();
+     await page.locator('#dedup').check();
+     await page.locator('#dedupMode').selectOption('all');
+     await page.locator('#merge').click();
+     if(await page.locator('#body tr').count()!==4) throw new Error('Expected four rows after data-only dedup');
+     const pending=page.waitForEvent('download');
+     await page.locator('#download').click();
+     deduplicatedFixture=fs.readFileSync(await (await pending).path());
+   });
+   if(deduplicatedFixture) await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.locator('#file').setInputFiles({name:'deduplicated.csv',mimeType:'text/csv',buffer:deduplicatedFixture});
+     await page.waitForFunction(()=>document.querySelector('#results')?.hidden===false);
+     const status=await page.locator('#status').innerText();
+     if(!status.includes('4行・4列')) throw new Error('Deduplicated CSV import row count mismatch: '+status);
+     const stats=await page.locator('#summary').innerText();
+     if(!stats.includes('10,000')||!stats.includes('2,500')) throw new Error('Deduplication impact on sales was not reflected: '+stats);
+   });
    await test(local('tools/pricing-simulator/index.html'),async()=>{
      await page.locator('#example-digital').click();
      let result=await page.locator('#result').innerText();
