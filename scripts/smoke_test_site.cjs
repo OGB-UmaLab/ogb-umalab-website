@@ -185,6 +185,29 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   // Changing an ID, amount, or whitespace option must invalidate prior downloadable results.
+   await test(local('tools/order-line-aggregate/index.html'),async()=>{
+     await page.locator('#demo').click();
+     await page.locator('#run').click();
+     if(await page.locator('#save').isDisabled()) throw new Error('Initial aggregation unavailable');
+     await page.locator('#trim').uncheck();
+     if(!await page.locator('#save').isDisabled() || await page.locator('#result tr').count()) throw new Error('Old aggregation remained after option change');
+     await page.locator('#run').click();
+     if(await page.locator('#save').isDisabled()) throw new Error('Aggregation did not recover after option change');
+     await page.locator('#amtcol').selectOption('2');
+     if(!await page.locator('#save').isDisabled() || await page.locator('#result tr').count()) throw new Error('Old aggregation remained after amount column change');
+   });
+   await test(local('tools/order-payment-reconcile/index.html'),async()=>{
+     await page.locator('#demo').click();
+     await page.locator('#run').click();
+     if(await page.locator('#export').isDisabled()) throw new Error('Initial reconciliation unavailable');
+     await page.locator('#trim').uncheck();
+     if(!await page.locator('#export').isDisabled() || await page.locator('#results tr').count()) throw new Error('Old reconciliation remained after whitespace option change');
+     await page.locator('#run').click();
+     if(await page.locator('#export').isDisabled()) throw new Error('Reconciliation did not recover after option change');
+     await page.locator('#paymentAmount').selectOption('0');
+     if(!await page.locator('#export').isDisabled() || await page.locator('#results tr').count()) throw new Error('Old reconciliation remained after amount column change');
+   });
    await test(local('tools/csv-merge/index.html'),async()=>{
      const files=[
        {name:'a.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\n=1+1,-100','utf8')},
