@@ -139,8 +139,7 @@ check(sales.reduce((a,b)=>a+b,0)/sales.length===51800, 'Analysis sales mean mism
 check(Math.min(...sales)===25000 && Math.max(...sales)===100000, 'Analysis sales range mismatch');
 
 
-const experimentalXPage=read('tools/x-richtext-test/index.html');
-check(/<meta\s+name="robots"\s+content="noindex,follow">/.test(experimentalXPage), 'Experimental X-format test must stay noindex');
+check(!fs.existsSync(path.join(root, 'tools/x-richtext-test/index.html')), 'Obsolete X-format test page must stay removed');
 check(!sitemap.includes('<loc>https://ogb-umalab.com/tools/x-richtext-test/</loc>'), 'Experimental X-format test must stay outside sitemap');
 check(read('about/index.html').includes('<link rel="canonical" href="https://ogb-umalab.com/about/">'), 'UmaLab about canonical missing');
 
