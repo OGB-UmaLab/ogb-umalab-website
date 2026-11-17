@@ -287,6 +287,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(await page.locator('#values').inputValue()) throw new Error('Old statistics values remained after missing-column import');
    });
    await test(local('index.html'),async()=>{
+     const instituteTitle=await page.locator('.hero h1').innerText();
+     if(!instituteTitle.includes('データを整理し')||!instituteTitle.includes('構造を読み解き')) throw new Error('Research institute introduction replaced');
+     if(!(await page.locator('.hero a[href="data-lab/about/"]').count())) throw new Error('Institute introduction link missing');
+     if((await page.locator('#workflows .workflow-card').count())!==3) throw new Error('Three practical workflows missing');
+     for(const guide of ['order-reconciliation-hands-on','csv-merge-hands-on','pricing-simulator-hands-on']){
+       const href='guides/'+guide+'/';
+       if(!(await page.locator('#workflows a[href="'+href+'"]').count())) throw new Error('Workflow guide missing: '+href);
+       if(!fs.existsSync(path.resolve(__dirname,'..',href,'index.html'))) throw new Error('Workflow guide target missing: '+href);
+     }
      if((await page.locator('#choose-task .task-card').count())!==6) throw new Error('Homepage task choices missing');
      if(!(await page.locator('.hero a[href="#choose-task"]').count())) throw new Error('Hero task CTA missing');
      const links=page.locator('#choose-task .task-card a[href]');
