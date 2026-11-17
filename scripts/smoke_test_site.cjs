@@ -185,6 +185,26 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   // A newly selected file must invalidate the old export even before the user presses Load.
+   await test(local('tools/order-line-aggregate/index.html'),async()=>{
+     await page.locator('#demo').click();
+     await page.locator('#run').click();
+     await page.locator('#file').setInputFiles({name:'new.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,明細金額\nN001,100','utf8')});
+     if(!await page.locator('#save').isDisabled()||!await page.locator('#run').isDisabled()||await page.locator('#result tr').count()) throw new Error('Old aggregation still available after selecting new CSV');
+     await page.locator('#load').click();
+     await page.locator('#run').click();
+     if(await page.locator('#save').isDisabled()) throw new Error('New aggregation did not become available');
+   });
+   await test(local('tools/order-payment-reconcile/index.html'),async()=>{
+     await page.locator('#demo').click();
+     await page.locator('#run').click();
+     await page.locator('#orders').setInputFiles({name:'new-orders.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\nN001,100','utf8')});
+     if(!await page.locator('#export').isDisabled()||!await page.locator('#run').isDisabled()||await page.locator('#results tr').count()) throw new Error('Old reconciliation still available after selecting new CSV');
+     await page.locator('#payments').setInputFiles({name:'new-payments.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\nN001,100','utf8')});
+     await page.locator('#load').click();
+     await page.locator('#run').click();
+     if(await page.locator('#export').isDisabled()) throw new Error('New reconciliation did not become available');
+   });
    // Changing an ID, amount, or whitespace option must invalidate prior downloadable results.
    await test(local('tools/order-line-aggregate/index.html'),async()=>{
      await page.locator('#demo').click();
