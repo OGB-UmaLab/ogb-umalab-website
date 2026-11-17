@@ -185,6 +185,28 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   // Empty separator lines in exported CSVs are harmless; incomplete data rows are not.
+   await test(local('tools/order-line-aggregate/index.html'),async()=>{
+     await page.locator('#file').setInputFiles({name:'blank-lines.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,明細金額\n\nB001,100\n\nB001,200\n\n','utf8')});
+     await page.locator('#load').click();
+     await page.locator('#run').click();
+     if(!(await page.locator('#summary').innerText()).includes('2明細行 → 1注文')) throw new Error('Blank CSV lines affected order aggregation');
+     await page.locator('#file').setInputFiles({name:'missing-id.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,明細金額\n,100\n','utf8')});
+     await page.locator('#load').click();
+     await page.locator('#run').click();
+     if(!(await page.locator('#runStatus').innerText()).includes('注文番号が空欄')) throw new Error('Incomplete order row was silently ignored');
+   });
+   await test(local('tools/order-payment-reconcile/index.html'),async()=>{
+     await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\n\nB001,300\n\n','utf8')});
+     await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\n\nB001,300\n\n','utf8')});
+     await page.locator('#load').click();
+     await page.locator('#run').click();
+     if(!(await page.locator('#summary').innerText()).includes('一致 1件')) throw new Error('Blank CSV lines affected reconciliation');
+     await page.locator('#orders').setInputFiles({name:'missing-id.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\n,300\n','utf8')});
+     await page.locator('#load').click();
+     await page.locator('#run').click();
+     if(!(await page.locator('#excluded').innerText()).includes('受注 1行')) throw new Error('Incomplete order row was silently ignored rather than counted');
+   });
    // A newly selected file must invalidate the old export even before the user presses Load.
    await test(local('tools/order-line-aggregate/index.html'),async()=>{
      await page.locator('#demo').click();
