@@ -293,7 +293,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#encoding').selectOption('shift_jis');
      if(!await page.locator('#results').isHidden()||await page.evaluate(()=>state.rows.length)!==0) throw new Error('Stale analyzer rows after encoding change');
      await page.locator('#encoding').selectOption('utf-8');
-     await page.locator('#file').setInputFiles({name:'sample.csv',mimeType:'text/csv',buffer:Buffer.from('商品,売上\\nA,100\\nB,200','utf8')});
+     await page.locator('#file').setInputFiles({name:'sample.csv',mimeType:'text/csv',buffer:Buffer.from('商品,売上\nA,100\nB,200','utf8')});
      await page.waitForFunction(()=>document.querySelector('#results')?.hidden===false);
      await page.locator('#hasHeader').uncheck();
      if(!await page.locator('#results').isHidden()) throw new Error('Stale analyzer rows after header change');
