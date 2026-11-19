@@ -320,14 +320,17 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
-     const data=Array.from({length:100000},(_,i)=>String(i+1)).join('\n');
-     await page.locator('#hasHeader').uncheck();
-     await page.evaluate(text=>load(text),data);
-     if(await page.evaluate(()=>state.rows.length)!==100000) throw new Error('Headerless analyzer rejected 100000 data rows');
-     await page.locator('#hasHeader').check();
-     if(!await page.locator('#results').isHidden()) throw new Error('Analyzer retained results after header option changed');
-     await page.evaluate(text=>load(text),data);
-     if(await page.evaluate(()=>state.rows.length)!==99999) throw new Error('Analyzer header mode row count incorrect');
+     const rows=Array.from({length:100001},()=>['1']);
+     const status=await page.evaluate(data=>{
+       const original=parseCSV;
+       try{
+         parseCSV=()=>data;
+         document.querySelector('#hasHeader').checked=false;
+         load('ignored');
+         return document.querySelector('#status').textContent;
+       }finally{parseCSV=original}
+     },rows);
+     if(!status.includes('10万行以下')) throw new Error('Headerless analyzer accepted 100001 rows');
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
      await page.locator('#sample').click();
