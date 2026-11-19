@@ -290,7 +290,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const pending=page.waitForEvent('download');
      await page.locator('#download').click();
      const csv=fs.readFileSync(await (await pending).path(),'utf8');
-     if(!csv.includes('"一行目\\r\\n二行目"')) throw new Error('Quoted multiline cell missing in export');
+     if(!csv.includes('"一行目\r\n二行目"')) throw new Error('Quoted multiline cell missing in export');
    });
    await test(local('tools/csv-merge/index.html'),async()=>{
      const files=[
