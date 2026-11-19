@@ -325,6 +325,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    });
    await test(local('tools/csv-merge/index.html'),async()=>{
      await page.locator('#demo').click();
+     if(await page.locator('#output').isHidden()) throw new Error('Merge demo missing');
+     await page.locator('#mode').selectOption('position');
+     if(!await page.locator('#output').isHidden()) throw new Error('Merge results survived mode change');
+     if(await page.evaluate(()=>state.rows.length)!==0) throw new Error('Merge rows survived mode change');
+     await page.locator('#demo').click();
+     await page.locator('#files').setInputFiles([
+       {name:'a.csv',mimeType:'text/csv',buffer:Buffer.from('名前,金額\\nA,100')},
+       {name:'b.csv',mimeType:'text/csv',buffer:Buffer.from('名前,金額\\nB,200')}
+     ]);
+     if(!await page.locator('#output').isHidden()) throw new Error('Old merge export visible after file change');
+     await page.locator('#merge').click();
+     await page.locator('#output').waitFor({state:'visible'});
+     if(await page.locator('#body tr').count()!==2) throw new Error('Changed files not merged');
+     await page.locator('#encoding').selectOption('shift_jis');
+     if(!await page.locator('#output').isHidden()||await page.evaluate(()=>state.rows.length)!==0) throw new Error('Stale merge rows after encoding change');
+   });
+   await test(local('tools/csv-merge/index.html'),async()=>{
+     await page.locator('#demo').click();
      if(await page.locator('#output').isHidden()) throw new Error('Merge sample failed');
      await page.locator('#merge').click();
      if(!(await page.locator('#status').innerText()).includes('CSVを2〜50ファイル')) throw new Error('Missing files not rejected');
