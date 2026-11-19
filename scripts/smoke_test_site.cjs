@@ -436,19 +436,25 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const filteredOrdersCsv=fs.readFileSync(await (await filteredOrdersDownload).path(),'utf8');
      if(!filteredOrdersCsv.includes('A002,2500,2')||filteredOrdersCsv.includes('A001,1200,2')) throw new Error('Order filtered CSV includes wrong orders');
      if(!(await page.locator('#result').innerText()).includes('2500')) throw new Error('Order search returned wrong amount');
-     if(!(await page.locator('#searchStatus').innerText()).includes('保存CSVは全3注文')) throw new Error('Order search must preserve full export');
-     await orderSearch.fill('not-found');
-     if(await page.locator('#result tr').count()!==0) throw new Error('Unmatched order search should be empty');
-     await page.locator('#clearSearch').click();
-     if(await orderSearch.inputValue()!=='') throw new Error('Clear order search did not empty input');
-     if(await page.locator('#result tr').count()!==3) throw new Error('Cleared order search should restore three orders');
-     if(!(await page.locator('#saveSearch').isDisabled())) throw new Error('Search export should disable when search cleared');
+     if(!(await page.locator('#searchStatus').innerText()).includes('全件CSVは3注文')) throw new Error('Order search must preserve full export');
      const pending=page.waitForEvent('download');
      await page.locator('#save').click();
      const downloaded=await pending;
      aggregatedCsv=fs.readFileSync(await downloaded.path());
      const csv=aggregatedCsv.toString('utf8').replace(/^\uFEFF/,'');
      if(!csv.includes('A001,1200,2')||!csv.includes('A002,2500,2')||!csv.includes('A003,900,1')) throw new Error('Training aggregate export mismatch');
+     await orderSearch.fill('A003');
+     const nextDownload=page.waitForEvent('download');
+     await page.locator('#saveSearch').click();
+     const changed=fs.readFileSync(await (await nextDownload).path(),'utf8').replace(/^\uFEFF/,'');
+     if(changed.split(/\r?\n/).slice(1).join()!=='A003,900,1') throw new Error('Changed search did not update export');
+     await orderSearch.fill('not-found');
+     if(await page.locator('#result tr').count()!==0) throw new Error('Unmatched order search should be empty');
+     await page.locator('#clearSearch').click();
+     if(await orderSearch.inputValue()!=='') throw new Error('Clear order search did not empty input');
+     if(await page.locator('#result tr').count()!==3) throw new Error('Cleared order search should restore three orders');
+     if(!(await page.locator('#saveSearch').isDisabled())) throw new Error('Search export should disable when search cleared');
+
    });
    if(aggregatedCsv){
      await test(local('tools/order-payment-reconcile/index.html'),async()=>{
@@ -479,7 +485,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        if(filteredFile.suggestedFilename()!=='order-payment-mismatch.csv') throw new Error('Filtered export filename wrong');
        const filteredCsv=fs.readFileSync(await filteredFile.path(),'utf8');
        if(!filteredCsv.includes('A002')||filteredCsv.includes('A001')||filteredCsv.includes('A003')||filteredCsv.includes('A004')) throw new Error('Filtered CSV should contain mismatch only');
-       if(!(await page.locator('#filterStatus').innerText()).includes('保存CSVは全4件')) throw new Error('Filter should preserve full CSV export');
+       if(!(await page.locator('#filterStatus').innerText()).includes('全件CSVは4件')) throw new Error('Filter should preserve full CSV export');
        await filter.selectOption('受注のみ');
        if(!(await page.locator('#results').innerText()).includes('A003')) throw new Error('Orders-only filter did not show A003');
        await filter.selectOption('決済のみ');
@@ -596,6 +602,90 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!status.includes('10行・3列')) throw new Error('Analysis fixture row/column count mismatch: '+status);
      const stats=await page.locator('#summary').innerText();
      if(!stats.includes('売上')||!stats.includes('518,000')||!stats.includes('51,800')) throw new Error('Analysis fixture statistics mismatch: '+stats);
+   });
+   await test(local('tools/order-payment-reconcile/index.html'),async()=>{
+     const csv='注文番号,金額\n"001,東京",90071992547409.';
+     for(const [id,fraction] of [['orders','90'],['payments','91']]){
+       await page.locator('#'+id).setInputFiles({name:id+'.csv',mimeType:'text/csv',buffer:Buffer.from(csv+fraction)});
+     }
+     await page.locator('#load').click();
+     await page.locator('#run').click();
+     const cells=await page.locator('#results tr:first-child td').allTextContents();
+     if(cells.slice(0,5).join('|')!=='金額不一致|001,東京|90071992547409.9|90071992547409.91|0.01'){
+       throw new Error('One-cent difference or quoted ID lost: '+cells.join('|'));
+     }
+   });
+   for(const fixture of [
+     {tool:'order-line-aggregate',input:'file'},
+     {tool:'order-payment-reconcile',input:'orders',second:'payments'},
+   ]){
+     await test(local('tools/'+fixture.tool+'/index.html'),async()=>{
+       const csv={name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\n001,100')};
+       for(const id of [fixture.input,fixture.second].filter(Boolean)){
+         await page.locator('#'+id).setInputFiles(csv);
+       }
+       await page.evaluate(input=>{
+         const file=document.getElementById(input).files[0];
+         const pending=file.arrayBuffer();
+         file.arrayBuffer=()=>new Promise(resolve=>{
+           window.finishReading=async()=>resolve(await pending);
+         });
+       },fixture.input);
+       await page.locator('#load').click();
+       await page.locator('#'+fixture.input).setInputFiles([]);
+       await page.evaluate(()=>window.finishReading());
+       await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+       if(!await page.locator('#run').isDisabled()) throw new Error('Obsolete file read restored previous data');
+     });
+   }
+   await test(local('tools/pricing-simulator/index.html'),async()=>{
+     for(const id of ['cost','fixed','fee','flat','target']) await page.locator('#'+id).fill('0');
+     await page.locator('#count').fill('1');
+     await page.locator('#calculate').click();
+     await waitForText('#result','必要販売価格： 0円');
+     await page.evaluate(()=>{
+       Object.defineProperty(navigator,'clipboard',{configurable:true,value:{
+         writeText:async text=>{window.copiedResult=text;}
+       }});
+     });
+     await page.locator('#copyResult').click();
+     await waitForText('#copyStatus','コピーしました');
+     if(!(await page.evaluate(()=>window.copiedResult)).includes('必要販売価格： 0円')){
+       throw new Error('Clipboard did not receive the displayed calculation');
+     }
+     await page.locator('#cost').fill('0.00000000001');
+     if(!await page.locator('#copyResult').isDisabled()) throw new Error('Stale pricing result remained copyable');
+     await page.locator('#calculate').click();
+     await waitForText('#result','必要販売価格： 1円');
+     await waitForText('#result','損益分岐販売価格： 1円');
+     await page.locator('#copyResult').click();
+     await waitForText('#copyStatus','コピーしました');
+     if(!(await page.evaluate(()=>window.copiedResult)).includes('必要販売価格： 1円')){
+       throw new Error('Clipboard received the previous calculation');
+     }
+     await page.locator('#cost').fill('');
+     await page.locator('#calculate').click();
+     await waitForText('#result','入力条件を確認');
+   });
+   await test(local('tools/order-payment-reconcile/index.html'),async()=>{
+     const ids=Array.from({length:201},(_,i)=>String(i).padStart(4,'0'));
+     const csv='注文番号,金額\n'+ids.map(id=>id+',100').join('\n');
+     for(const id of ['orders','payments']){
+       await page.locator('#'+id).setInputFiles({name:id+'.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+     }
+     await page.locator('#load').click();
+     await page.locator('#run').click();
+     if(await page.locator('#results tr').count()!==200) throw new Error('Reconciliation preview is not limited to 200 rows');
+     await page.locator('#statusFilter').selectOption('一致');
+     await page.locator('#idSearch').fill('0200');
+     const pendingFiltered=page.waitForEvent('download');
+     await page.locator('#exportFiltered').click();
+     const filtered=fs.readFileSync(await (await pendingFiltered).path(),'utf8').split(/\r?\n/);
+     if(filtered.length!==2||filtered[1]!=='一致,0200,100,100,0,') throw new Error('Combined filter lost the matching ID');
+     const pendingAll=page.waitForEvent('download');
+     await page.locator('#export').click();
+     const all=fs.readFileSync(await (await pendingAll).path(),'utf8').split(/\r?\n/);
+     if(all.length!==202||all[201]!==filtered[1]) throw new Error('All-results CSV lost rows beyond the preview');
    });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
