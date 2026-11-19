@@ -275,6 +275,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!await page.locator('#export').isDisabled() || await page.locator('#results tr').count()) throw new Error('Old reconciliation remained after amount column change');
    });
    await test(local('tools/csv-merge/index.html'),async()=>{
+     const sjis=Buffer.from('96bc914f2c94f58d6c2c8be08a7a0d0a8fa49569412c2288ea8d7396da0d0a93f18d7396da222c313230300d0a','hex');
+     await page.locator('#encoding').selectOption('shift_jis');
+     await page.locator('#files').setInputFiles([
+       {name:'sjis-a.csv',mimeType:'text/csv',buffer:sjis},
+       {name:'sjis-b.csv',mimeType:'text/csv',buffer:sjis}
+     ]);
+     await page.locator('#dedup').uncheck();
+     await page.locator('#merge').click();
+     await page.locator('#output').waitFor({state:'visible'});
+     if(await page.locator('#body tr').count()!==2) throw new Error('Shift_JIS multiline rows not merged');
+     const text=await page.locator('#body tr').first().innerText();
+     if(!text.includes('商品A')||!text.includes('一行目')||!text.includes('二行目')) throw new Error('Shift_JIS multiline value corrupted');
+     const pending=page.waitForEvent('download');
+     await page.locator('#download').click();
+     const csv=fs.readFileSync(await (await pending).path(),'utf8');
+     if(!csv.includes('"一行目\\r\\n二行目"')) throw new Error('Quoted multiline cell missing in export');
+   });
+   await test(local('tools/csv-merge/index.html'),async()=>{
      const files=[
        {name:'a.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\n=1+1,-100','utf8')},
        {name:'b.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\n+SUM(1),200','utf8')}
