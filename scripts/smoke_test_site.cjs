@@ -320,7 +320,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
-     await page.evaluate(()=>load('分類,金額\\nA,-10\\nB,20'));
+     await page.evaluate(()=>load('分類,金額\nA,-10\nB,20'));
      await page.locator('#chartType').selectOption('pie');
      await page.locator('#agg').selectOption('sum');
      if(!(await page.locator('#chartError').innerText()).includes('負の値')) throw new Error('Negative pie values not rejected');
