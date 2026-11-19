@@ -331,8 +331,8 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(await page.evaluate(()=>state.rows.length)!==0) throw new Error('Merge rows survived mode change');
      await page.locator('#demo').click();
      await page.locator('#files').setInputFiles([
-       {name:'a.csv',mimeType:'text/csv',buffer:Buffer.from('名前,金額\\nA,100')},
-       {name:'b.csv',mimeType:'text/csv',buffer:Buffer.from('名前,金額\\nB,200')}
+       {name:'a.csv',mimeType:'text/csv',buffer:Buffer.from('名前,金額\nA,100')},
+       {name:'b.csv',mimeType:'text/csv',buffer:Buffer.from('名前,金額\nB,200')}
      ]);
      if(!await page.locator('#output').isHidden()) throw new Error('Old merge export visible after file change');
      await page.locator('#merge').click();
