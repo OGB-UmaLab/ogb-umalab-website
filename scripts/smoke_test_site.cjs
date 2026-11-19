@@ -35,6 +35,17 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#demo').click();
      if(await page.locator('#orders').inputValue() || await page.locator('#payments').inputValue()) throw new Error('Reconciliation demo retained selected files');
    });
+   await test(local('tools/order-payment-reconcile/index.html'),async()=>{
+     await page.locator('#demo').click();
+     await page.locator('#run').click();
+     await page.locator('#idSearch').fill('A001');
+     await page.locator('#statusFilter').selectOption('');
+     const pending=page.waitForEvent('download');
+     await page.locator('#exportFiltered').click();
+     const downloaded=await pending;
+     const exported=require('node:fs').readFileSync(await downloaded.path(),'utf8');
+     if(!exported.includes('A001')||exported.includes('A002')||exported.includes('A003')) throw new Error('Reconciliation export ignored order ID search without status');
+   });
    await test(local('tools/order-line-aggregate/index.html'),async()=>{
      await page.locator('#file').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\nA,10')});
      await page.locator('#demo').click();
