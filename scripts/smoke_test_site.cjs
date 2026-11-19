@@ -30,18 +30,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
  };
  try {
    await test(local('tools/order-payment-reconcile/index.html'),async()=>{
-     await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\\nA,10')});
-     await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\\nA,10')});
+     await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\nA,10')});
+     await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\nA,10')});
      await page.locator('#demo').click();
      if(await page.locator('#orders').inputValue() || await page.locator('#payments').inputValue()) throw new Error('Reconciliation demo retained selected files');
    });
    await test(local('tools/order-line-aggregate/index.html'),async()=>{
-     await page.locator('#file').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\\nA,10')});
+     await page.locator('#file').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\nA,10')});
      await page.locator('#demo').click();
      if(await page.locator('#file').inputValue()) throw new Error('Aggregation demo retained selected file');
    });
    await test(local('tools/csv-merge/index.html'),async()=>{
-     await page.locator('#files').setInputFiles([{name:'a.csv',mimeType:'text/csv',buffer:Buffer.from('id\\nA')},{name:'b.csv',mimeType:'text/csv',buffer:Buffer.from('id\\nB')}]);
+     await page.locator('#files').setInputFiles([{name:'a.csv',mimeType:'text/csv',buffer:Buffer.from('id\nA')},{name:'b.csv',mimeType:'text/csv',buffer:Buffer.from('id\nB')}]);
      await page.locator('#demo').click();
      if(await page.locator('#files').inputValue()) throw new Error('Merge demo retained selected files');
    });
