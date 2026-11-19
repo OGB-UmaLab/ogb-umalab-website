@@ -54,7 +54,7 @@ $("details").replaceChildren();for(const l of log){let tr=document.createElement
 $("head").replaceChildren();let tr=document.createElement("tr");outHeaders.forEach(h=>td(tr,h,"th"));$("head").append(tr);$("body").replaceChildren();for(const row of output.slice(0,20)){let tr=document.createElement("tr");row.forEach(v=>td(tr,v));$("body").append(tr)}
 $("status").className="ok";$("status").textContent="結合完了：元ファイルを変更せず、"+output.length+"行のCSVを作成しました。";$("output").scrollIntoView({behavior:"smooth",block:"start"});if(typeof gtag==="function")gtag("event","tool_interaction",{tool_name:"csv_merge",tool_action:"merge_success"})}
 catch(e){state.headers=[];state.rows=[];state.log=[];$("output").hidden=true;$("status").className="bad";$("status").textContent="処理できませんでした："+e.message}}
-$("demo").onclick=()=>{mergeVersion++;clearMerge();process([{name:"東京店.csv",text:"日付,商品,売上\n11/1,A,1000\n11/2,B,2000"},{name:"大阪店.csv",text:"売上,商品,日付\n3000,C,11/1\n1000,A,11/1"},{name:"名古屋店.csv",text:"日付,商品,売上\n11/3,D,4000"}])};
+$("demo").onclick=()=>{mergeVersion++;$("files").value="";clearMerge();process([{name:"東京店.csv",text:"日付,商品,売上\n11/1,A,1000\n11/2,B,2000"},{name:"大阪店.csv",text:"売上,商品,日付\n3000,C,11/1\n1000,A,11/1"},{name:"名古屋店.csv",text:"日付,商品,売上\n11/3,D,4000"}])};
 let mergeVersion=0;
 function clearMerge(){state.headers=[];state.rows=[];state.log=[];$("output").hidden=true}
 for(const id of ["files","encoding","mode","source","dedup","dedupMode"]){$(id).addEventListener("change",()=>{mergeVersion++;clearMerge();$("status").className="muted";$("status").textContent="入力条件が変更されました。結合を再実行してください。"})}
