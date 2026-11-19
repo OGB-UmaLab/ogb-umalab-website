@@ -320,6 +320,16 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.locator('#sample').click();
+     await page.locator('#chartType').selectOption('pie');
+     await page.locator('#agg').selectOption('sum');
+     await page.evaluate(()=>{state.group=[{label:'invalid',value:-1}];document.querySelector('#chartError').textContent='';renderChart()});
+     if((await page.locator('#chartError').innerText()).includes('負の値')){
+       if(await page.evaluate(()=>state.group.length)!==0) throw new Error('Invalid chart retained exportable aggregates');
+       if(await page.locator('#groupBody tr').count()!==0) throw new Error('Invalid chart retained preview rows');
+     }
+   });
+   await test(local('tools/csv-analyzer/index.html'),async()=>{
      await page.locator('#file').setInputFiles({name:'source.csv',mimeType:'text/csv',buffer:Buffer.from('Name,Value\nA,10','utf8')});
      await page.waitForFunction(()=>document.querySelector('#results')?.hidden===false);
      await page.locator('#sample').click();
