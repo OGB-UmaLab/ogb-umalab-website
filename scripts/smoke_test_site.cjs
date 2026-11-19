@@ -275,6 +275,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!await page.locator('#export').isDisabled() || await page.locator('#results tr').count()) throw new Error('Old reconciliation remained after amount column change');
    });
    await test(local('tools/csv-merge/index.html'),async()=>{
+     const csv='ID,金額\\n'+Array.from({length:50000},(_,i)=>'R'+i+',1').join('\\n');
+     const buffer=Buffer.from(csv,'utf8');
+     await page.locator('#files').setInputFiles([
+       {name:'large-a.csv',mimeType:'text/csv',buffer},
+       {name:'large-b.csv',mimeType:'text/csv',buffer}
+     ]);
+     await page.locator('#dedup').uncheck();
+     await page.locator('#merge').click();
+     await page.locator('#output').waitFor({state:'visible',timeout:60000});
+     if(await page.evaluate(()=>state.rows.length)!==100000) throw new Error('100000-row CSV merge boundary failed');
+     await page.locator('#dedup').check();
+     if(!await page.locator('#output').isHidden()) throw new Error('Stale 100000-row result after option change');
+   });
+   await test(local('tools/csv-merge/index.html'),async()=>{
      const sjis=Buffer.from('96bc914f2c94f58d6c2c8be08a7a0d0a8fa49569412c2288ea8d7396da0d0a93f18d7396da222c313230300d0a','hex');
      await page.locator('#encoding').selectOption('shift_jis');
      await page.locator('#files').setInputFiles([
