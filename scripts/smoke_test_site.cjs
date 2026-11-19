@@ -320,6 +320,13 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.locator('#file').setInputFiles({name:'source.csv',mimeType:'text/csv',buffer:Buffer.from('Name,Value\\nA,10','utf8')});
+     await page.waitForFunction(()=>document.querySelector('#results')?.hidden===false);
+     await page.locator('#sample').click();
+     if(await page.locator('#file').inputValue()!=='') throw new Error('Analyzer demo left a stale file selection');
+     if(await page.locator('#results').isHidden()) throw new Error('Analyzer demo failed to load');
+   });
+   await test(local('tools/csv-analyzer/index.html'),async()=>{
      const rows=Array.from({length:100001},()=>['1']);
      const status=await page.evaluate(data=>{
        const original=parseCSV;
