@@ -687,6 +687,25 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const all=fs.readFileSync(await (await pendingAll).path(),'utf8').split(/\r?\n/);
      if(all.length!==202||all[201]!==filtered[1]) throw new Error('All-results CSV lost rows beyond the preview');
    });
+   await test(local('tools/list-cleaner/index.html'),async()=>{
+     await page.locator('#empty').uncheck();
+     await page.locator('#a').fill('りんご\nみかん\nりんご');
+     await page.locator('#mode').selectOption('union');
+     await page.locator('#run').focus();
+     await page.keyboard.press('Enter');
+     if(await page.locator('#out').inputValue()!=='りんご\nみかん') throw new Error('Unused list generated an empty item');
+     await waitForText('#stats','出力: 2行');
+     if(await page.locator('#download').isDisabled()) throw new Error('List result cannot be saved');
+     await page.locator('#b').fill('みかん\nバナナ');
+     if(await page.locator('#out').inputValue()||!await page.locator('#copy').isDisabled()||!await page.locator('#download').isDisabled()){
+       throw new Error('Stale list result remained available after input changed');
+     }
+     await page.locator('#mode').selectOption('common');
+     await page.locator('#run').click();
+     if(await page.locator('#out').inputValue()!=='みかん') throw new Error('List intersection is incorrect');
+     await page.locator('#reset').click();
+     if(await page.locator('#out').inputValue()||!await page.locator('#download').isDisabled()) throw new Error('Reset left list output available');
+   });
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
