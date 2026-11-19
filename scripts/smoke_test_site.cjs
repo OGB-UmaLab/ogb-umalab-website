@@ -578,6 +578,11 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      for(const expected of ['1,589円／件','1,145円／件','238,350円','60,015円']){
        if(!result.includes(expected)) throw new Error('Physical pricing scenario missing '+expected);
      }
+     await page.locator('#cost').fill('801');
+     if(!(await page.locator('#copyResult').isDisabled())) throw new Error('Pricing copy should disable after changing inputs');
+     await page.locator('#calculate').click();
+     if(await page.locator('#copyResult').isDisabled()) throw new Error('Pricing copy should enable after recalculation');
+     await page.locator('#cost').fill('800');
      await page.locator('#count').fill('100');
      await page.locator('#calculate').click();
      if(!(await page.locator('#result').innerText()).includes('1,923円／件')) throw new Error('Physical quantity sensitivity mismatch');
