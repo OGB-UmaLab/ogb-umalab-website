@@ -43,7 +43,7 @@ for page in PAGES:
                 errors.append(f'{page.relative_to(ROOT)}: legacy image or page link: {ref}')
             continue
         path = unquote(parsed.path)
-        target = ROOT / path.lstrip('/') if parsed.netloc else page.parent / path
+        target = ROOT / path.lstrip('/') if parsed.netloc or path.startswith('/') else page.parent / path
         target = target.resolve()
         if not target.is_relative_to(ROOT.resolve()):
             errors.append(f'{page.relative_to(ROOT)}: outside repository: {ref}')
