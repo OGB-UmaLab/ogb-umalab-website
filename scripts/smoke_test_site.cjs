@@ -320,7 +320,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
-     const data=Array.from({length:100000},(_,i)=>String(i+1)).join('\\n');
+     const data=Array.from({length:100000},(_,i)=>String(i+1)).join('\n');
      await page.locator('#hasHeader').uncheck();
      await page.evaluate(text=>load(text),data);
      if(await page.evaluate(()=>state.rows.length)!==100000) throw new Error('Headerless analyzer rejected 100000 data rows');
