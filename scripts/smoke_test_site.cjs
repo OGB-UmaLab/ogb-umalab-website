@@ -275,7 +275,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!await page.locator('#export').isDisabled() || await page.locator('#results tr').count()) throw new Error('Old reconciliation remained after amount column change');
    });
    await test(local('tools/csv-merge/index.html'),async()=>{
-     const csv='ID,金額\\n'+Array.from({length:50000},(_,i)=>'R'+i+',1').join('\\n');
+     const csv='ID,金額\n'+Array.from({length:50000},(_,i)=>'R'+i+',1').join('\n');
      const buffer=Buffer.from(csv,'utf8');
      await page.locator('#files').setInputFiles([
        {name:'large-a.csv',mimeType:'text/csv',buffer},
