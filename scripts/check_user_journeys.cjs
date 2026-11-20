@@ -187,6 +187,7 @@ const guidesHub = read('guides/index.html');
 const imageGuide = read('guides/image-batch-hands-on/index.html');
 const imageTool = read('tools/image-batch/index.html');
 check(imageTool.includes('id="square"'), 'Image square padding selector missing');
+for (const id of ['brightness', 'contrast']) check(imageTool.includes('id="' + id + '"'), 'Image adjustment control missing: ' + id);
 check(imageTool.includes("square==='off'?w:side"), 'Image square canvas geometry missing');
 check(imageGuide.includes('正方形余白'), 'Image guide must describe square padding');
 const selectionGuide = read('guides/tool-selection/index.html');
