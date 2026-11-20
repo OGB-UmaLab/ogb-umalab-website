@@ -903,8 +903,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#status').innerText()).includes('再実行'))throw new Error('Reconversion notice missing');
      await page.locator('#run').click();
      await page.waitForFunction(()=>!document.querySelector('#result').classList.contains('hidden'));
-     await page.locator('#brightness').fill('110');
-     await page.locator('#brightness').dispatchEvent('input');
+     await page.locator('#brightness').evaluate(el=>{el.value='110';el.dispatchEvent(new Event('input',{bubbles:true}))});
      if(!(await page.locator('#result').evaluate(el=>el.classList.contains('hidden'))))throw new Error('Old conversion remained after brightness change');
    });
    await test(local('tools/image-batch/index.html'),async()=>{
