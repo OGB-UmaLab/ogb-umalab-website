@@ -171,6 +171,11 @@ check(read('about/index.html').includes('<link rel="canonical" href="https://ogb
 // Audience-first navigation and workflow continuity regression checks.
 const guidesHub = read('guides/index.html');
 const imageGuide = read('guides/image-batch-hands-on/index.html');
+const selectionGuide = read('guides/tool-selection/index.html');
+check(selectionGuide.includes('rel="canonical" href="https://ogb-umalab.com/guides/tool-selection/"'), 'Tool selection guide canonical missing');
+check(read('guides/index.html').includes('href="tool-selection/"'), 'Guide hub selection link missing');
+check(tools.includes('href="../guides/tool-selection/"'), 'Tool hub selection link missing');
+for(const slug of ['csv-merge','csv-analyzer','list-cleaner','pricing-simulator','order-line-aggregate','order-payment-reconcile','pdf-split-rename','image-batch']) { check(selectionGuide.includes('href="../../tools/' + slug + '/"'), 'Selection guide missing tool: ' + slug); }
 check(imageGuide.includes('rel="canonical" href="https://ogb-umalab.com/guides/image-batch-hands-on/"'), 'Image guide canonical missing');
 check(imageGuide.includes('href="../../tools/image-batch/"'), 'Image guide tool link missing');
 check(imageGuide.includes('HEICに対応していません'), 'Image guide must state HEIC limitation');
