@@ -187,6 +187,8 @@ const guidesHub = read('guides/index.html');
 const imageGuide = read('guides/image-batch-hands-on/index.html');
 const imageTool = read('tools/image-batch/index.html');
 check(imageTool.includes('id="square"'), 'Image square padding selector missing');
+check(imageTool.includes('function invalidateConverted()'), 'Image stale export invalidation missing');
+check(imageTool.includes('invalidateConverted();updatePreview()'), 'Image adjustments must invalidate old results');
 for (const id of ['brightness', 'contrast']) check(imageTool.includes('id="' + id + '"'), 'Image adjustment control missing: ' + id);
 check(imageTool.includes("square==='off'?w:side"), 'Image square canvas geometry missing');
 for (const id of ['adjust-mode', 'preview-prev', 'preview-next', 'preview-original', 'preview-adjusted']) check(imageTool.includes('id="' + id + '"'), 'Image adjustment preview missing: ' + id);
