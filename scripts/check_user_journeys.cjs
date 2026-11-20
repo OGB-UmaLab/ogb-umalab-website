@@ -191,7 +191,7 @@ for (const id of ['brightness', 'contrast']) check(imageTool.includes('id="' + i
 check(imageTool.includes("square==='off'?w:side"), 'Image square canvas geometry missing');
 for (const id of ['adjust-mode', 'preview-prev', 'preview-next', 'preview-original', 'preview-adjusted']) check(imageTool.includes('id="' + id + '"'), 'Image adjustment preview missing: ' + id);
 check(imageTool.includes('<option value="individual">') && imageTool.includes('<option value="batch">'), 'Image adjustment modes missing');
-check(imageTool.includes('individualSettings.get(fileKey(file))'), 'Per-image adjustment lookup missing');
+check(imageTool.includes('options.perImage.get(fileKey(file))'), 'Per-image adjustment lookup missing');
 check(imageTool.includes('options.perImage=new Map('), 'Per-image adjustment snapshot missing');
 check(imageTool.includes('options.adjustMode=') && imageTool.includes('options.batchSettings='), 'Batch adjustment snapshot missing');
 check(imageGuide.includes('個別調整') && imageGuide.includes('一括調整'), 'Image guide must describe both adjustment modes');
