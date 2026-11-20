@@ -29,7 +29,6 @@ EXCLUDED = (
     "ogb-data/central/",
     "ogb-data/daily-preview/",
     "ogb-data/preview/",
-    "data-lab/index.html",
 )
 
 
