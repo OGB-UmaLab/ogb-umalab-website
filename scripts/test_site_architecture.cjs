@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 
 const source = fs.readFileSync(path.join(__dirname, 'audit_site_architecture.cjs'), 'utf8');
-const start = source.indexOf('const robotsNoindex =');
+const start = source.indexOf('const canonicalOf =');
 const end = source.indexOf('const seen =', start);
 assert.ok(start >= 0 && end > start, 'robotsNoindex implementation must exist');
 const helpers = vm.runInNewContext(source.slice(start, end) + '\n({ robotsNoindex, titleOf, descriptionOf, canonicalOf });');
