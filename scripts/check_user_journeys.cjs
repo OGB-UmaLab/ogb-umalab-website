@@ -168,6 +168,29 @@ check(!fs.existsSync(path.join(root, 'tools/x-richtext-test/index.html')), 'Obso
 check(!sitemap.includes('<loc>https://ogb-umalab.com/tools/x-richtext-test/</loc>'), 'Experimental X-format test must stay outside sitemap');
 check(read('about/index.html').includes('<link rel="canonical" href="https://ogb-umalab.com/about/">'), 'UmaLab about canonical missing');
 
+// Audience-first navigation and workflow continuity regression checks.
+const guidesHub = read('guides/index.html');
+const dataLabAbout = read('data-lab/about/index.html');
+check(tools.includes('id="by-audience"'), 'Audience-based tool entry is missing');
+check(tools.includes('class="quick-nav"'), 'Mobile-friendly category navigation is missing');
+for (const heading of ['個人事業主・フリーランス', '店舗・小規模事業の運営', 'ネットショップ・フリマ販売', '事務・バックオフィス', 'データ分析・集計']) {
+  check(tools.includes(heading), 'Missing audience category: ' + heading);
+}
+for (const id of ['file-tools', 'csv-tools', 'price-tools', 'analysis-tools']) {
+  check(tools.includes('id="' + id + '"'), 'Missing tool section anchor: ' + id);
+}
+for (const slug of ['image-batch', 'pdf-split-rename', 'list-cleaner', 'csv-merge', 'csv-analyzer', 'pricing-simulator', 'order-line-aggregate', 'order-payment-reconcile']) {
+  const page = read('tools/' + slug + '/index.html');
+  check(page.includes('id="ogb-related-work"'), 'Workflow navigation missing from tool: ' + slug);
+  check(page.includes('href="/tools/#by-audience"'), 'Audience return path missing from tool: ' + slug);
+}
+for (const slug of ['csv-analysis-basics', 'csv-analysis-hands-on', 'csv-merge-hands-on', 'order-payment-reconciliation', 'order-reconciliation-hands-on', 'pricing-profit-basics', 'pricing-simulator-hands-on']) {
+  check(read('guides/' + slug + '/index.html').includes('id="ogb-guide-navigation"'), 'Guide navigation missing: ' + slug);
+}
+check(guidesHub.includes('rel="canonical" href="https://ogb-umalab.com/guides/"'), 'Guide directory canonical missing');
+check(guidesHub.includes('href="../tools/"'), 'Guide directory must link to tool directory');
+check(dataLabAbout.includes('新規の受託分析業務を募集するためのサービスではありません'), 'Free self-service mission missing from about page');
+
 if (failures.length) {
   for (const failure of failures) console.error('FAIL', failure);
   process.exitCode = 1;
