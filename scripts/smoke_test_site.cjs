@@ -986,6 +986,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const batchLabels=await page.locator('#list article').allInnerTexts();
      if(batchLabels.some(label=>!label.includes('明るさ 120%')))throw new Error('Batch adjustment details incorrect: '+batchLabels);
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=16;c.height=16;return c.toDataURL('image/png').split(',')[1]});
+     const buffer=Buffer.from(png,'base64');
+     await page.locator('#files').setInputFiles([{name:'remove.png',mimeType:'image/png',buffer},{name:'keep.png',mimeType:'image/png',buffer}]);
+     await page.locator('#preview-select').selectOption('1');
+     await page.locator('#brightness').fill('125');await page.locator('#brightness').dispatchEvent('input');
+     await page.locator('#preview-select').selectOption('0');
+     await page.locator('#preview-remove').click();
+     if(await page.locator('#preview-select option').count()!==1)throw new Error('Removing image did not update picker');
+     if(!(await page.locator('#preview-name').innerText()).includes('keep.png'))throw new Error('Removing image selected wrong remaining image');
+     if(await page.locator('#brightness').inputValue()!=='125')throw new Error('Removing image lost remaining adjustment');
+     if(!(await page.locator('#chosen').innerText()).includes('1枚'))throw new Error('Remaining count incorrect');
+     await page.locator('#preview-remove').click();
+     if(!(await page.locator('#preview-panel').evaluate(el=>el.classList.contains('hidden'))))throw new Error('Empty image preview remained visible');
+     if(!(await page.locator('#run').isDisabled()))throw new Error('Conversion enabled without images');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
