@@ -888,6 +888,33 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#run').click();
      if(await page.locator('#out').inputValue()!=='Apple\t2\nBanana\t1') throw new Error('Case-insensitive frequency count incorrect');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(()=>{
+       const c=document.createElement('canvas');c.width=120;c.height=60;
+       const ctx=c.getContext('2d');ctx.fillStyle='#ff0000';ctx.fillRect(0,0,120,60);
+       return c.toDataURL('image/png').split(',')[1];
+     });
+     await page.locator('#files').setInputFiles({name:'sample.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
+     await page.locator('#format').selectOption('image/png');
+     await page.locator('#width').fill('120');
+     await page.locator('#height').fill('120');
+     await page.locator('#square').selectOption('white');
+     await page.locator('#run').click();
+     await page.waitForFunction(()=>document.querySelector('#result')?.classList.contains('hidden')===false);
+     if(!(await page.locator('#list').innerText()).includes('120 × 120 px')) throw new Error('Square padding dimensions incorrect');
+     const image=await page.locator('#list img').first().evaluate(async im=>{
+       await im.decode();const c=document.createElement('canvas');c.width=120;c.height=120;
+       const x=c.getContext('2d');x.drawImage(im,0,0);
+       const pixel=(px,py)=>Array.from(x.getImageData(px,py,1,1).data);
+       return {top:pixel(60,5),middle:pixel(60,60),bottom:pixel(60,115)};
+     });
+     for(const key of ['top','bottom'])if(image[key].join(',')!=='255,255,255,255') throw new Error('Square padding background incorrect: '+key);
+     if(image.middle.join(',')!=='255,0,0,255') throw new Error('Square padding distorted image');
+     await page.locator('#square').selectOption('off');
+     await page.locator('#run').click();
+     await page.waitForFunction(()=>document.querySelector('#result')?.classList.contains('hidden')===false);
+     if(!(await page.locator('#list').innerText()).includes('120 × 60 px')) throw new Error('Default non-square output changed');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
