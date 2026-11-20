@@ -395,6 +395,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.trim()) throw new Error('CSV analyzer report empty');
    });
    await test(local('tools/csv-merge/index.html'),async()=>{
+     await page.locator('#files').setInputFiles([
+       {name:'first.csv',mimeType:'text/csv',buffer:Buffer.from('商品,売上\\nA,100','utf8')},
+       {name:'second.csv',mimeType:'text/csv',buffer:Buffer.from('商品,売上,地域\\nB,200,東京','utf8')}
+     ]);
+     await page.locator('#merge').click();
+     await page.locator('#output').waitFor({state:'visible'});
+     const details=await page.locator('#details').innerText();
+     if(!details.includes('追加された列：地域')||!details.includes('欠けている列：地域')) throw new Error('Per-file column differences were not reported: '+details);
+     const pending=page.waitForEvent('download');
+     await page.locator('#downloadLog').click();
+     const report=fs.readFileSync(await (await pending).path(),'utf8');
+     if(!report.includes('追加された列：地域')||!report.includes('欠けている列：地域')) throw new Error('Column differences missing from exported audit report');
+   });
+   await test(local('tools/csv-merge/index.html'),async()=>{
      const inputs=['tokyo','osaka','nagoya'].map(city=>path.resolve(__dirname,'../examples/csv-merge-'+city+'.csv'));
      await page.locator('#files').setInputFiles(inputs);
      await page.locator('#encoding').selectOption('shift_jis');
