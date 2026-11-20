@@ -2,8 +2,16 @@
 // Check local navigation and assets on public Data Lab, tools and guides.
 const fs = require('node:fs');
 const path = require('node:path');
-const root = path.resolve(__dirname, '..');
+const root = path.resolve(process.env.OGB_AUDIT_ROOT || path.join(__dirname, '..'));
 const sections = ['data-lab', 'tools', 'guides'];
+const htmlIds = new Map();
+function idsFor(file) {
+  if (!htmlIds.has(file)) {
+    const source = fs.readFileSync(file, 'utf8');
+    htmlIds.set(file, new Set([...source.matchAll(/\bid\s*=\s*["']([^"']+)["']/gi)].map(m => m[1])));
+  }
+  return htmlIds.get(file);
+}
 const issues = [];
 let pages = 0;
 let links = 0;
@@ -31,7 +39,13 @@ function check(file) {
     const target = path.resolve(root, '.' + pathname);
     if (target !== root && !target.startsWith(root + path.sep)) { issues.push(relative + ': unsafe path ' + raw); continue; }
     const resolved = fs.existsSync(target) && fs.statSync(target).isDirectory() ? path.join(target, 'index.html') : target;
-    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) issues.push(relative + ': missing ' + raw);
+    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+      issues.push(relative + ': missing ' + raw);
+    } else if (tag.toLowerCase() === 'a' && url.hash && resolved.endsWith('.html')) {
+      let fragment;
+      try { fragment = decodeURIComponent(url.hash.slice(1)); } catch { issues.push(relative + ': invalid fragment ' + raw); continue; }
+      if (fragment && !idsFor(resolved).has(fragment)) issues.push(relative + ': missing anchor ' + raw);
+    }
   }
 }
 for (const section of sections) visit(path.join(root, section));
