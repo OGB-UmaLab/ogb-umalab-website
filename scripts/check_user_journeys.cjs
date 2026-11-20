@@ -181,6 +181,10 @@ const imageGuide = read('guides/image-batch-hands-on/index.html');
 const selectionGuide = read('guides/tool-selection/index.html');
 const listGuide = read('guides/list-cleaner-hands-on/index.html');
 const troubleshooting = read('guides/troubleshooting/index.html');
+for (const slug of ['csv-merge', 'csv-analyzer', 'list-cleaner', 'pricing-simulator', 'order-line-aggregate', 'order-payment-reconcile', 'pdf-split-rename', 'image-batch']) {
+  check(read('tools/' + slug + '/index.html').includes('href="/guides/troubleshooting/"'), 'Tool missing troubleshooting link: ' + slug);
+}
+
 check(troubleshooting.includes('rel="canonical" href="https://ogb-umalab.com/guides/troubleshooting/"'), 'Troubleshooting canonical missing');
 for(const id of ['csv','money','pdf','image','list','save']) { check(troubleshooting.includes('id="' + id + '"'), 'Troubleshooting topic missing: ' + id); }
 check(read('guides/index.html').includes('href="troubleshooting/"'), 'Troubleshooting missing from guide hub');
