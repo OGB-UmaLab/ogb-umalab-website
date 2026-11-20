@@ -395,6 +395,25 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.trim()) throw new Error('CSV analyzer report empty');
    });
    await test(local('tools/csv-merge/index.html'),async()=>{
+     const inputs=['tokyo','osaka','nagoya'].map(city=>path.resolve(__dirname,'../examples/csv-merge-'+city+'.csv'));
+     await page.locator('#files').setInputFiles(inputs);
+     await page.locator('#encoding').selectOption('shift_jis');
+     await page.locator('#mode').selectOption('position');
+     await page.locator('#source').uncheck();
+     await page.locator('#dedup').check();
+     await page.locator('#dedupMode').selectOption('source');
+     await page.locator('#reset').click();
+     if(await page.locator('#files').evaluate(el=>el.files.length)!==0) throw new Error('Reset did not clear selected CSV files');
+     if(await page.locator('#encoding').inputValue()!=='utf-8'||await page.locator('#mode').inputValue()!=='name') throw new Error('Reset did not restore merge options');
+     if(!await page.locator('#source').isChecked()||await page.locator('#dedup').isChecked()||await page.locator('#dedupMode').inputValue()!=='all') throw new Error('Reset did not restore deduplication defaults');
+     await page.locator('#demo').click();
+     if(await page.locator('#output').isHidden()) throw new Error('Sample merge failed before reset');
+     await page.locator('#reset').click();
+     if(!await page.locator('#output').isHidden()) throw new Error('Reset left stale merged results visible');
+     if(await page.evaluate(()=>state.rows.length)!==0) throw new Error('Reset retained stale merged rows');
+     if(!(await page.locator('#status').innerText()).includes('初期化しました')) throw new Error('Reset status was not announced');
+   });
+   await test(local('tools/csv-merge/index.html'),async()=>{
      await page.locator('#demo').click();
      if(await page.locator('#output').isHidden()) throw new Error('Demo merge failed');
      await page.locator('#files').setInputFiles([
