@@ -173,6 +173,11 @@ const guidesHub = read('guides/index.html');
 const imageGuide = read('guides/image-batch-hands-on/index.html');
 const selectionGuide = read('guides/tool-selection/index.html');
 const listGuide = read('guides/list-cleaner-hands-on/index.html');
+const troubleshooting = read('guides/troubleshooting/index.html');
+check(troubleshooting.includes('rel="canonical" href="https://ogb-umalab.com/guides/troubleshooting/"'), 'Troubleshooting canonical missing');
+for(const id of ['csv','money','pdf','image','list','save']) { check(troubleshooting.includes('id="' + id + '"'), 'Troubleshooting topic missing: ' + id); }
+check(read('guides/index.html').includes('href="troubleshooting/"'), 'Troubleshooting missing from guide hub');
+check(tools.includes('href="../guides/troubleshooting/"'), 'Troubleshooting missing from tool hub');
 check(listGuide.includes('rel="canonical" href="https://ogb-umalab.com/guides/list-cleaner-hands-on/"'), 'List guide canonical missing');
 check(listGuide.includes('AとBの共通項'), 'List guide comparison example missing');
 check(read('tools/list-cleaner/index.html').includes('href="../../guides/list-cleaner-hands-on/"'), 'List cleaner guide link missing');
