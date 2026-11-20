@@ -39,6 +39,17 @@ try {
   result = run();
   assert.notEqual(result.status, 0, 'Duplicate HTML ids must fail');
   assert.match(result.stderr, /duplicate id/);
+  write('data-lab/index.html', '<a class="nav" data-url="/not-real/" href="/tools/#calculator">Valid attributes</a><img alt="test" src="/assets/pixel.png">');
+  write('assets/pixel.png', 'fixture');
+  result = run();
+  assert.equal(result.status, 0, 'Attributes and local asset must resolve: ' + result.stdout + result.stderr);
+  write('data-lab/index.html', '<a href="/tools/#calculator" data-extra="/missing/">Link</a><img src="/assets/missing.png">');
+  result = run();
+  assert.notEqual(result.status, 0, 'Missing image asset must fail');
+  assert.match(result.stderr, /missing.*missing\.png/);
+  write('data-lab/index.html', '<a href="/tools/#calculator" src="/assets/missing.png">Link with unrelated src</a>');
+  result = run();
+  assert.equal(result.status, 0, 'Anchor src attribute must not be treated as a link: ' + result.stdout + result.stderr);
   write('data-lab/index.html', '<a href="https://example.com/#remote">External</a><a href="mailto:hello@example.com">Email</a>');
   result = run();
   assert.equal(result.status, 0, result.stdout + result.stderr);
