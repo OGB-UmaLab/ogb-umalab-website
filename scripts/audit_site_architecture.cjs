@@ -12,7 +12,10 @@ const counts = new Map();
 const errors = [];
 const warnings = [];
 const canonicalOf = html => html.match(/<link\b(?=[^>]*\brel=["']canonical["'])(?=[^>]*\bhref=["']([^"']+)["'])[^>]*>/i)?.[1];
-const robotsNoindex = html => [...html.matchAll(/<meta\b[^>]*>/gi)].some(([tag]) => {\n  const attrs = Object.fromEntries([...tag.matchAll(/([a-z-]+)\s*=\s*(["'])(.*?)\2/gi)].map(([, key, , value]) => [key.toLowerCase(), value]));\n  return ['robots', 'googlebot'].includes((attrs.name || '').toLowerCase()) && /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(attrs.content || '');\n});
+const robotsNoindex = html => [...html.matchAll(/<meta\b[^>]*>/gi)].some(([tag]) => {
+  const attrs = Object.fromEntries([...tag.matchAll(/([a-z-]+)\s*=\s*(["'])(.*?)\2/gi)].map(([, key, , value]) => [key.toLowerCase(), value]));
+  return ['robots', 'googlebot'].includes((attrs.name || '').toLowerCase()) && /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(attrs.content || '');
+});
 const seen = new Set();
 for (const url of urls) {
   if (seen.has(url)) { errors.push('Duplicate sitemap URL: ' + url); continue; }
