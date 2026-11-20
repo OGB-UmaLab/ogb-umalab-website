@@ -1041,7 +1041,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    await test(local('tools/image-batch/index.html'),async()=>{
      const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=10;c.height=10;return c.toDataURL('image/png').split(',')[1]});
      const buffer=Buffer.from(png,'base64');
-     await page.evaluate(bytes=>{const f=new File([new Uint8Array(bytes)],'again.png',{type:'image/png',lastModified:123456789});const dt=new DataTransfer();dt.items.add(f);const input=document.querySelector('#files');input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}))},[...buffer]);
+     await page.evaluate(bytes=>{const f=new File([new Uint8Array(bytes)],'again.png',{type:'image/png',lastModified:123456789});const dt=new DataTransfer();dt.items.add(f);const input=document.querySelector('#files');input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));const dt2=new DataTransfer();dt2.items.add(f);input.files=dt2.files;input.dispatchEvent(new Event('change',{bubbles:true}))},[...buffer]);
      if(!(await page.locator('#chosen').innerText()).includes('重複 1枚'))throw new Error('Duplicate selection not reported');
      if(await page.locator('#preview-select option').count()!==1)throw new Error('Duplicate selection added twice');
      await page.locator('#preview-remove').click();
