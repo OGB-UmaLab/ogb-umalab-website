@@ -1038,6 +1038,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(zip.readUInt16LE(zip.length-12)!==2)throw new Error('ZIP entry count incorrect');
      for(const name of names)if(!zip.includes(Buffer.from(name)))throw new Error('ZIP missing file '+name);
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=10;c.height=10;return c.toDataURL('image/png').split(',')[1]});
+     const buffer=Buffer.from(png,'base64');
+     await page.locator('#files').setInputFiles({name:'again.png',mimeType:'image/png',buffer});
+     await page.locator('#files').setInputFiles({name:'again.png',mimeType:'image/png',buffer});
+     if(!(await page.locator('#chosen').innerText()).includes('重複 1枚'))throw new Error('Duplicate selection not reported');
+     if(await page.locator('#preview-select option').count()!==1)throw new Error('Duplicate selection added twice');
+     await page.locator('#preview-remove').click();
+     await page.locator('#files').setInputFiles({name:'again.png',mimeType:'image/png',buffer});
+     if(!(await page.locator('#preview-original').getAttribute('src')))throw new Error('Preview missing after remove and re-add');
+     if(await page.locator('#preview-original').evaluate(img=>img.decode().then(()=>img.naturalWidth).catch(()=>0))!==10)throw new Error('Preview image failed to load after re-add');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
