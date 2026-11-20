@@ -396,8 +396,8 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    });
    await test(local('tools/csv-merge/index.html'),async()=>{
      await page.locator('#files').setInputFiles([
-       {name:'first.csv',mimeType:'text/csv',buffer:Buffer.from('商品,売上\\nA,100','utf8')},
-       {name:'second.csv',mimeType:'text/csv',buffer:Buffer.from('商品,売上,地域\\nB,200,東京','utf8')}
+       {name:'first.csv',mimeType:'text/csv',buffer:Buffer.from('商品,売上\nA,100','utf8')},
+       {name:'second.csv',mimeType:'text/csv',buffer:Buffer.from('商品,売上,地域\nB,200,東京','utf8')}
      ]);
      await page.locator('#merge').click();
      await page.locator('#output').waitFor({state:'visible'});
