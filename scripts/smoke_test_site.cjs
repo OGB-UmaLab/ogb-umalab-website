@@ -864,6 +864,27 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#reset').click();
      if(await page.locator('#out').inputValue()||!await page.locator('#download').isDisabled()) throw new Error('Reset left list output available');
    });
+   await test(local('tools/list-cleaner/index.html'),async()=>{
+     await page.locator('#a').fill('SKU-01\nSKU-02\nSKU-01\nSKU-03\nSKU-02\nSKU-01');
+     await page.locator('#mode').selectOption('frequency');
+     await page.locator('#run').click();
+     const expected='SKU-01\t3\nSKU-02\t2\nSKU-03\t1';
+     if(await page.locator('#out').inputValue()!==expected) throw new Error('Frequency ranking or counts incorrect');
+     const pending=page.waitForEvent('download');
+     await page.locator('#download').click();
+     const file=await pending;
+     if(file.suggestedFilename()!=='list-frequency.tsv') throw new Error('Frequency export extension incorrect');
+     const exported=fs.readFileSync(await file.path(),'utf8').replace(/^\uFEFF/,'');
+     if(exported!==expected) throw new Error('Frequency TSV export differs from preview');
+     await page.locator('#a').fill('SKU-01\tblue');
+     await page.locator('#run').click();
+     if(!(await page.locator('#stats').innerText()).includes('タブ文字')) throw new Error('Tab input was not rejected');
+     if(!await page.locator('#download').isDisabled()) throw new Error('Invalid frequency result remained downloadable');
+     await page.locator('#a').fill('Apple\napple\nBanana');
+     await page.locator('#case').check();
+     await page.locator('#run').click();
+     if(await page.locator('#out').inputValue()!=='Apple\t2\nBanana\t1') throw new Error('Case-insensitive frequency count incorrect');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
