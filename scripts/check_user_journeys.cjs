@@ -172,6 +172,11 @@ check(read('about/index.html').includes('<link rel="canonical" href="https://ogb
 const guidesHub = read('guides/index.html');
 const imageGuide = read('guides/image-batch-hands-on/index.html');
 const selectionGuide = read('guides/tool-selection/index.html');
+const listGuide = read('guides/list-cleaner-hands-on/index.html');
+check(listGuide.includes('rel="canonical" href="https://ogb-umalab.com/guides/list-cleaner-hands-on/"'), 'List guide canonical missing');
+check(listGuide.includes('AとBの共通項'), 'List guide comparison example missing');
+check(read('tools/list-cleaner/index.html').includes('href="../../guides/list-cleaner-hands-on/"'), 'List cleaner guide link missing');
+check(read('guides/index.html').includes('href="list-cleaner-hands-on/"'), 'List guide missing from hub');
 check(selectionGuide.includes('rel="canonical" href="https://ogb-umalab.com/guides/tool-selection/"'), 'Tool selection guide canonical missing');
 check(read('guides/index.html').includes('href="tool-selection/"'), 'Guide hub selection link missing');
 check(tools.includes('href="../guides/tool-selection/"'), 'Tool hub selection link missing');
