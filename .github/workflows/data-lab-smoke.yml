@@ -30,15 +30,14 @@ jobs:
         run: node scripts/check_data_lab_html.cjs
       - name: Check user journeys and downloadable sample data
         run: node scripts/check_user_journeys.cjs
+      - name: Test SEO audit helpers before browser setup
+        run: node scripts/test_site_architecture.cjs
       - name: Install Playwright and Chromium
         run: |
           npm install --no-save playwright
           npx playwright install --with-deps chromium
       - name: Run browser smoke tests
         run: node scripts/smoke_test_site.cjs --tools-only
-      - name: Test sitemap audit robots directives
-        if: always()
-        run: node scripts/test_site_architecture.cjs
       - name: Audit sitemap and canonical URLs
         if: always()
         run: node scripts/audit_site_architecture.cjs
