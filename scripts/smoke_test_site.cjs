@@ -40,6 +40,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#run').click();
      await page.locator('#idSearch').fill('A001');
      await page.locator('#statusFilter').selectOption('');
+     if(await page.locator('#exportFiltered').isDisabled()) throw new Error('ID-only filtered export button remained disabled');
      const pending=page.waitForEvent('download');
      await page.locator('#exportFiltered').click();
      const downloaded=await pending;
