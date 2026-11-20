@@ -39,7 +39,10 @@ function check(file) {
   const relative = path.relative(root, file).replaceAll(path.sep, '/');
   const base = new URL('https://ogb-umalab.com/' + relative.replace(/index\.html$/, ''));
   idsFor(file);
-  for (const [, tag, raw] of html.matchAll(/<(a|img|script|link)\b[^>]*?\b(?:href|src)\s*=\s*["']([^"']+)["'][^>]*>/gi)) {
+  for (const [, tag, attributes] of html.matchAll(/<(a|img|script|link)\b([^>]*)>/gi)) {
+    const expected = /^(?:a|link)$/i.test(tag) ? 'href' : 'src';
+    const attrs = Object.fromEntries([...attributes.matchAll(/([a-z-]+)\s*=\s*(["'])(.*?)\2/gi)].map(([, key, , value]) => [key.toLowerCase(), value]));
+    const raw = attrs[expected];
     if (!raw || /^(?:mailto:|tel:|javascript:|data:|blob:)/i.test(raw)) continue;
     let url;
     try { url = new URL(raw, base); } catch { issues.push(relative + ': invalid URL ' + raw); continue; }
