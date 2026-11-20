@@ -407,6 +407,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#downloadLog').click();
      const report=fs.readFileSync(await (await pending).path(),'utf8');
      if(!report.includes('追加された列：地域')||!report.includes('欠けている列：地域')) throw new Error('Column differences missing from exported audit report');
+     if(!report.includes('出力行数')) throw new Error('Audit report missing per-file output row counts');
    });
    await test(local('tools/csv-merge/index.html'),async()=>{
      const inputs=['tokyo','osaka','nagoya'].map(city=>path.resolve(__dirname,'../examples/csv-merge-'+city+'.csv'));
@@ -673,6 +674,8 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#merge').click();
      await page.locator('#output').waitFor({state:'visible'});
      if(await page.locator('#body tr').count()!==4) throw new Error('Data-only dedup should retain four rows');
+     const fileCounts=await page.locator('#details tr').allTextContents();
+     if(!fileCounts.some(x=>x.includes('2')&&x.includes('1'))) throw new Error('File-level retained rows were not displayed');
      await page.locator('#dedupMode').selectOption('source');
      await page.locator('#merge').click();
      await page.locator('#output').waitFor({state:'visible'});
