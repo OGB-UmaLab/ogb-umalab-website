@@ -49,7 +49,7 @@ class RobotsMetaParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         if tag.lower() != "meta":
             return
-        values = dict(attrs)
+        values = {key.lower(): value for key, value in attrs}
         if (values.get("name") or "").strip().lower() not in ("robots", "googlebot"):
             return
         directives = (values.get("content") or "").lower().replace(";", ",").split(",")
