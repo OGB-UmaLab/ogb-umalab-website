@@ -8,7 +8,8 @@ const source = fs.readFileSync(path.join(__dirname, 'audit_site_architecture.cjs
 const start = source.indexOf('const robotsNoindex =');
 const end = source.indexOf('const seen =', start);
 assert.ok(start >= 0 && end > start, 'robotsNoindex implementation must exist');
-const robotsNoindex = vm.runInNewContext(source.slice(start, end) + '\nrobotsNoindex;');
+const helpers = vm.runInNewContext(source.slice(start, end) + '\n({ robotsNoindex, titleOf, descriptionOf, canonicalOf });');
+const { robotsNoindex, titleOf, descriptionOf, canonicalOf } = helpers;
 
 for (const html of [
   '<meta name="robots" content="noindex,follow">',
@@ -26,4 +27,10 @@ for (const html of [
   '<html><head><title>Public</title></head></html>',
 ]) assert.equal(robotsNoindex(html), false, 'Must not misclassify: ' + html);
 
-console.log('PASS: sitemap robots/googlebot directive regression tests');
+assert.equal(titleOf('<title>  売上 CSV   分析 ｜ OGB </title>'), '売上 CSV 分析 ｜ OGB');
+assert.equal(titleOf('<html><head></head></html>'), undefined);
+assert.equal(descriptionOf('<meta content="売上データを分析" name="description">'), '売上データを分析');
+assert.equal(descriptionOf('<meta name="DESCRIPTION" content="集計を簡単に">'), '集計を簡単に');
+assert.equal(descriptionOf('<meta name="robots" content="index">'), undefined);
+assert.equal(canonicalOf('<link href="https://ogb-umalab.com/tools/" rel="canonical">'), 'https://ogb-umalab.com/tools/');
+console.log('PASS: sitemap robots, canonical, title and description regression tests');
