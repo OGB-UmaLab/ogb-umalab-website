@@ -915,6 +915,38 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.waitForFunction(()=>document.querySelector('#list')?.textContent.includes('120 × 60 px'));
      if(!(await page.locator('#list').innerText()).includes('120 × 60 px')) throw new Error('Default non-square output changed');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(()=>{
+       const c=document.createElement('canvas');c.width=80;c.height=80;
+       const x=c.getContext('2d');x.fillStyle='rgb(100,100,100)';x.fillRect(0,0,80,80);
+       return c.toDataURL('image/png').split(',')[1];
+     });
+     await page.locator('#files').setInputFiles({name:'gray.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
+     await page.locator('#format').selectOption('image/png');
+     await page.locator('#width').fill('80');
+     await page.locator('#height').fill('80');
+     const sample=async()=>{
+       await page.locator('#run').click();
+       await page.waitForFunction(()=>document.querySelector('#list img')?.complete&&document.querySelector('#list img')?.naturalWidth===80);
+       return page.locator('#list img').first().evaluate(async im=>{
+         await im.decode();const c=document.createElement('canvas');c.width=80;c.height=80;
+         const x=c.getContext('2d');x.drawImage(im,0,0);return x.getImageData(40,40,1,1).data[0];
+       });
+     };
+     const neutral=await sample();
+     if(Math.abs(neutral-100)>2) throw new Error('Neutral image setting altered pixel: '+neutral);
+     await page.locator('#brightness').fill('150');
+     await page.locator('#brightness').dispatchEvent('input');
+     if(await page.locator('#brightness-value').innerText()!=='150') throw new Error('Brightness display not updated');
+     const bright=await sample();
+     if(bright<neutral+35) throw new Error('Brightness adjustment ineffective: '+neutral+' -> '+bright);
+     await page.locator('#brightness').fill('100');
+     await page.locator('#brightness').dispatchEvent('input');
+     await page.locator('#contrast').fill('150');
+     await page.locator('#contrast').dispatchEvent('input');
+     const contrasted=await sample();
+     if(contrasted>=neutral-8) throw new Error('Contrast adjustment ineffective: '+neutral+' -> '+contrasted);
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
