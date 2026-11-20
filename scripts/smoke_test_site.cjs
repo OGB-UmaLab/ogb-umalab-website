@@ -890,6 +890,25 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    });
    await test(local('tools/image-batch/index.html'),async()=>{
      const png=await page.evaluate(()=>{
+       const c=document.createElement('canvas');c.width=80;c.height=40;
+       c.getContext('2d').fillRect(0,0,80,40);
+       return c.toDataURL('image/png').split(',')[1];
+     });
+     await page.locator('#files').setInputFiles({name:'sample.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
+     await page.locator('#format').selectOption('image/png');
+     await page.locator('#run').click();
+     await page.waitForFunction(()=>!document.querySelector('#result').classList.contains('hidden'));
+     await page.locator('#square').selectOption('white');
+     if(!(await page.locator('#result').evaluate(el=>el.classList.contains('hidden'))))throw new Error('Old conversion remained downloadable after square setting change');
+     if(!(await page.locator('#status').innerText()).includes('再実行'))throw new Error('Reconversion notice missing');
+     await page.locator('#run').click();
+     await page.waitForFunction(()=>!document.querySelector('#result').classList.contains('hidden'));
+     await page.locator('#brightness').fill('110');
+     await page.locator('#brightness').dispatchEvent('input');
+     if(!(await page.locator('#result').evaluate(el=>el.classList.contains('hidden'))))throw new Error('Old conversion remained after brightness change');
+   });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(()=>{
        const c=document.createElement('canvas');c.width=120;c.height=60;
        const ctx=c.getContext('2d');ctx.fillStyle='#ff0000';ctx.fillRect(0,0,120,60);
        return c.toDataURL('image/png').split(',')[1];
