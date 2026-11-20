@@ -674,6 +674,8 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#merge').click();
      await page.locator('#output').waitFor({state:'visible'});
      if(await page.locator('#body tr').count()!==4) throw new Error('Data-only dedup should retain four rows');
+     const metricText=await page.locator('#metrics').innerText();
+     if(!metricText.includes('出力列数')||!metricText.includes('4列')) throw new Error('Merged column count missing: '+metricText);
      const fileCounts=await page.locator('#details tr').allTextContents();
      if(!fileCounts.some(x=>x.includes('2')&&x.includes('1'))) throw new Error('File-level retained rows were not displayed');
      await page.locator('#dedupMode').selectOption('source');
