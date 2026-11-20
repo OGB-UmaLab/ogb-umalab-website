@@ -9,6 +9,13 @@ const check = (condition, message) => { if (!condition) failures.push(message); 
 const homepage = read('index.html');
 const tools = read('tools/index.html');
 const labLanding = read('data-lab/index.html');
+for (const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']) {
+  const page = read('tools/' + slug + 'index.html');
+  check(page.includes('class="skip-link" href="#main"'), 'Tool keyboard skip link missing: ' + slug);
+  check(/<main[^>]*id="main"/.test(page), 'Tool main landmark missing: ' + slug);
+  check(page.includes('a:focus-visible'), 'Tool focus indicator missing: ' + slug);
+}
+
 check(labLanding.includes('id="tool-catalog-title"'), 'Data Lab landing tool catalog missing');
 for (const slug of ['csv-merge', 'csv-analyzer', 'list-cleaner', 'pricing-simulator', 'order-line-aggregate', 'order-payment-reconcile', 'pdf-split-rename', 'image-batch']) {
   check(labLanding.includes('href="../tools/' + slug + '/"'), 'Data Lab landing missing tool: ' + slug);
