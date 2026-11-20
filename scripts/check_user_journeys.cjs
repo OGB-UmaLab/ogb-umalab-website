@@ -170,6 +170,12 @@ check(read('about/index.html').includes('<link rel="canonical" href="https://ogb
 
 // Audience-first navigation and workflow continuity regression checks.
 const guidesHub = read('guides/index.html');
+const imageGuide = read('guides/image-batch-hands-on/index.html');
+check(imageGuide.includes('rel="canonical" href="https://ogb-umalab.com/guides/image-batch-hands-on/"'), 'Image guide canonical missing');
+check(imageGuide.includes('href="../../tools/image-batch/"'), 'Image guide tool link missing');
+check(imageGuide.includes('HEICに対応していません'), 'Image guide must state HEIC limitation');
+check(read('tools/image-batch/index.html').includes('href="../../guides/image-batch-hands-on/"'), 'Image tool must link to guide');
+
 const dataLabAbout = read('data-lab/about/index.html');
 check(tools.includes('id="by-audience"'), 'Audience-based tool entry is missing');
 check(tools.includes('class="quick-nav"'), 'Mobile-friendly category navigation is missing');
