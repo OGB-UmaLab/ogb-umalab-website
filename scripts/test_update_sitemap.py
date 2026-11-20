@@ -30,7 +30,8 @@ class SitemapGenerationTests(unittest.TestCase):
             xml = (root / "sitemap.xml").read_text(encoding="utf-8")
             self.assertIn("<loc>https://ogb-umalab.com/</loc>", xml)
             self.assertIn("<loc>https://ogb-umalab.com/tools/public/</loc>", xml)
-            for excluded in ("tools/test/", "guides/hidden/", "tools/google-hidden/", "ogb-data/central/", "data-lab/"):
+            self.assertIn("<loc>https://ogb-umalab.com/data-lab/</loc>", xml)
+            for excluded in ("tools/test/", "guides/hidden/", "tools/google-hidden/", "ogb-data/central/"):
                 self.assertNotIn("<loc>https://ogb-umalab.com/" + excluded + "</loc>", xml)
 
 
