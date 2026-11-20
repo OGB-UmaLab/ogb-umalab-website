@@ -8,6 +8,13 @@ const failures = [];
 const check = (condition, message) => { if (!condition) failures.push(message); };
 const homepage = read('index.html');
 const tools = read('tools/index.html');
+const labLanding = read('data-lab/index.html');
+check(labLanding.includes('id="tool-catalog-title"'), 'Data Lab landing tool catalog missing');
+for (const slug of ['csv-merge', 'csv-analyzer', 'list-cleaner', 'pricing-simulator', 'order-line-aggregate', 'order-payment-reconcile', 'pdf-split-rename', 'image-batch']) {
+  check(labLanding.includes('href="../tools/' + slug + '/"'), 'Data Lab landing missing tool: ' + slug);
+}
+check(labLanding.includes('href="../guides/troubleshooting/"'), 'Data Lab landing missing troubleshooting link');
+
 const guide = read('guides/order-reconciliation-hands-on/index.html');
 const sitemap = read('sitemap.xml');
 const aggregate = read('tools/order-line-aggregate/index.html');
