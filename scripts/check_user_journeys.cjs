@@ -13,6 +13,10 @@ const sitemap = read('sitemap.xml');
 const aggregate = read('tools/order-line-aggregate/index.html');
 const reconcile = read('tools/order-payment-reconcile/index.html');
 
+const mergeTool = read('tools/csv-merge/index.html');
+check(mergeTool.includes('id="reset"'), 'CSV merge reset button missing');
+check(mergeTool.includes('$("reset").onclick='), 'CSV merge reset handler missing');
+check(mergeTool.includes('mergeVersion++;$("files").value=""'), 'CSV merge reset must invalidate in-flight merges');
 check(homepage.includes('id="choose-task"'), 'Homepage task section missing');
 check((homepage.match(/class="task-card"/g) || []).length === 6, 'Homepage must show six task choices');
 check(homepage.includes('href="#choose-task"'), 'Hero CTA must target task section');
