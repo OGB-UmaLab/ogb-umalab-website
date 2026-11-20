@@ -71,7 +71,6 @@ check(!orders.has('A004') && payments.get('A004') === 700, 'Expected payment-onl
 
 
 const mergeGuide = read('guides/csv-merge-hands-on/index.html');
-const mergeTool = read('tools/csv-merge/index.html');
 check(homepage.includes('href="guides/csv-merge-hands-on/"'), 'Homepage must link to CSV merge walkthrough');
 check(tools.includes('href="../guides/csv-merge-hands-on/"'), 'Tool directory must link to CSV merge walkthrough');
 check(mergeTool.includes('href="/guides/csv-merge-hands-on/"'), 'CSV merge tool must link to walkthrough');
