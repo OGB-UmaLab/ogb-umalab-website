@@ -18,6 +18,8 @@ class SitemapGenerationTests(unittest.TestCase):
                 "tools/test/index.html": '<html><head><meta name="robots" content="noindex,follow"></head></html>',
                 "guides/hidden/index.html": '<html><head><meta content="NOINDEX, FOLLOW" name="ROBOTS"></head></html>',
                 "tools/google-hidden/index.html": '<html><head><meta name="googlebot" content="noindex"></head></html>',
+                "tools/google-hidden-uppercase/index.html": '<html><head><META NAME="GOOGLEBOT" CONTENT="NOINDEX; FOLLOW"></head></html>',
+                "tools/public-index/index.html": '<html><head><meta name="robots" content="index,follow"></head></html>',
                 "ogb-data/central/index.html": '<html></html>',
                 "data-lab/index.html": '<html></html>',
             }
@@ -31,7 +33,8 @@ class SitemapGenerationTests(unittest.TestCase):
             self.assertIn("<loc>https://ogb-umalab.com/</loc>", xml)
             self.assertIn("<loc>https://ogb-umalab.com/tools/public/</loc>", xml)
             self.assertIn("<loc>https://ogb-umalab.com/data-lab/</loc>", xml)
-            for excluded in ("tools/test/", "guides/hidden/", "tools/google-hidden/", "ogb-data/central/"):
+            self.assertIn("<loc>https://ogb-umalab.com/tools/public-index/</loc>", xml)
+            for excluded in ("tools/test/", "guides/hidden/", "tools/google-hidden/", "tools/google-hidden-uppercase/", "ogb-data/central/"):
                 self.assertNotIn("<loc>https://ogb-umalab.com/" + excluded + "</loc>", xml)
 
 
