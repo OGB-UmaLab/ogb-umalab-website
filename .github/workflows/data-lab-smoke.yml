@@ -13,6 +13,7 @@ on:
       - 'scripts/check_data_lab_html.cjs'
       - 'scripts/check_user_journeys.cjs'
       - 'scripts/audit_site_architecture.cjs'
+      - 'scripts/test_site_architecture.cjs'
       - 'scripts/smoke_test_site.cjs'
       - 'sitemap.xml'
       - '.github/workflows/data-lab-smoke.yml'
@@ -35,6 +36,9 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Run browser smoke tests
         run: node scripts/smoke_test_site.cjs --tools-only
+      - name: Test sitemap audit robots directives
+        if: always()
+        run: node scripts/test_site_architecture.cjs
       - name: Audit sitemap and canonical URLs
         if: always()
         run: node scripts/audit_site_architecture.cjs
