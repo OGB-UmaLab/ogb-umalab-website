@@ -865,6 +865,9 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(await page.locator('#out').inputValue()||!await page.locator('#download').isDisabled()) throw new Error('Reset left list output available');
    });
    await test(local('tools/list-cleaner/index.html'),async()=>{
+     await page.locator('#frequency-example').click();
+     if(await page.locator('#mode').inputValue()!=='frequency'||await page.locator('#b').inputValue()!=='') throw new Error('Frequency demo did not select mode or clear list B');
+     if(await page.locator('#out').inputValue()!=='SKU-01\\t3\\nSKU-02\\t2\\nSKU-03\\t1'.replace(/\\t/g,'\t').replace(/\\n/g,'\n')) throw new Error('Frequency demo result incorrect');
      await page.locator('#a').fill('SKU-01\nSKU-02\nSKU-01\nSKU-03\nSKU-02\nSKU-01');
      await page.locator('#mode').selectOption('frequency');
      await page.locator('#run').click();
