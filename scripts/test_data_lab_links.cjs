@@ -1,0 +1,37 @@
+'use strict';
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ogb-link-audit-'));
+const script = path.join(__dirname, 'audit_data_lab_links.cjs');
+function write(relative, html) {
+  const target = path.join(root, relative);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, html);
+}
+function run() {
+  return spawnSync(process.execPath, [script], { env: { ...process.env, OGB_AUDIT_ROOT: root }, encoding: 'utf8' });
+}
+try {
+  write('data-lab/index.html', '<a href="/tools/#calculator">Go</a><a href="/guides/intro/#example">Guide</a>');
+  write('tools/index.html', '<h1 id="calculator">Calculator</h1><a href="/data-lab/">Back</a>');
+  write('guides/intro/index.html', '<h2 id="example">Example</h2>');
+  let result = run();
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  write('data-lab/index.html', '<a href="/tools/#not-present">Broken anchor</a>');
+  result = run();
+  assert.notEqual(result.status, 0, 'Broken anchor must fail');
+  assert.match(result.stderr, /missing anchor/);
+  write('data-lab/index.html', '<a href="/tools/missing/">Broken page</a>');
+  result = run();
+  assert.notEqual(result.status, 0, 'Broken page must fail');
+  assert.match(result.stderr, /missing/);
+  write('data-lab/index.html', '<a href="https://example.com/#remote">External</a><a href="mailto:hello@example.com">Email</a>');
+  result = run();
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  console.log('PASS: valid navigation, broken anchors, missing files and external links');
+} finally {
+  fs.rmSync(root, { recursive: true, force: true });
+}
