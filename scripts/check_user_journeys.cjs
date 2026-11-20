@@ -189,6 +189,12 @@ for (const slug of ['csv-analysis-basics', 'csv-analysis-hands-on', 'csv-merge-h
 }
 check(guidesHub.includes('rel="canonical" href="https://ogb-umalab.com/guides/"'), 'Guide directory canonical missing');
 check(guidesHub.includes('href="../tools/"'), 'Guide directory must link to tool directory');
+check(guidesHub.includes('id="workflows-title"'), 'Workflow walkthrough section missing');
+check(tools.includes('href="../guides/#workflows-title"'), 'Workflow walkthrough link missing from tool hub');
+for (const slug of ['image-batch', 'pricing-simulator', 'order-line-aggregate', 'order-payment-reconcile']) {
+  check(guidesHub.includes('href="../tools/' + slug + '/"'), 'Network selling workflow step missing: ' + slug);
+}
+
 check(dataLabAbout.includes('新規の受託分析業務を募集するためのサービスではありません'), 'Free self-service mission missing from about page');
 
 if (failures.length) {
