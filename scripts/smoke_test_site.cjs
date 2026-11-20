@@ -883,6 +883,45 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        }
      });
    }
+   // Public visitor journeys: verify live pages and their navigation, not only source HTML.
+   if(!toolsOnly){
+     await test('/data-lab/',async()=>{
+       for(const slug of ['csv-merge','csv-analyzer','list-cleaner','pricing-simulator','order-line-aggregate','order-payment-reconcile','pdf-split-rename','image-batch']){
+         const link=page.locator('a[href="../tools/'+slug+'/"]').first();
+         if(await link.count()===0) throw new Error('Landing missing tool: '+slug);
+       }
+       for(const guide of ['tool-selection','troubleshooting']){
+         if(await page.locator('a[href="../guides/'+guide+'/"]').count()===0) throw new Error('Landing missing guide: '+guide);
+       }
+     });
+     await test('/guides/',async()=>{
+       for(const guide of ['tool-selection','troubleshooting','image-batch-hands-on','list-cleaner-hands-on']){
+         if(await page.locator('a[href="'+guide+'/"]').count()===0) throw new Error('Guide directory missing '+guide);
+       }
+     });
+     for(const slug of ['tool-selection','troubleshooting','image-batch-hands-on','list-cleaner-hands-on']){
+       await test('/guides/'+slug+'/',async()=>{
+         if(!(await page.locator('main h1').innerText()).trim()) throw new Error('Guide heading missing: '+slug);
+         if(await page.locator('main a[href*="tools/"]').count()===0) throw new Error('Guide has no tool navigation: '+slug);
+       });
+     }
+     await test('/tools/',async()=>{
+       const link=page.locator('a[href="../guides/troubleshooting/"]').first();
+       if(await link.count()===0) throw new Error('Tool directory missing troubleshooting');
+       await link.click();
+       await page.waitForURL('**/guides/troubleshooting/');
+       if(!(await page.locator('h1').innerText()).includes('困ったとき')) throw new Error('Troubleshooting navigation failed');
+     });
+     for(const slug of ['csv-merge','csv-analyzer','list-cleaner','pricing-simulator','order-line-aggregate','order-payment-reconcile','pdf-split-rename','image-batch']){
+       await test('/tools/'+slug+'/',async()=>{
+         const link=page.locator('a[href="/guides/troubleshooting/"]').first();
+         if(await link.count()===0) throw new Error('Tool missing support link: '+slug);
+         await link.click();
+         await page.waitForURL('**/guides/troubleshooting/');
+         if(!(await page.locator('h1').innerText()).includes('困ったとき')) throw new Error('Tool support link broken: '+slug);
+       });
+     }
+   }
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
