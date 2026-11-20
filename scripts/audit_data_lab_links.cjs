@@ -5,10 +5,20 @@ const path = require('node:path');
 const root = path.resolve(process.env.OGB_AUDIT_ROOT || path.join(__dirname, '..'));
 const sections = ['data-lab', 'tools', 'guides'];
 const htmlIds = new Map();
+const duplicateIds = new Set();
 function idsFor(file) {
   if (!htmlIds.has(file)) {
     const source = fs.readFileSync(file, 'utf8');
-    htmlIds.set(file, new Set([...source.matchAll(/\bid\s*=\s*["']([^"']+)["']/gi)].map(m => m[1])));
+    const ids = [...source.matchAll(/\bid\s*=\s*["']([^"']+)["']/gi)].map(m => m[1]);
+    const seen = new Set();
+    for (const id of ids) {
+      if (seen.has(id) && !duplicateIds.has(file + ':' + id)) {
+        issues.push(path.relative(root, file).replaceAll(path.sep, '/') + ': duplicate id ' + id);
+        duplicateIds.add(file + ':' + id);
+      }
+      seen.add(id);
+    }
+    htmlIds.set(file, seen);
   }
   return htmlIds.get(file);
 }
@@ -28,8 +38,9 @@ function check(file) {
   const html = fs.readFileSync(file, 'utf8');
   const relative = path.relative(root, file).replaceAll(path.sep, '/');
   const base = new URL('https://ogb-umalab.com/' + relative.replace(/index\.html$/, ''));
+  idsFor(file);
   for (const [, tag, raw] of html.matchAll(/<(a|img|script|link)\b[^>]*?\b(?:href|src)\s*=\s*["']([^"']+)["'][^>]*>/gi)) {
-    if (!raw || /^(?:#|mailto:|tel:|javascript:|data:|blob:)/i.test(raw)) continue;
+    if (!raw || /^(?:mailto:|tel:|javascript:|data:|blob:)/i.test(raw)) continue;
     let url;
     try { url = new URL(raw, base); } catch { issues.push(relative + ': invalid URL ' + raw); continue; }
     if (!['ogb-umalab.com', 'www.ogb-umalab.com'].includes(url.hostname)) continue;
