@@ -973,6 +973,8 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(await page.locator('#brightness').inputValue()!=='150')throw new Error('First image adjustment not retained');
      await page.locator('#run').click();
      await page.waitForFunction(()=>document.querySelectorAll('#list img').length===2);
+     const labels=await page.locator('#list article').allInnerTexts();
+     if(!labels[0].includes('明るさ 150%')||!labels[1].includes('明るさ 50%'))throw new Error('Converted image adjustment details incorrect: '+labels);
      const pixels=await page.locator('#list img').evaluateAll(async imgs=>Promise.all(imgs.map(async im=>{await im.decode();const c=document.createElement('canvas');c.width=32;c.height=32;const x=c.getContext('2d');x.drawImage(im,0,0);return x.getImageData(16,16,1,1).data[0]})));
      if(pixels[0]<135||pixels[1]>65)throw new Error('Individual pixel adjustments incorrect: '+pixels);
      await page.locator('#adjust-mode').selectOption('batch');
@@ -981,6 +983,8 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.waitForFunction(()=>document.querySelectorAll('#list img').length===2);
      const batchPixels=await page.locator('#list img').evaluateAll(async imgs=>Promise.all(imgs.map(async im=>{await im.decode();const c=document.createElement('canvas');c.width=32;c.height=32;const x=c.getContext('2d');x.drawImage(im,0,0);return x.getImageData(16,16,1,1).data[0]})));
      if(Math.abs(batchPixels[0]-batchPixels[1])>2||batchPixels[0]<115)throw new Error('Batch pixel adjustments incorrect: '+batchPixels);
+     const batchLabels=await page.locator('#list article').allInnerTexts();
+     if(batchLabels.some(label=>!label.includes('明るさ 120%')))throw new Error('Batch adjustment details incorrect: '+batchLabels);
    });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
