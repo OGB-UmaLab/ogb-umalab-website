@@ -16,6 +16,13 @@ const robotsNoindex = html => [...html.matchAll(/<meta\b[^>]*>/gi)].some(([tag])
   const attrs = Object.fromEntries([...tag.matchAll(/([a-z-]+)\s*=\s*(["'])(.*?)\2/gi)].map(([, key, , value]) => [key.toLowerCase(), value]));
   return ['robots', 'googlebot'].includes((attrs.name || '').toLowerCase()) && /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(attrs.content || '');
 });
+const titleOf = html => html.match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i)?.[1].replace(/\s+/g, ' ').trim();
+const descriptionOf = html => [...html.matchAll(/<meta\b[^>]*>/gi)].map(([tag]) => {
+  const attrs = Object.fromEntries([...tag.matchAll(/([a-z-]+)\s*=\s*(["'])(.*?)\2/gi)].map(([, key, , value]) => [key.toLowerCase(), value]));
+  return attrs.name?.toLowerCase() === 'description' ? attrs.content?.trim() : null;
+}).find(Boolean);
+const contentTitles = new Map();
+const contentDescriptions = new Map();
 const seen = new Set();
 for (const url of urls) {
   if (seen.has(url)) { errors.push('Duplicate sitemap URL: ' + url); continue; }
@@ -31,6 +38,20 @@ for (const url of urls) {
   if (!fs.existsSync(file)) { errors.push('Sitemap URL without index.html: ' + pathname); continue; }
   const html = fs.readFileSync(file, 'utf8');
   const canonical = canonicalOf(html);
+  if (segment === 'tools' || segment === 'guides' || segment === 'data-lab') {
+    const title = titleOf(html);
+    const description = descriptionOf(html);
+    if (!title) errors.push('Missing title: ' + pathname);
+    if (!description) errors.push('Missing meta description: ' + pathname);
+    if (title) {
+      if (contentTitles.has(title)) warnings.push('Duplicate title: ' + pathname + ' and ' + contentTitles.get(title));
+      else contentTitles.set(title, pathname);
+    }
+    if (description) {
+      if (contentDescriptions.has(description)) warnings.push('Duplicate meta description: ' + pathname + ' and ' + contentDescriptions.get(description));
+      else contentDescriptions.set(description, pathname);
+    }
+  }
   if (canonical && canonical !== url) errors.push('Canonical mismatch: ' + pathname + ' -> ' + canonical);
   if (!canonical) {
     const issue = 'Missing canonical: ' + pathname;
