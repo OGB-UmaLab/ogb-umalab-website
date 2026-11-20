@@ -864,6 +864,25 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#reset').click();
      if(await page.locator('#out').inputValue()||!await page.locator('#download').isDisabled()) throw new Error('Reset left list output available');
    });
+   // Keyboard navigation regression: each free tool must offer a visible skip link.
+   for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
+     await test(local('tools/'+slug+'index.html'),async()=>{
+       await page.keyboard.press('Tab');
+       const active=await page.evaluate(()=>({href:document.activeElement?.getAttribute('href'),visible:(()=>{const e=document.activeElement;const r=e?.getBoundingClientRect();return !!r&&r.top>=0&&r.bottom>r.top})()}));
+       if(active.href!=='#main'||!active.visible) throw new Error('Keyboard skip link missing or not visible: '+JSON.stringify(active));
+       await page.keyboard.press('Enter');
+       const hash=await page.evaluate(()=>location.hash);
+       if(hash!=='#main') throw new Error('Skip link did not navigate to main: '+hash);
+       const main=page.locator('main#main');
+       if(await main.count()!==1) throw new Error('Missing unique main landmark');
+       const link=page.locator('main a').first();
+       if(await link.count()){
+         await link.focus();
+         const outline=await link.evaluate(e=>getComputedStyle(e).outlineStyle);
+         if(outline==='none') throw new Error('Keyboard link focus is invisible');
+       }
+     });
+   }
    if(!toolsOnly){
    await test('/umalab/',async()=>{
      const css=await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily);
