@@ -947,6 +947,29 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const contrasted=await sample();
      if(contrasted>=neutral-8) throw new Error('Contrast adjustment ineffective: '+neutral+' -> '+contrasted);
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=32;c.height=32;const x=c.getContext('2d');x.fillStyle='rgb(100,100,100)';x.fillRect(0,0,32,32);return c.toDataURL('image/png').split(',')[1]});
+     const buffer=Buffer.from(png,'base64');
+     await page.locator('#files').setInputFiles([{name:'one.png',mimeType:'image/png',buffer},{name:'two.png',mimeType:'image/png',buffer}]);
+     await page.locator('#format').selectOption('image/png');
+     if(await page.locator('#adjust-mode').inputValue()!=='individual')throw new Error('Individual adjustment must be default');
+     await page.locator('#brightness').fill('150');await page.locator('#brightness').dispatchEvent('input');
+     await page.locator('#preview-next').click();
+     if(await page.locator('#brightness').inputValue()!=='100')throw new Error('Second image inherited first adjustment');
+     await page.locator('#brightness').fill('50');await page.locator('#brightness').dispatchEvent('input');
+     await page.locator('#preview-prev').click();
+     if(await page.locator('#brightness').inputValue()!=='150')throw new Error('First image adjustment not retained');
+     await page.locator('#run').click();
+     await page.waitForFunction(()=>document.querySelectorAll('#list img').length===2);
+     const pixels=await page.locator('#list img').evaluateAll(async imgs=>Promise.all(imgs.map(async im=>{await im.decode();const c=document.createElement('canvas');c.width=32;c.height=32;const x=c.getContext('2d');x.drawImage(im,0,0);return x.getImageData(16,16,1,1).data[0]})));
+     if(pixels[0]<135||pixels[1]>65)throw new Error('Individual pixel adjustments incorrect: '+pixels);
+     await page.locator('#adjust-mode').selectOption('batch');
+     await page.locator('#brightness').fill('120');await page.locator('#brightness').dispatchEvent('input');
+     await page.locator('#run').click();
+     await page.waitForFunction(()=>document.querySelectorAll('#list img').length===2);
+     const batchPixels=await page.locator('#list img').evaluateAll(async imgs=>Promise.all(imgs.map(async im=>{await im.decode();const c=document.createElement('canvas');c.width=32;c.height=32;const x=c.getContext('2d');x.drawImage(im,0,0);return x.getImageData(16,16,1,1).data[0]})));
+     if(Math.abs(batchPixels[0]-batchPixels[1])>2||batchPixels[0]<115)throw new Error('Batch pixel adjustments incorrect: '+batchPixels);
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
