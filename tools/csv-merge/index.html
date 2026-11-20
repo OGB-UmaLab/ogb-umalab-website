@@ -20,7 +20,7 @@
 <label><input type="checkbox" id="source" checked>元ファイル名を追加する</label>
 <label><input type="checkbox" id="dedup">重複行を削除する</label>
 <label for="dedupMode">重複判定の対象</label><select id="dedupMode"><option value="all">データ列のみ（元ファイル名を除く）</option><option value="source">元ファイル名も含める</option></select>
-<p class="muted">重複とは、選択した判定対象の全列の値が完全一致する行です。取引IDや日付だけでの部分一致判定は行いません。</p>
+<p class="muted">重複とは、選択した判定対象の全列の値が完全一致する行です。取引IDや日付だけでの部分一致判定は行いません。</p><p class="muted">重複削除がオフの場合、この設定は結果に影響しません。列名で結合する場合、存在しない列は空欄として比較されます。</p>
 <button id="merge" type="button">選択したCSVを一括結合</button><button id="reset" class="secondary" type="button">入力条件を初期化</button><p id="status" role="status" class="muted">ファイルを選ぶか、上のサンプルを試してください。</p>
 </section>
 <section id="output" class="card" hidden><h2>結合結果</h2><div id="metrics" class="grid"></div><h3>ファイル別の確認結果</h3><p class="muted">出力行数は各ファイルから結合結果に残った行数です。重複削除を有効にした場合、先に読み込まれたファイルの行が優先されます。</p><div class="scroll"><table><thead><tr><th>ファイル</th><th>入力行数</th><th>出力行数</th><th>列の確認結果</th></tr></thead><tbody id="details"></tbody></table></div><h3>結合済みデータ（先頭20行）</h3><div class="scroll"><table><thead id="head"></thead><tbody id="body"></tbody></table></div><button id="download" type="button">結合済みCSVを保存</button><button id="downloadLog" class="secondary" type="button">処理結果の一覧を保存</button><p class="muted">出力はUTF-8（BOM付き）です。Excelで開く際の文字化けを防ぎやすい形式です。データが大きい場合はブラウザの処理に時間がかかります。</p></section>
