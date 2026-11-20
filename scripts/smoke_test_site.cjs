@@ -912,7 +912,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(image.middle.join(',')!=='255,0,0,255') throw new Error('Square padding distorted image');
      await page.locator('#square').selectOption('off');
      await page.locator('#run').click();
-     await page.waitForFunction(()=>document.querySelector('#result')?.classList.contains('hidden')===false);
+     await page.waitForFunction(()=>document.querySelector('#list')?.textContent.includes('120 × 60 px'));
      if(!(await page.locator('#list').innerText()).includes('120 × 60 px')) throw new Error('Default non-square output changed');
    });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
