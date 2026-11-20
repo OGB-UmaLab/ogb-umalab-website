@@ -1002,6 +1002,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#preview-panel').evaluate(el=>el.classList.contains('hidden'))))throw new Error('Empty image preview remained visible');
      if(!(await page.locator('#run').isDisabled()))throw new Error('Conversion enabled without images');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=16;c.height=16;return c.toDataURL('image/png').split(',')[1]});
+     const buffer=Buffer.from(png,'base64');
+     await page.locator('#files').setInputFiles([{name:'a.png',mimeType:'image/png',buffer},{name:'b.png',mimeType:'image/png',buffer}]);
+     await page.locator('#preview-select').selectOption('1');
+     await page.locator('#brightness').fill('150');await page.locator('#brightness').dispatchEvent('input');
+     await page.locator('#files').setInputFiles({name:'c.png',mimeType:'image/png',buffer});
+     if(await page.locator('#preview-select').inputValue()!=='1')throw new Error('Adding image changed current selection');
+     if(await page.locator('#brightness').inputValue()!=='150')throw new Error('Adding image lost adjustment');
+     await page.locator('#reset-adjustments').click();
+     if(await page.locator('#brightness').inputValue()!=='100')throw new Error('Reset all failed in individual mode');
+     await page.locator('#preview-select').selectOption('0');
+     if(await page.locator('#brightness').inputValue()!=='100')throw new Error('Reset all left individual adjustment');
+     await page.locator('#adjust-mode').selectOption('batch');
+     await page.locator('#brightness').fill('130');await page.locator('#brightness').dispatchEvent('input');
+     await page.locator('#reset-adjustments').click();
+     if(await page.locator('#brightness').inputValue()!=='100')throw new Error('Reset all failed in batch mode');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
