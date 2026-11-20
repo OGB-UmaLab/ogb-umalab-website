@@ -1020,6 +1020,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#reset-adjustments').click();
      if(await page.locator('#brightness').inputValue()!=='100')throw new Error('Reset all failed in batch mode');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=12;c.height=12;const x=c.getContext('2d');x.fillStyle='#888';x.fillRect(0,0,12,12);return c.toDataURL('image/png').split(',')[1]});
+     const buffer=Buffer.from(png,'base64');
+     await page.locator('#files').setInputFiles([{name:'photo.png',mimeType:'image/png',buffer},{name:'photo.png',mimeType:'image/png',buffer:Buffer.concat([buffer,Buffer.from([0])])}]);
+     await page.locator('#format').selectOption('image/png');
+     await page.locator('#run').click();
+     await page.locator('#list article').first().waitFor();
+     if(await page.locator('#list article').count()!==2)throw new Error('Duplicate-name images not both converted');
+     const names=await page.locator('#list article h3').allInnerTexts();
+     if(new Set(names).size!==2)throw new Error('Duplicate image names not made unique');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#zip').click();
+     const download=await downloadPromise;
+     const zip=require('node:fs').readFileSync(await download.path());
+     if(zip.readUInt32LE(0)!==0x04034b50||zip.readUInt32LE(zip.length-22)!==0x06054b50)throw new Error('ZIP archive headers invalid');
+     if(zip.readUInt16LE(zip.length-12)!==2)throw new Error('ZIP entry count incorrect');
+     for(const name of names)if(!zip.includes(Buffer.from(name)))throw new Error('ZIP missing file '+name);
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
