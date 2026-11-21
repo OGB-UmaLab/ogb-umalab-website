@@ -1150,6 +1150,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      if(!result.includes('512MB'))throw new Error('Oversized ZIP was not blocked before allocation: '+result);
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     await page.evaluate(()=>choose([new File([],'empty.png',{type:'image/png'})]));
+     const state=await page.locator('#chosen').innerText();
+     if(!state.includes('除外 1枚')||await page.locator('#run').isEnabled())throw new Error('Zero-byte image was accepted');
+     const busyResult=await page.evaluate(async()=>{
+       const c=document.createElement('canvas');c.width=4;c.height=4;
+       const blob=await new Promise(resolve=>c.toBlob(resolve,'image/png'));
+       const file=new File([blob],'original.png',{type:'image/png',lastModified:42});
+       choose([file]);zipBusy=true;
+       choose([new File([blob],'blocked.png',{type:'image/png'})]);
+       const count=selected.length;
+       $('clear').click();
+       const afterClear=selected.length;
+       zipBusy=false;
+       return {count,afterClear};
+     });
+     if(busyResult.count!==1||busyResult.afterClear!==1)throw new Error('ZIP export did not guard selection changes');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
