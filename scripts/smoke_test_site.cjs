@@ -1289,6 +1289,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(JSON.stringify(result.reports)!==JSON.stringify([[1,3],[2,3],[3,3]]))throw new Error('ZIP progress callback was inaccurate');
      if(result.names.join('|')!=='one.txt|two.txt|三.txt'||result.zipSize<100)throw new Error('ZIP structure changed during CRC optimization');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(()=>{
+       const original=outputs;
+       const mk=size=>({blob:{size}});
+       outputs=[mk(512*1024*1024)];const boundary=zipAllowed();
+       outputs=[mk(512*1024*1024+1)];const exceeded=zipAllowed();
+       outputs=[mk(300*1024*1024),mk(212*1024*1024+1)];const combined=zipAllowed();
+       outputs=original;
+       const stamp=localDateStamp(new Date(2026,0,2,0,30));
+       return {boundary,exceeded,combined,stamp};
+     });
+     if(!result.boundary||result.exceeded||result.combined)throw new Error('ZIP size preflight failed at 512MB boundary');
+     if(result.stamp!=='2026-01-02')throw new Error('Archive date uses wrong local calendar day');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
