@@ -1215,6 +1215,21 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!status.includes('失敗 1枚')||!status.includes('broken.png'))throw new Error('Corrupt image failure was not reported: '+status);
      if(!(await page.locator('#zip').isEnabled()))throw new Error('ZIP disabled after partial conversion success');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const bytes=await page.evaluate(async()=>{const c=document.createElement('canvas');c.width=20;c.height=20;const ctx=c.getContext('2d');ctx.fillStyle='#555';ctx.fillRect(0,0,20,20);return [...new Uint8Array(await (await new Promise(r=>c.toBlob(r,'image/png'))).arrayBuffer())]});
+     await page.evaluate(bytes=>choose([new File([new Uint8Array(bytes)],'snapshot.png',{type:'image/png'})]),bytes);
+     await page.locator('#format').selectOption('image/jpeg');
+     await page.locator('#target').fill('10');
+     await page.locator('#run').click();
+     await page.locator('#list article').first().waitFor();
+     await page.waitForFunction(()=>!busy);
+     const original=await page.locator('#list article').first().innerText();
+     await page.evaluate(()=>$('target').value='30000');
+     const after=await page.locator('#list article').first().innerText();
+     if(original!==after)throw new Error('Completed output report changed with uncommitted form value');
+     const snapshot=await page.evaluate(()=>outputs[0].targetBytes);
+     if(snapshot!==10240)throw new Error('Conversion target snapshot was not preserved');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
