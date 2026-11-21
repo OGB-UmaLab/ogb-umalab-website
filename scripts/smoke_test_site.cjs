@@ -1101,6 +1101,12 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.evaluate(()=>choose([new File(['bad'],'unsupported.txt',{type:'text/plain'})]));
      if(await page.locator('#result').evaluate(e=>e.classList.contains('hidden')))throw new Error('Unsupported-only upload discarded completed exports');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     await page.evaluate(()=>choose([new File(['not image'],'notes.txt',{type:'text/plain'})]));
+     const chosen=await page.locator('#chosen').innerText();
+     if(!chosen.includes('画像が選択されていません')||!chosen.includes('除外 1枚'))throw new Error('Unsupported-only selection shows incorrect empty state: '+chosen);
+     if(await page.locator('#run').isEnabled())throw new Error('Conversion enabled without an image');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
