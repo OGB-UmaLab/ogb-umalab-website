@@ -1388,6 +1388,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!result.first||result.count!==1||!result.duplicate||result.afterDuplicate!==1)throw new Error('Clipboard image import or deduplication failed');
      if(result.formPaste||result.afterForm!==1||result.plain)throw new Error('Clipboard handler intercepted form paste or plain text');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(async()=>{
+       const c=document.createElement('canvas');c.width=3;c.height=3;
+       const blob=await new Promise(resolve=>c.toBlob(resolve,'image/png'));
+       const file=new File([blob],'clipboard-item.png',{type:'image/png'});
+       let prevented=false;
+       pasteImages({target:document.body,clipboardData:{files:[],items:[{kind:'file',type:'image/png',getAsFile:()=>file}]},preventDefault(){prevented=true}});
+       const count=selected.length;
+       let preventedText=false;
+       pasteImages({target:document.body,clipboardData:{files:[],items:[{kind:'string',type:'text/plain'}]},preventDefault(){preventedText=true}});
+       return {prevented,count,preventedText};
+     });
+     if(!result.prevented||result.count!==1||result.preventedText)throw new Error('Clipboard DataTransferItem fallback failed');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
