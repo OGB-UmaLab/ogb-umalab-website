@@ -1168,6 +1168,39 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      if(busyResult.count!==1||busyResult.afterClear!==1)throw new Error('ZIP export did not guard selection changes');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const report=await page.evaluate(async()=>{
+       const bytes=new Uint8Array([0,1,2,3,4,255,128,42]);
+       const items=[{name:'画像A.png',blob:new Blob([bytes])},{name:'second.webp',blob:new Blob([new Uint8Array([5,6,7])])}];
+       const zip=new Uint8Array(await (await zipStore(items)).arrayBuffer());
+       const dv=new DataView(zip.buffer);const u16=(p)=>dv.getUint16(p,true),u32=(p)=>dv.getUint32(p,true);
+       let p=0;const entries=[];
+       for(let i=0;i<items.length;i++){
+         if(u32(p)!==0x04034b50)throw Error('Missing local ZIP header');
+         const size=u32(p+18),length=u16(p+26),name=new TextDecoder().decode(zip.slice(p+30,p+30+length));
+         const data=zip.slice(p+30+length,p+30+length+size);
+         entries.push({name,size,crc:u32(p+14),actualCrc:crc32(data),data:[...data]});
+         p+=30+length+size;
+       }
+       if(u32(p)!==0x02014b50)throw Error('Missing ZIP central directory');
+       const end=zip.length-22;
+       return {entries,endSignature:u32(end),count:u16(end+10),centralOffset:u32(end+16),expectedOffset:p};
+     });
+     if(report.endSignature!==0x06054b50||report.count!==2||report.centralOffset!==report.expectedOffset)throw new Error('ZIP directory metadata invalid');
+     if(report.entries[0].name!=='画像A.png'||report.entries[1].name!=='second.webp')throw new Error('ZIP filename encoding incorrect');
+     if(report.entries.some(e=>e.crc!==e.actualCrc)||report.entries[0].data.join(',')!=='0,1,2,3,4,255,128,42')throw new Error('ZIP payload or checksum corrupted');
+   });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const image=await page.evaluate(async()=>{const c=document.createElement('canvas');c.width=8;c.height=8;return (await new Promise(r=>c.toBlob(r,'image/png'))).arrayBuffer().then(b=>[...new Uint8Array(b)])});
+     await page.evaluate(bytes=>choose([new File([new Uint8Array(bytes)],'lock.png',{type:'image/png'})]),image);
+     await page.locator('#run').click();await page.locator('#list article').first().waitFor();
+     await page.evaluate(()=>{zipStore=async()=>{await new Promise(r=>setTimeout(r,300));return new Blob(['ZIP'])}});
+     await page.locator('#zip').click();
+     await page.waitForFunction(()=>zipBusy===true);
+     for(const id of ['run','clear','zip','format','brightness','preview-remove'])if(await page.locator('#'+id).isEnabled())throw new Error('Control not locked during ZIP generation: '+id);
+     await page.waitForFunction(()=>zipBusy===false);
+     if(!(await page.locator('#format').isEnabled())||!(await page.locator('#run').isEnabled()))throw new Error('Controls not restored after ZIP generation');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
