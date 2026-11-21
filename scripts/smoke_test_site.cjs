@@ -1655,6 +1655,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        if(await page.locator('main button').count()===0)throw new Error('Tool missing action controls: '+slug);
      });
    }
+   // Batch regression: changed pricing inputs must invalidate both stale output
+   // and stale comparison; recalculation must restore a valid copyable result.
+   await test(local('tools/pricing-simulator/index.html'),async()=>{
+     await page.locator('#example-physical').click();
+     if(!(await page.locator('#comparison tr').count()))throw new Error('Pricing comparison missing after preset');
+     if(await page.locator('#copyResult').isDisabled())throw new Error('Pricing copy disabled after valid calculation');
+     await page.locator('#fee').fill('18');
+     if(await page.locator('#comparison tr').count())throw new Error('Stale comparison retained after fee edit');
+     if(!(await page.locator('#result').innerText()).includes('再計算'))throw new Error('Stale pricing result retained after fee edit');
+     if(!(await page.locator('#copyResult').isDisabled()))throw new Error('Stale pricing result remains copyable');
+     await page.locator('#calculate').click();
+     if(!(await page.locator('#comparison tr').count()))throw new Error('Comparison not restored after recalculation');
+     if(await page.locator('#copyResult').isDisabled())throw new Error('Copy not restored after recalculation');
+     await page.locator('#count').fill('0');
+     await page.locator('#calculate').click();
+     if(!(await page.locator('#copyResult').isDisabled()))throw new Error('Invalid sale count enabled copy');
+     if(await page.locator('#comparison tr').count())throw new Error('Invalid sale count retained comparison');
+   });
    // Reset must restore list-cleaner defaults, not only clear its text fields.
    await test(local('tools/list-cleaner/index.html'),async()=>{
      await page.locator('#frequency-example').click();
