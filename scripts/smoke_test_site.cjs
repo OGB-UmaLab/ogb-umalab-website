@@ -1657,7 +1657,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        {name:'bad.csv',mimeType:'text/csv',buffer:Buffer.from('ID,ID\nA,1','utf8')},files[1]
      ]);
      await page.locator('#merge').click();
-     if(!(await page.locator('#status').innerText()).includes('同じ列名'))throw new Error('Duplicate CSV headers not rejected');
+     await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('同じ列名'),{timeout:10000});
      if(!await page.locator('#output').isHidden())throw new Error('Invalid merge retained old downloadable output');
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
