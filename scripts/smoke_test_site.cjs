@@ -1639,6 +1639,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#run').click();
      if(!(await page.locator('#download').isEnabled()))throw new Error('List cleaner export did not re-enable');
    });
+   // AdSense readiness: batch-check all eight tools for accessible content,
+   // first-use guidance, privacy disclosure, support navigation and reset-safe outputs.
+   for(const slug of ['csv-merge','csv-analyzer','list-cleaner','pricing-simulator','order-line-aggregate','order-payment-reconcile','pdf-split-rename','image-batch']){
+     await test(local('tools/'+slug+'/index.html'),async()=>{
+       const title=(await page.title()).trim();
+       const heading=(await page.locator('main h1').first().innerText()).trim();
+       if(!title||!heading)throw new Error('Tool missing page title or primary heading: '+slug);
+       const mainText=await page.locator('main').innerText();
+       if(mainText.length<400)throw new Error('Tool has insufficient visible usage content: '+slug);
+       if(!/ブラウザ|端末|外部|送信|保存/.test(mainText))throw new Error('Tool missing data handling explanation: '+slug);
+       if(await page.locator('main a[href*="guides/"]').count()===0)throw new Error('Tool missing usage guide: '+slug);
+       if(await page.locator('a[href*="privacy/"]').count()===0)throw new Error('Tool missing privacy link: '+slug);
+       if(await page.locator('a[href*="data-lab/organization/"]').count()===0)throw new Error('Tool missing operator information link: '+slug);
+       if(await page.locator('main button').count()===0)throw new Error('Tool missing action controls: '+slug);
+     });
+   }
    // Reset must restore list-cleaner defaults, not only clear its text fields.
    await test(local('tools/list-cleaner/index.html'),async()=>{
      await page.locator('#frequency-example').click();
