@@ -1689,6 +1689,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        if(!sitemap.includes('<loc>'+canonical+'</loc>'))throw new Error('Sitemap missing canonical: '+route);
      });
    }
+   // Batch check the full guide catalogue: indexability, canonical URLs,
+   // descriptive metadata and sitemap discovery, not just the landing page.
+   for(const slug of ['troubleshooting','tool-selection','csv-merge-hands-on','csv-analysis-hands-on','csv-analysis-basics','order-reconciliation-hands-on','order-payment-reconciliation','pricing-simulator-hands-on','pricing-profit-basics','list-cleaner-hands-on','image-batch-hands-on']){
+     await test(local('guides/'+slug+'/index.html'),async()=>{
+       const canonical='https://ogb-umalab.com/guides/'+slug+'/';
+       if(await page.locator('link[rel="canonical"]').getAttribute('href')!==canonical)throw new Error('Guide canonical mismatch: '+slug);
+       if(!sitemap.includes('<loc>'+canonical+'</loc>'))throw new Error('Guide absent from sitemap: '+slug);
+       const description=await page.locator('meta[name="description"]').getAttribute('content');
+       if(!description||description.trim().length<35)throw new Error('Guide description missing: '+slug);
+       if(!(await page.locator('main h1').first().innerText()).trim())throw new Error('Guide heading missing: '+slug);
+       const robots=await page.locator('meta[name="robots"]').getAttribute('content').catch(()=>null);
+       if(robots&&/noindex/i.test(robots))throw new Error('Guide marked noindex: '+slug);
+     });
+   }
    // Reset must restore list-cleaner defaults, not only clear its text fields.
    await test(local('tools/list-cleaner/index.html'),async()=>{
      await page.locator('#frequency-example').click();
