@@ -1292,16 +1292,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    await test(local('tools/image-batch/index.html'),async()=>{
      const result=await page.evaluate(()=>{
        const original=outputs;
-       const mk=size=>({blob:{size}});
-       outputs=[mk(512*1024*1024)];const boundary=zipAllowed();
-       outputs=[mk(512*1024*1024+1)];const exceeded=zipAllowed();
-       outputs=[mk(300*1024*1024),mk(212*1024*1024+1)];const combined=zipAllowed();
+       const limit=512*1024*1024;
+       const mk=(size,name='a.png')=>({blob:{size},name});
+       const overhead=zipBytes([mk(0)]);
+       outputs=[mk(limit-overhead)];const boundary=zipAllowed();
+       outputs=[mk(limit-overhead+1)];const exceeded=zipAllowed();
+       outputs=[mk(300*1024*1024,'a.png'),mk(limit-300*1024*1024-zipBytes([mk(0,'a.png'),mk(0,'日本語.png')])+1,'日本語.png')];const combined=zipAllowed();
+       const utf8Overhead=zipBytes([mk(0,'日本語.png')])-zipBytes([mk(0,'a.png')]);
        outputs=original;
        const stamp=localDateStamp(new Date(2026,0,2,0,30));
-       return {boundary,exceeded,combined,stamp};
+       return {boundary,exceeded,combined,stamp,utf8Overhead};
      });
      if(!result.boundary||result.exceeded||result.combined)throw new Error('ZIP size preflight failed at 512MB boundary');
      if(result.stamp!=='2026-01-02')throw new Error('Archive date uses wrong local calendar day');
+     if(result.utf8Overhead<=0)throw new Error('UTF-8 ZIP filename bytes were not counted');
    });
    await test(local('tools/image-batch/index.html'),async()=>{
      const result=await page.evaluate(async()=>{
