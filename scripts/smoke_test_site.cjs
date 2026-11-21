@@ -1260,6 +1260,14 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#width').fill('400');await page.locator('#width').dispatchEvent('change');
      if(!(await page.locator('#failure-report').isHidden()))throw new Error('Stale failure report retained after settings change');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     await page.evaluate(()=>choose([new File(['broken image'],'only-broken.png',{type:'image/png'})]));
+     await page.locator('#run').click();await page.waitForFunction(()=>!busy);
+     if(await page.locator('#list article').count()!==0)throw new Error('Invalid image unexpectedly converted');
+     if(await page.locator('#failure-report').isHidden())throw new Error('All-failed report missing');
+     await page.locator('#width').fill('350');await page.locator('#width').dispatchEvent('change');
+     if(!(await page.locator('#failure-report').isHidden()))throw new Error('All-failed report was not invalidated');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
