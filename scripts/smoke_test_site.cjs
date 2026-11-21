@@ -218,6 +218,23 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   await test(local('tools/pricing-simulator/index.html'),async()=>{
+     await page.locator('#calculate').click();
+     if(await page.locator('#copyResult').isDisabled()) throw new Error('Valid pricing result not copyable');
+     if(!(await page.locator('#result').innerText()).includes('1,223円')) throw new Error('Pricing default calculation incorrect');
+     await page.locator('#fee').fill('100');
+     if(!await page.locator('#copyResult').isDisabled()) throw new Error('Stale pricing result copyable after input change');
+     await page.locator('#calculate').click();
+     if(!await page.locator('#copyResult').isDisabled()) throw new Error('Invalid pricing result copyable');
+     if(await page.locator('#comparison tr').count()) throw new Error('Stale pricing comparison after impossible fee');
+     await page.locator('#fee').fill('10');
+     await page.locator('#count').fill('0');
+     await page.locator('#calculate').click();
+     if(!await page.locator('#copyResult').isDisabled()) throw new Error('Invalid sales count copyable');
+     await page.locator('#count').fill('100');
+     await page.locator('#calculate').click();
+     if(await page.locator('#copyResult').isDisabled()) throw new Error('Pricing result did not recover');
+   });
    // Empty separator lines in exported CSVs are harmless; incomplete data rows are not.
    await test(local('tools/order-line-aggregate/index.html'),async()=>{
      await page.locator('#file').setInputFiles({name:'blank-lines.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,明細金額\n\nB001,100\n\nB001,200\n\n','utf8')});
