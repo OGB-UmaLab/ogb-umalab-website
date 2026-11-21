@@ -1679,6 +1679,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#demo').click();
      await page.locator('#run').click();
      if(await page.locator('#save').isDisabled())throw new Error('Order totals were not exportable');
+     await page.locator('#amtcol').selectOption('2');
      await page.locator('#amtcol').selectOption('0');
      if(await page.locator('#save').isEnabled()||await page.locator('#saveSearch').isEnabled())throw new Error('Order totals remained exportable after column change');
      await page.locator('#run').click();
