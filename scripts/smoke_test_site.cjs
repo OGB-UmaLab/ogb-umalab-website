@@ -1431,6 +1431,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      if(!result.blockedBusy||!result.blockedZip||!result.applied)throw new Error('Preset changed during active processing');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(()=>{
+       $('preset').value='ig-story';applyPreset('ig-story');
+       const guide=$('preset-guide').textContent;
+       const stage=$('preview-stage');
+       $('fit').value='cover';$('fit').dispatchEvent(new Event('change',{bubbles:true}));
+       const crop=$('preset-guide').textContent;
+       const custom=$('preset').value;
+       const hasFitControl=$('fit').options.length===3;
+       zipBusy=true;applyPreset('x-header');const blocked=$('width').value==='1080';zipBusy=false;
+       return {guide,crop,custom,hasFitControl,blocked};
+     });
+     if(!result.guide.includes('Instagram')||!result.guide.includes('余白')||!result.crop.includes('手動設定')||result.custom!=='custom'||!result.hasFitControl||!result.blocked)throw new Error('Preset guidance or locked settings failed');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
