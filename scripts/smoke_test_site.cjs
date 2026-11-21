@@ -1457,6 +1457,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      if(!result.contain.includes('1080×1920')||!result.contain.includes('余白')||!result.cover.includes('中央切り抜き')||result.objectFit!=='cover'||!result.resize.includes('縦横比'))throw new Error('Platform preview dimensions and crop guidance failed');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(async()=>{
+       const canvas=document.createElement('canvas');canvas.width=20;canvas.height=10;const ctx=canvas.getContext('2d');ctx.fillStyle='red';ctx.fillRect(0,0,20,10);
+       const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));const file=new File([blob],'pad-check.png',{type:'image/png'});
+       const sample=async(preset,fit,bg)=>{applyPreset(preset);$('fit').value=fit;$('bg').value=bg;const o=valid();o.fit=fit;o.bg=bg;o.format=$('format').value;o.square='off';o.quality=.85;o.target=0;o.adjustMode='batch';o.batchSettings={brightness:100,contrast:100};o.perImage=new Map();const out=await convert(file,o);const bitmap=await createImageBitmap(out.blob);const c=document.createElement('canvas');c.width=out.w;c.height=out.h;const g=c.getContext('2d');g.drawImage(bitmap,0,0);const top=[...g.getImageData(0,0,1,1).data],center=[...g.getImageData(out.w/2|0,out.h/2|0,1,1).data];bitmap.close();URL.revokeObjectURL(out.url);return {w:out.w,h:out.h,top,center}};
+       return {black:await sample('mercari','contain','black'),white:await sample('mercari','contain','white'),crop:await sample('mercari','cover','white'),portrait:await sample('ig-story','contain','white')};
+     });
+     for(const key of ['black','white','crop'])if(result[key].w!==1080||result[key].h!==1080)throw new Error('Marketplace exact output dimensions failed: '+key);
+     if(result.portrait.w!==1080||result.portrait.h!==1920)throw new Error('Instagram story exact output dimensions failed');
+     const black=result.black.top,white=result.white.top,crop=result.crop.top;
+     if(black[0]>30||black[1]>30||black[2]>30)throw new Error('Black padding pixels failed');
+     if(white[0]<220||white[1]<220||white[2]<220)throw new Error('White padding pixels failed');
+     if(crop[0]<180||crop[1]>80||crop[2]>80)throw new Error('Crop unexpectedly left padding');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
