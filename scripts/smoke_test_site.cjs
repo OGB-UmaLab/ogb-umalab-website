@@ -1576,6 +1576,36 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      if(result.name!=='invoices-split.zip'||JSON.stringify(result.names)!==JSON.stringify(['請求書_前半.pdf','請求書_後半.pdf'])||JSON.stringify(result.counts)!==JSON.stringify([2,1]))throw new Error('PDF ZIP split content mismatch: '+JSON.stringify(result));
    });
+   // PDF validation: invalid page ranges, duplicate filenames, stale previews and damaged files.
+   await test(local('tools/pdf-split-rename/index.html'),async()=>{
+     await page.waitForFunction(()=>Boolean(window.PDFLib&&window.JSZip),{timeout:20000});
+     const base64=await page.evaluate(async()=>{
+       const pdf=await PDFLib.PDFDocument.create();pdf.addPage([300,400]);pdf.addPage([300,400]);
+       const bytes=await pdf.save();let binary='';for(const b of bytes)binary+=String.fromCharCode(b);return btoa(binary);
+     });
+     await page.locator('#file').setInputFiles({name:'二枚.pdf',mimeType:'application/pdf',buffer:Buffer.from(base64,'base64')});
+     await page.waitForFunction(()=>document.querySelector('#fileInfo').textContent.includes('2ページ'));
+     await page.locator('#mode').selectOption('ranges');
+     await page.locator('#ranges').fill('3');
+     await page.locator('#preview').click();
+     if(!(await page.locator('#message').innerText()).includes('1〜2ページ'))throw new Error('Out-of-range PDF page was accepted');
+     if(await page.locator('#save').isEnabled())throw new Error('PDF save enabled after invalid range');
+     await page.locator('#ranges').fill('2-1');
+     await page.locator('#preview').click();
+     if(await page.locator('#save').isEnabled())throw new Error('Descending PDF range was accepted');
+     await page.locator('#ranges').fill('1\\n2');
+     await page.locator('#names').fill('請求書\\n請求書');
+     await page.locator('#preview').click();
+     if(!(await page.locator('#message').innerText()).includes('重複'))throw new Error('Duplicate PDF filenames were accepted');
+     await page.locator('#names').fill('請求書A\\n請求書B');
+     await page.locator('#preview').click();
+     if(await page.locator('#save').isDisabled())throw new Error('Valid PDF preview did not enable ZIP save');
+     await page.locator('#names').fill('変更後A\\n変更後B');
+     if(await page.locator('#save').isEnabled()||await page.locator('#rows tr').count())throw new Error('PDF preview remained valid after filename edit');
+     await page.locator('#file').setInputFiles({name:'damaged.pdf',mimeType:'application/pdf',buffer:Buffer.from('not a pdf','utf8')});
+     await page.waitForFunction(()=>document.querySelector('#fileInfo').textContent.includes('PDFを開けません'));
+     if(await page.locator('#save').isEnabled())throw new Error('Damaged PDF allowed ZIP export');
+   });
    // End-to-end list cleaner: deduplicate, compare two lists, count frequencies and reset.
    await test(local('tools/list-cleaner/index.html'),async()=>{
      await page.locator('#a').fill('apple\nbanana\napple\ncherry');
