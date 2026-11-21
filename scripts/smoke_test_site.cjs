@@ -1639,6 +1639,52 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#run').click();
      if(!(await page.locator('#download').isEnabled()))throw new Error('List cleaner export did not re-enable');
    });
+   // Cross-tool CSV checks: malformed columns, quoted Japanese IDs, and exported grouping data.
+   await test(local('tools/csv-merge/index.html'),async()=>{
+     const files=[
+       {name:'東京.csv',mimeType:'text/csv',buffer:Buffer.from('ID,金額\n"東京,001",120\n','utf8')},
+       {name:'大阪.csv',mimeType:'text/csv',buffer:Buffer.from('金額,ID\n80,"大阪,002"\n','utf8')}
+     ];
+     await page.locator('#files').setInputFiles(files);
+     await page.locator('#source').uncheck();
+     await page.locator('#merge').click();
+     await page.locator('#output').waitFor({state:'visible'});
+     const promise=page.waitForEvent('download');
+     await page.locator('#download').click();
+     const data=fs.readFileSync(await (await promise).path(),'utf8');
+     if(!data.startsWith('\ufeff')||!data.includes('"東京,001",120')||!data.includes('"大阪,002",80'))throw new Error('Merged CSV changed quoted IDs or reordered amounts: '+JSON.stringify(data));
+     await page.locator('#files').setInputFiles([
+       {name:'bad.csv',mimeType:'text/csv',buffer:Buffer.from('ID,ID\nA,1','utf8')},files[1]
+     ]);
+     await page.locator('#merge').click();
+     if(!(await page.locator('#status').innerText()).includes('同じ列名'))throw new Error('Duplicate CSV headers not rejected');
+     if(!await page.locator('#output').isHidden())throw new Error('Invalid merge retained old downloadable output');
+   });
+   await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.locator('#file').setInputFiles({name:'日本語.csv',mimeType:'text/csv',buffer:Buffer.from('分類,売上\n東京,100\n大阪,200\n東京,50','utf8')});
+     await page.waitForFunction(()=>document.querySelector('#results')?.hidden===false);
+     await page.locator('#xcol').selectOption('0');
+     await page.locator('#ycol').selectOption('1');
+     await page.locator('#chartType').selectOption('bar');
+     await page.locator('#agg').selectOption('sum');
+     const pending=page.waitForEvent('download');
+     await page.locator('#exportGroup').click();
+     const data=fs.readFileSync(await (await pending).path(),'utf8');
+     if(!data.startsWith('\ufeff')||!data.includes('東京,150')||!data.includes('大阪,200'))throw new Error('CSV analyzer grouped export incorrect: '+JSON.stringify(data));
+     await page.locator('#file').setInputFiles({name:'broken.csv',mimeType:'text/csv',buffer:Buffer.from('分類,売上\n東京,100,EXTRA','utf8')});
+     await page.waitForFunction(()=>document.querySelector('#status')?.textContent?.includes('列数が一致しません'));
+     if(!await page.locator('#results').isHidden())throw new Error('Invalid analyzer input retained previous export results');
+   });
+   await test(local('tools/order-line-aggregate/index.html'),async()=>{
+     await page.locator('#demo').click();
+     await page.locator('#run').click();
+     if(await page.locator('#save').isDisabled())throw new Error('Order totals were not exportable');
+     await page.locator('#amtcol').selectOption('0');
+     if(await page.locator('#save').isEnabled()||await page.locator('#saveSearch').isEnabled())throw new Error('Order totals remained exportable after column change');
+     await page.locator('#run').click();
+     if(!(await page.locator('#runStatus').innerText()).includes('別の列'))throw new Error('Same ID and amount column accepted');
+     if(await page.locator('#result tr').count())throw new Error('Invalid aggregation retained old results');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
