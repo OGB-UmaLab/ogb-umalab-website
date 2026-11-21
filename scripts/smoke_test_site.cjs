@@ -1673,6 +1673,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#copyResult').isDisabled()))throw new Error('Invalid sale count enabled copy');
      if(await page.locator('#comparison tr').count())throw new Error('Invalid sale count retained comparison');
    });
+   // AdSense technical readiness: check canonical/indexing metadata for the
+   // eight tools plus their directories and the published sitemap in one pass.
+   const indexable=['tools/','guides/','data-lab/','tools/csv-merge/','tools/csv-analyzer/','tools/list-cleaner/','tools/pricing-simulator/','tools/order-line-aggregate/','tools/order-payment-reconcile/','tools/pdf-split-rename/','tools/image-batch/'];
+   const sitemap=fs.readFileSync(path.resolve(__dirname,'../sitemap.xml'),'utf8');
+   for(const route of indexable){
+     await test(local(route+'index.html'),async()=>{
+       const canonical='https://ogb-umalab.com/'+route;
+       const actual=await page.locator('link[rel="canonical"]').getAttribute('href');
+       if(actual!==canonical)throw new Error('Canonical mismatch for '+route+': '+actual);
+       const description=await page.locator('meta[name="description"]').getAttribute('content');
+       if(!description||description.trim().length<35)throw new Error('Missing useful meta description: '+route);
+       const robots=await page.locator('meta[name="robots"]').getAttribute('content').catch(()=>null);
+       if(robots&&/noindex/i.test(robots))throw new Error('Unexpected noindex: '+route);
+       if(!sitemap.includes('<loc>'+canonical+'</loc>'))throw new Error('Sitemap missing canonical: '+route);
+     });
+   }
    // Reset must restore list-cleaner defaults, not only clear its text fields.
    await test(local('tools/list-cleaner/index.html'),async()=>{
      await page.locator('#frequency-example').click();
