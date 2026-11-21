@@ -1321,6 +1321,11 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(result.expected!==result.actual||result.actual!==result.storedCRC)throw new Error('Streaming ZIP CRC differs from original CRC32');
      if(result.storedSize!==262147||!result.matches)throw new Error('Streaming ZIP content was truncated or changed');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const names=await page.evaluate(()=>uniqueNames(['CON.png','aux.JPG','LPT1.gif','file .png','file.png','A?.jpg','a*.jpg','normal.webp'].map(name=>({source:{name},ext:'png'}))).map(x=>x.name));
+     const expected=['_CON.png','_aux.png','_LPT1.png','file.png','file_2.png','A_.png','a__2.png','normal.png'];
+     if(JSON.stringify(names)!==JSON.stringify(expected))throw new Error('Unsafe or colliding ZIP filenames: '+JSON.stringify(names));
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
