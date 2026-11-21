@@ -1402,6 +1402,29 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      if(!result.prevented||result.count!==1||result.preventedText)throw new Error('Clipboard DataTransferItem fallback failed');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(async()=>{
+       const canvas=document.createElement('canvas');canvas.width=8;canvas.height=4;
+       const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+       choose([new File([blob],'preset-test.png',{type:'image/png'})]);
+       const values={};
+       for(const preset of ['web','social','product','archive']){
+         $('preset').value=preset;applyPreset(preset);
+         values[preset]={format:$('format').value,width:$('width').value,height:$('height').value,square:$('square').value,quality:$('quality').value,target:$('target').value};
+       }
+       $('preset').value='product';applyPreset('product');
+       const settings=valid();settings.format=$('format').value;settings.square=$('square').value;settings.bg=$('bg').value;settings.quality=Number($('quality').value)/100;settings.target=0;settings.adjustMode='batch';settings.batchSettings={brightness:100,contrast:100};settings.perImage=new Map();
+       const converted=await convert(selected[0],settings);
+       const square=converted.w===converted.h&&converted.ext==='jpg';URL.revokeObjectURL(converted.url);
+       $('width').value='900';$('width').dispatchEvent(new Event('change',{bubbles:true}));
+       return {values,square,custom:$('preset').value};
+     });
+     if(result.values.web.format!=='image/webp'||result.values.web.width!=='1600'||result.values.web.square!=='off')throw new Error('Web preset failed');
+     if(result.values.social.width!=='1200'||result.values.social.height!=='630')throw new Error('Social preset failed');
+     if(result.values.product.format!=='image/jpeg'||result.values.product.square!=='white'||result.values.product.quality!=='90'||!result.square)throw new Error('Product preset failed');
+     if(result.values.archive.format!=='image/png'||result.values.archive.width!=='16000')throw new Error('Archive preset failed');
+     if(result.custom!=='custom')throw new Error('Manual edit did not switch preset to custom');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
