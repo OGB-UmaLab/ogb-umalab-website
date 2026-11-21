@@ -1703,6 +1703,19 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        if(robots&&/noindex/i.test(robots))throw new Error('Guide marked noindex: '+slug);
      });
    }
+   // Editorial accuracy: guide claims must match the implemented image presets.
+   await test(local('tools/image-batch/index.html'),async()=>{
+     for(const preset of ['mercari','yahoo','x-post','ig-square']){
+       if(await page.locator('#preset option[value="'+preset+'"]').count()!==1)throw new Error('Missing advertised image preset: '+preset);
+     }
+   });
+   for(const guide of ['guides/index.html','guides/image-batch-hands-on/index.html']){
+     await test(local(guide),async()=>{
+       const content=await page.locator('main').innerText();
+       if(!content.includes('メルカリ')||!content.includes('Yahoo!オークション'))throw new Error('Image preset guidance missing: '+guide);
+       if(/メルカリ・ヤフオク[^。]*プリセット[^。]*対応していません/.test(content))throw new Error('Outdated preset disclaimer: '+guide);
+     });
+   }
    // Reset must restore list-cleaner defaults, not only clear its text fields.
    await test(local('tools/list-cleaner/index.html'),async()=>{
      await page.locator('#frequency-example').click();
