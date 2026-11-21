@@ -1421,6 +1421,16 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(result.cover.corner[0]>200&&result.cover.corner[1]>200&&result.cover.corner[2]>200)throw new Error('Crop mode unexpectedly padded image');
      if(result.custom!=='custom')throw new Error('Manual override did not switch to custom');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(()=>{
+       const initial=$('width').value;const originalPreset=$('preset').value;
+       busy=true;applyPreset('x-header');const blockedBusy=$('width').value===initial;
+       busy=false;zipBusy=true;applyPreset('ig-story');const blockedZip=$('width').value===initial;
+       zipBusy=false;applyPreset('x-header');const applied=$('width').value==='1500'&&$('height').value==='500';
+       $('preset').value=originalPreset;return {blockedBusy,blockedZip,applied};
+     });
+     if(!result.blockedBusy||!result.blockedZip||!result.applied)throw new Error('Preset changed during active processing');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
