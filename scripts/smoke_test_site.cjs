@@ -1575,6 +1575,23 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#reset').click();
      if(await page.locator('#a').inputValue()||await page.locator('#b').inputValue()||await page.locator('#out').inputValue())throw new Error('List cleaner reset did not clear data');
    });
+   // List cleaner export: output changes invalidate old downloads and TSV keeps a UTF-8 BOM.
+   await test(local('tools/list-cleaner/index.html'),async()=>{
+     await page.locator('#a').fill('SKU-02\nSKU-01\nSKU-02');
+     await page.locator('#mode').selectOption('frequency');
+     await page.locator('#run').click();
+     const pending=page.waitForEvent('download');
+     await page.locator('#download').click();
+     const file=await pending;
+     if(file.suggestedFilename()!=='list-frequency.tsv')throw new Error('List cleaner export filename mismatch');
+     const bytes=fs.readFileSync(await file.path());
+     const data=bytes.toString('utf8');
+     if(!data.startsWith('\ufeff')||!data.includes('SKU-02\t2')||!data.includes('SKU-01\t1'))throw new Error('List cleaner TSV content or BOM mismatch: '+JSON.stringify(data));
+     await page.locator('#a').fill('changed');
+     if(await page.locator('#download').isEnabled())throw new Error('List cleaner allows stale export after input edit');
+     await page.locator('#run').click();
+     if(!(await page.locator('#download').isEnabled()))throw new Error('List cleaner export did not re-enable');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
