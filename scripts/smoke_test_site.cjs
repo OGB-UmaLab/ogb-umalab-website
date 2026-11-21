@@ -1366,11 +1366,11 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        const names=['image.JPG','image.jpeg','image.PNG','image.webp','image.BMP','image.gif','image.svg','image.txt'];
        const supported=names.map(name=>supportedImage({name,type:''}));
        const mismatched=supportedImage({name:'image.png',type:'text/plain'});
-       const declared=supportedImage({name:'unknown',type:'image/jpeg'});
-       return {supported,mismatched,declared};
+       const declared=supportedImage({name:'unknown',type:'image/jpeg'});const binary=supportedImage({name:'photo.JPG',type:'application/octet-stream'});const invalidBinary=supportedImage({name:'payload.exe',type:'application/octet-stream'});
+       return {supported,mismatched,declared,binary,invalidBinary};
      });
      if(JSON.stringify(result.supported)!==JSON.stringify([true,true,true,true,true,true,false,false]))throw new Error('MIME-less image extension filtering failed');
-     if(result.mismatched||!result.declared)throw new Error('Explicit MIME types were ignored');
+     if(result.mismatched||!result.declared||!result.binary||result.invalidBinary)throw new Error('Explicit and generic MIME type handling failed');
    });
    await test(local('tools/image-batch/index.html'),async()=>{
      const result=await page.evaluate(async()=>{
