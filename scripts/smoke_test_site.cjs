@@ -1121,6 +1121,29 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#list article').nth(1).waitFor();
      if(await page.locator('#list article').count()!==2)throw new Error('Reconversion did not include both images');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const outcome=await page.evaluate(async()=>{
+       const c=document.createElement('canvas');c.width=8000;c.height=1;
+       const blob=await new Promise(resolve=>c.toBlob(resolve,'image/png'));
+       const file=new File([blob],'wide.png',{type:'image/png'});
+       $('width').value='8000';$('height').value='8000';$('square').value='white';
+       try{const out=await convert(file,{w:8000,h:8000,adjustMode:'batch',batchSettings:{brightness:100,contrast:100},perImage:new Map()});URL.revokeObjectURL(out.url);return 'unexpected success'}catch(e){return e.message}
+     });
+     if(!outcome.includes('ピクセル数'))throw new Error('Oversized square canvas was not rejected: '+outcome);
+   });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(async()=>{
+       const c=document.createElement('canvas');c.width=6;c.height=4;
+       const source=await new Promise(resolve=>c.toBlob(resolve,'image/png'));
+       const file=new File([source],'alpha.png',{type:'image/png'});
+       const options={w:6,h:4,adjustMode:'batch',batchSettings:{brightness:100,contrast:100},perImage:new Map()};
+       async function pixel(format,bg){$('format').value=format;$('bg').value=bg;$('square').value='off';const out=await convert(file,options);const bitmap=await createImageBitmap(out.blob);const target=document.createElement('canvas');target.width=6;target.height=4;const ctx=target.getContext('2d');ctx.drawImage(bitmap,0,0);const data=ctx.getImageData(0,0,1,1).data;bitmap.close();URL.revokeObjectURL(out.url);return [...data]}
+       return {white:await pixel('image/jpeg','white'),black:await pixel('image/jpeg','black'),png:await pixel('image/png','white')};
+     });
+     if(result.white[0]<245||result.white[1]<245||result.white[2]<245)throw new Error('JPEG white background not rendered');
+     if(result.black[0]>10||result.black[1]>10||result.black[2]>10)throw new Error('JPEG black background not rendered');
+     if(result.png[3]!==0)throw new Error('PNG transparency was lost');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
