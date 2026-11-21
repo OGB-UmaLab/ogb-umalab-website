@@ -1559,6 +1559,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      if(result.name!=='invoices-split.zip'||JSON.stringify(result.names)!==JSON.stringify(['請求書_前半.pdf','請求書_後半.pdf'])||JSON.stringify(result.counts)!==JSON.stringify([2,1]))throw new Error('PDF ZIP split content mismatch: '+JSON.stringify(result));
    });
+   // End-to-end list cleaner: deduplicate, compare two lists, count frequencies and reset.
+   await test(local('tools/list-cleaner/index.html'),async()=>{
+     await page.locator('#a').fill('apple\\nbanana\\napple\\ncherry');
+     await page.locator('#b').fill('banana\\ndate');
+     const cases=[['unique','apple\\nbanana\\ncherry'],['common','banana'],['onlyA','apple\\ncherry'],['onlyB','date'],['union','apple\\nbanana\\ncherry\\ndate']];
+     for(const [mode,expected] of cases){
+       await page.locator('#mode').selectOption(mode);await page.locator('#run').click();
+       const actual=await page.locator('#out').inputValue();
+       if(actual!==expected)throw new Error('List cleaner '+mode+' mismatch: '+JSON.stringify(actual));
+     }
+     await page.locator('#mode').selectOption('frequency');await page.locator('#run').click();
+     const frequency=await page.locator('#out').inputValue();
+     if(!frequency.includes('apple\\t2')||!frequency.includes('banana\\t1'))throw new Error('List cleaner frequency mismatch: '+JSON.stringify(frequency));
+     await page.locator('#reset').click();
+     if(await page.locator('#a').inputValue()||await page.locator('#b').inputValue()||await page.locator('#out').inputValue())throw new Error('List cleaner reset did not clear data');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
