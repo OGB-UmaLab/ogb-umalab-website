@@ -1243,6 +1243,23 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#clear').click();
      if(await page.locator('#zip').isEnabled()||await page.locator('#each').isEnabled())throw new Error('Exports remain enabled after clearing images');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(async()=>{const c=document.createElement('canvas');c.width=5;c.height=5;return [...new Uint8Array(await (await new Promise(r=>c.toBlob(r,'image/png'))).arrayBuffer())]});
+     await page.evaluate(bytes=>{
+       const good=new File([new Uint8Array(bytes)],'good.png',{type:'image/png'});
+       const bad=Array.from({length:5},(_,i)=>new File(['bad '+i],'bad-'+i+'.png',{type:'image/png',lastModified:i+1}));
+       choose([good,...bad]);
+     },png);
+     await page.locator('#format').selectOption('image/png');await page.locator('#run').click();
+     await page.waitForFunction(()=>!busy);
+     if(await page.locator('#list article').count()!==1)throw new Error('Valid image missing after partial failure');
+     if(await page.locator('#failure-report').isHidden())throw new Error('Failure details are not available');
+     if(await page.locator('#failure-list li').count()!==5)throw new Error('Failure report truncated');
+     const failures=await page.locator('#failure-list').innerText();
+     for(let i=0;i<5;i++)if(!failures.includes('bad-'+i+'.png'))throw new Error('Missing failed filename '+i);
+     await page.locator('#width').fill('400');await page.locator('#width').dispatchEvent('change');
+     if(!(await page.locator('#failure-report').isHidden()))throw new Error('Stale failure report retained after settings change');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
