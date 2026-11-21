@@ -1549,7 +1549,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        const original=HTMLAnchorElement.prototype.click;let captured=null;
        HTMLAnchorElement.prototype.click=function(){if(this.download.endsWith('.zip'))captured={url:this.href,name:this.download};else original.call(this)};
        try{
-         $('save').click();for(let i=0;i<200&&!captured;i++)await new Promise(resolve=>setTimeout(resolve,50));
+         document.getElementById('save').click();for(let i=0;i<200&&!captured;i++)await new Promise(resolve=>setTimeout(resolve,50));
          if(!captured)throw Error('ZIP download was not initiated: '+$('progress').textContent);
          const zip=await JSZip.loadAsync(await (await fetch(captured.url)).arrayBuffer());
          const names=Object.keys(zip.files).sort();const counts=[];
