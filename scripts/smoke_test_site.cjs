@@ -1471,6 +1471,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(white[0]<220||white[1]<220||white[2]<220)throw new Error('White padding pixels failed');
      if(crop[0]<180||crop[1]>80||crop[2]>80)throw new Error('Crop unexpectedly left padding');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(async()=>{
+       const canvas=document.createElement('canvas');canvas.width=80;canvas.height=40;const ctx=canvas.getContext('2d');ctx.fillStyle='#f33';ctx.fillRect(0,0,80,40);
+       const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));const file=new File([blob],'small-source.png',{type:'image/png'});
+       const check=async(preset,fit)=>{applyPreset(preset);const o=valid();o.fit=fit;o.bg='white';o.format='image/jpeg';o.square='off';o.quality=.85;o.target=0;o.adjustMode='batch';o.batchSettings={brightness:100,contrast:100};o.perImage=new Map();const out=await convert(file,o);const result={w:out.w,h:out.h,sourceWidth:out.sourceWidth,sourceHeight:out.sourceHeight,upscaled:out.upscaled,fit:out.fit};URL.revokeObjectURL(out.url);return result};
+       const contain=await check('mercari','contain'),crop=await check('x-header','cover'),resize=await check('web','resize');
+       return {contain,crop,resize};
+     });
+     if(result.contain.sourceWidth!==80||result.contain.sourceHeight!==40||!result.contain.upscaled||result.contain.w!==1080||result.contain.h!==1080)throw new Error('Contain enlargement metadata failed');
+     if(!result.crop.upscaled||result.crop.fit!=='cover'||result.crop.w!==1500||result.crop.h!==500)throw new Error('Crop enlargement metadata failed');
+     if(result.resize.upscaled||result.resize.w!==80||result.resize.h!==40)throw new Error('Resize should not enlarge source');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
