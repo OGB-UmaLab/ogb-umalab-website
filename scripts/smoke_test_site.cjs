@@ -1067,6 +1067,16 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#preview-original').getAttribute('src')))throw new Error('Preview missing after remove and re-add');
      if(await page.locator('#preview-original').evaluate(img=>img.decode().then(()=>img.naturalWidth).catch(()=>0))!==10)throw new Error('Preview image failed to load after re-add');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=120;c.height=60;return c.toDataURL('image/png').split(',')[1]});
+     await page.locator('#files').setInputFiles({name:'rectangle.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
+     await page.locator('#square').selectOption('white');
+     const ratio=await page.locator('#preview-stage').evaluate(e=>{const r=e.getBoundingClientRect();return r.width/r.height});
+     if(Math.abs(ratio-1)>0.02)throw new Error('Square padding preview is not square');
+     await page.locator('#square').selectOption('black');
+     const blackRatio=await page.locator('#preview-stage').evaluate(e=>{const r=e.getBoundingClientRect();return r.width/r.height});
+     if(Math.abs(blackRatio-1)>0.02)throw new Error('Black square padding preview is not square');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
