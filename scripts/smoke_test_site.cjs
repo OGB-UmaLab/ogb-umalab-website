@@ -1777,6 +1777,23 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#runStatus').innerText()).includes('別の列'))throw new Error('Same ID and amount column accepted');
      if(await page.locator('#result tr').count())throw new Error('Invalid aggregation retained old results');
    });
+   await test(local('tools/list-cleaner/index.html'),async()=>{
+     await page.locator('#frequency-example').click();
+     if(await page.locator('#download').innerText()!=='TSVで保存') throw new Error('Frequency export label is incorrect');
+     await page.locator('#a').fill('=SUM(1,1)\n=SUM(1,1)\n+IMPORTXML(A1,B1)\n-abc\n-12.5\n@cmd');
+     await page.locator('#run').click();
+     const pending=page.waitForEvent('download');
+     await page.locator('#download').click();
+     const file=await pending;
+     const exported=fs.readFileSync(await file.path(),'utf8').replace(/^\uFEFF/,'');
+     for(const value of ["'=SUM(1,1)\t2","'+IMPORTXML(A1,B1)\t1","'-abc\t1","'@cmd\t1","-12.5\t1"]){
+       if(!exported.split('\n').includes(value))throw new Error('Spreadsheet-safe TSV missing: '+value);
+     }
+     if((await page.locator('#out').inputValue()).includes("'=SUM")) throw new Error('Export escaping changed on-screen data');
+     await page.locator('#mode').selectOption('unique');
+     if(await page.locator('#download').innerText()!=='TXTで保存')throw new Error('TXT export label not restored');
+     if(!await page.locator('#download').isDisabled())throw new Error('Old result remained downloadable after mode switch');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
