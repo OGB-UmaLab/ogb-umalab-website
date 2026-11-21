@@ -1504,6 +1504,17 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      if(Object.values(result).some(v=>!v))throw new Error('Square-mode conflict or 50MP prevalidation regression: '+JSON.stringify(result));
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(()=>{
+       const expected={threads:[1080,1350],linkedin:[1200,627],pinterest:[1000,1500]};const checks=[];
+       for(const [preset,dimensions] of Object.entries(expected)){
+         $('preset').value=preset;applyPreset(preset);
+         checks.push({preset,exists:$('preset').selectedOptions[0]?.textContent.includes('設定例'),width:Number($('width').value),height:Number($('height').value),fit:$('fit').value,format:$('format').value,squareDisabled:$('square').disabled,guide:$('preset-guide').textContent});
+       }
+       return {expected,checks};
+     });
+     for(const x of result.checks){const [w,h]=result.expected[x.preset];if(!x.exists||x.width!==w||x.height!==h||x.fit!=='contain'||x.format!=='image/jpeg'||!x.squareDisabled||!x.guide.includes('余白'))throw new Error('New social platform preset failed: '+JSON.stringify(x));}
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
