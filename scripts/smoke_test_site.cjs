@@ -1303,6 +1303,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!result.boundary||result.exceeded||result.combined)throw new Error('ZIP size preflight failed at 512MB boundary');
      if(result.stamp!=='2026-01-02')throw new Error('Archive date uses wrong local calendar day');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(async()=>{
+       const data=new Uint8Array(262147);
+       for(let i=0;i<data.length;i++)data[i]=i%251;
+       const blob=new Blob([data.subarray(0,65535),data.subarray(65535,131071),data.subarray(131071)]);
+       const expected=crc32(data),actual=await crc32Blob(blob);
+       const archive=await zipStore([{name:'chunk-test.bin',blob}]);
+       const bytes=new Uint8Array(await archive.arrayBuffer());
+       const view=new DataView(bytes.buffer);
+       const storedCRC=view.getUint32(14,true),storedSize=view.getUint32(18,true),nameLength=view.getUint16(26,true);
+       const content=bytes.subarray(30+nameLength,30+nameLength+storedSize);
+       let matches=content.length===data.length;
+       for(let i=0;matches&&i<data.length;i++)if(content[i]!==data[i])matches=false;
+       return {expected,actual,storedCRC,storedSize,matches};
+     });
+     if(result.expected!==result.actual||result.actual!==result.storedCRC)throw new Error('Streaming ZIP CRC differs from original CRC32');
+     if(result.storedSize!==262147||!result.matches)throw new Error('Streaming ZIP content was truncated or changed');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
