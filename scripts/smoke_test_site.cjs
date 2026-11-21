@@ -1561,9 +1561,9 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    });
    // End-to-end list cleaner: deduplicate, compare two lists, count frequencies and reset.
    await test(local('tools/list-cleaner/index.html'),async()=>{
-     await page.locator('#a').fill('apple\\nbanana\\napple\\ncherry');
-     await page.locator('#b').fill('banana\\ndate');
-     const cases=[['unique','apple\\nbanana\\ncherry'],['common','banana'],['onlyA','apple\\ncherry'],['onlyB','date'],['union','apple\\nbanana\\ncherry\\ndate']];
+     await page.locator('#a').fill('apple\nbanana\napple\ncherry');
+     await page.locator('#b').fill('banana\ndate');
+     const cases=[['unique','apple\nbanana\ncherry'],['common','banana'],['onlyA','apple\ncherry'],['onlyB','date'],['union','apple\nbanana\ncherry\ndate']];
      for(const [mode,expected] of cases){
        await page.locator('#mode').selectOption(mode);await page.locator('#run').click();
        const actual=await page.locator('#out').inputValue();
@@ -1571,7 +1571,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      }
      await page.locator('#mode').selectOption('frequency');await page.locator('#run').click();
      const frequency=await page.locator('#out').inputValue();
-     if(!frequency.includes('apple\\t2')||!frequency.includes('banana\\t1'))throw new Error('List cleaner frequency mismatch: '+JSON.stringify(frequency));
+     if(!frequency.includes('apple\t2')||!frequency.includes('banana\t1'))throw new Error('List cleaner frequency mismatch: '+JSON.stringify(frequency));
      await page.locator('#reset').click();
      if(await page.locator('#a').inputValue()||await page.locator('#b').inputValue()||await page.locator('#out').inputValue())throw new Error('List cleaner reset did not clear data');
    });
