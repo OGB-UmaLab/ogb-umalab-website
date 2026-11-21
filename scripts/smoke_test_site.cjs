@@ -1268,6 +1268,27 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#width').fill('350');await page.locator('#width').dispatchEvent('change');
      if(!(await page.locator('#failure-report').isHidden()))throw new Error('All-failed report was not invalidated');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(async()=>{
+       const input=new TextEncoder().encode('123456789');
+       const checksum=crc32(input);
+       const reports=[];
+       const files=[{name:'one.txt',blob:new Blob(['first'])},{name:'two.txt',blob:new Blob(['second'])},{name:'三.txt',blob:new Blob(['third'])}];
+       const zip=await zipStore(files,(done,total)=>reports.push([done,total]));
+       const bytes=new Uint8Array(await zip.arrayBuffer());
+       const view=new DataView(bytes.buffer);
+       let pos=0;const names=[];
+       while(pos+30<=bytes.length&&view.getUint32(pos,true)===0x04034b50){
+         const size=view.getUint32(pos+18,true),length=view.getUint16(pos+26,true),extra=view.getUint16(pos+28,true);
+         names.push(new TextDecoder().decode(bytes.subarray(pos+30,pos+30+length)));
+         pos+=30+length+extra+size;
+       }
+       return {checksum,reports,names,zipSize:zip.size};
+     });
+     if(result.checksum!==0xcbf43926)throw new Error('CRC32 standard test vector failed');
+     if(JSON.stringify(result.reports)!==JSON.stringify([[1,3],[2,3],[3,3]]))throw new Error('ZIP progress callback was inaccurate');
+     if(result.names.join('|')!=='one.txt|two.txt|三.txt'||result.zipSize<100)throw new Error('ZIP structure changed during CRC optimization');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
