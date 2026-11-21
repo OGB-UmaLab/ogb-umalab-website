@@ -1491,6 +1491,19 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      if(!result.text.includes('80 × 40 px → 1080 × 1080 px')||!result.text.includes('元画像を拡大')||!result.text.includes('中央切り抜き')||!result.hidden)throw new Error('Result quality warnings or cleanup failed');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(()=>{
+       applyPreset('mercari');const presetSquareDisabled=$('square').disabled;
+       $('fit').value='resize';$('fit').dispatchEvent(new Event('change',{bubbles:true}));
+       const resizeSquareEnabled=!$('square').disabled;
+       $('square').value='black';$('fit').value='cover';$('fit').dispatchEvent(new Event('change',{bubbles:true}));
+       const coverSquareDisabled=$('square').disabled&&$('square').value==='off';
+       $('width').value='10000';$('height').value='10000';let rejected=false;try{valid()}catch(e){rejected=e.message.includes('5000万画素')}
+       $('width').value='1080';$('height').value='1080';const accepted=valid().w===1080;
+       return {presetSquareDisabled,resizeSquareEnabled,coverSquareDisabled,rejected,accepted};
+     });
+     if(Object.values(result).some(v=>!v))throw new Error('Square-mode conflict or 50MP prevalidation regression: '+JSON.stringify(result));
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
