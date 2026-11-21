@@ -1445,6 +1445,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      if(!result.guide.includes('Instagram')||!result.guide.includes('余白')||!result.crop.includes('手動設定')||result.custom!=='custom'||!result.hasFitControl||!result.blocked)throw new Error('Preset guidance or locked settings failed');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(async()=>{
+       const canvas=document.createElement('canvas');canvas.width=8;canvas.height=4;const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+       choose([new File([blob],'preview-size.png',{type:'image/png'})]);
+       applyPreset('ig-story');const contain=$('preview-dimensions').textContent;
+       $('fit').value='cover';$('fit').dispatchEvent(new Event('change',{bubbles:true}));
+       const cover=$('preview-dimensions').textContent;const objectFit=$('preview-adjusted').style.objectFit;
+       applyPreset('web');const resize=$('preview-dimensions').textContent;
+       return {contain,cover,objectFit,resize};
+     });
+     if(!result.contain.includes('1080×1920')||!result.contain.includes('余白')||!result.cover.includes('中央切り抜き')||result.objectFit!=='cover'||!result.resize.includes('縦横比'))throw new Error('Platform preview dimensions and crop guidance failed');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
