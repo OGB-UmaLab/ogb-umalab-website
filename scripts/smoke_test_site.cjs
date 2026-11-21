@@ -1144,6 +1144,12 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(result.black[0]>10||result.black[1]>10||result.black[2]>10)throw new Error('JPEG black background not rendered');
      if(result.png[3]!==0)throw new Error('PNG transparency was lost');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(async()=>{
+       try{await zipStore([{blob:{size:513*1024*1024}}]);return 'unexpected success'}catch(e){return e.message}
+     });
+     if(!result.includes('512MB'))throw new Error('Oversized ZIP was not blocked before allocation: '+result);
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
