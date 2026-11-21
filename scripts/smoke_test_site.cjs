@@ -1330,6 +1330,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const expected=['_CON.png','_aux.png','_LPT1.png','file.png','file_2.png','A_.png','a__2.png','normal.png'];
      if(JSON.stringify(names)!==JSON.stringify(expected))throw new Error('Unsafe or colliding ZIP filenames: '+JSON.stringify(names));
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(async()=>{
+       const c=document.createElement('canvas');c.width=12;c.height=8;c.getContext('2d').fillRect(0,0,12,8);
+       const file=new File([await new Promise(resolve=>c.toBlob(resolve,'image/png'))],'snapshot.png',{type:'image/png'});
+       const options={w:12,h:8,format:'image/png',square:'white',bg:'#ffffff',quality:0.8,target:0,adjustMode:'batch',batchSettings:{brightness:100,contrast:100},perImage:new Map()};
+       const oldFormat=$('format').value,oldSquare=$('square').value,oldBg=$('bg').value;
+       $('format').value='image/jpeg';$('square').value='off';$('bg').value='#000000';
+       try{const converted=await convert(file,options);URL.revokeObjectURL(converted.url);return {ext:converted.ext,type:converted.blob.type,w:converted.w,h:converted.h}}
+       finally{$('format').value=oldFormat;$('square').value=oldSquare;$('bg').value=oldBg}
+     });
+     if(result.ext!=='png'||result.type!=='image/png'||result.w!==12||result.h!==12)throw new Error('Conversion ignored snapshotted settings');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
