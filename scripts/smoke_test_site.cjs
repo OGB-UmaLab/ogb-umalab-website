@@ -1351,6 +1351,16 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      if(result.actual!==result.expected||!result.released||result.readCount!==2)throw new Error('ZIP CRC requires async iterator or leaks stream reader');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(()=>{
+       const long='日本語'.repeat(90);
+       const names=uniqueNames([long+'.png',long+'.jpg','🎠'.repeat(80)+'.png','CON.png'].map(name=>({source:{name},ext:'png'}))).map(x=>x.name);
+       return {names,lengths:names.map(n=>new TextEncoder().encode(n).length)};
+     });
+     if(result.lengths.some(n=>n>200))throw new Error('UTF-8 filename exceeds 200-byte export cap');
+     if(result.names[0]===result.names[1]||!result.names[1].endsWith('_2.png'))throw new Error('Long Unicode filename collision not resolved');
+     if(!result.names[2].endsWith('.png')||result.names[3]!=='_CON.png')throw new Error('Unicode truncation or reserved name failed');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
