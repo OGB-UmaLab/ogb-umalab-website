@@ -1639,6 +1639,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#run').click();
      if(!(await page.locator('#download').isEnabled()))throw new Error('List cleaner export did not re-enable');
    });
+   // Reset must restore list-cleaner defaults, not only clear its text fields.
+   await test(local('tools/list-cleaner/index.html'),async()=>{
+     await page.locator('#frequency-example').click();
+     if(await page.locator('#mode').inputValue()!=='frequency'||await page.locator('#download').isDisabled())throw new Error('Frequency sample failed');
+     await page.locator('#trim').uncheck();
+     await page.locator('#empty').uncheck();
+     await page.locator('#case').check();
+     await page.locator('#reset').click();
+     if(await page.locator('#a').inputValue()||await page.locator('#b').inputValue()||await page.locator('#out').inputValue())throw new Error('List cleaner reset retained text');
+     if(await page.locator('#mode').inputValue()!=='unique'||!await page.locator('#trim').isChecked()||!await page.locator('#empty').isChecked()||await page.locator('#case').isChecked())throw new Error('List cleaner reset did not restore defaults');
+     if(await page.locator('#download').isEnabled()||await page.locator('#copy').isEnabled())throw new Error('List cleaner reset retained stale export');
+   });
    // Cross-tool CSV checks: malformed columns, quoted Japanese IDs, and exported grouping data.
    await test(local('tools/csv-merge/index.html'),async()=>{
      const files=[
