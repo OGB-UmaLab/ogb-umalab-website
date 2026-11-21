@@ -1230,6 +1230,19 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const snapshot=await page.evaluate(()=>outputs[0].targetBytes);
      if(snapshot!==10240)throw new Error('Conversion target snapshot was not preserved');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(async()=>{const c=document.createElement('canvas');c.width=8;c.height=8;return [...new Uint8Array(await (await new Promise(r=>c.toBlob(r,'image/png'))).arrayBuffer())]});
+     if(await page.locator('#zip').isEnabled()||await page.locator('#each').isEnabled())throw new Error('Export enabled without results');
+     await page.evaluate(bytes=>choose([new File([new Uint8Array(bytes)],'ready.png',{type:'image/png'})]),png);
+     await page.locator('#format').selectOption('image/png');await page.locator('#run').click();
+     await page.locator('#list article').first().waitFor();await page.waitForFunction(()=>!busy);
+     if(!(await page.locator('#zip').isEnabled())||!(await page.locator('#each').isEnabled()))throw new Error('Export not enabled after successful conversion');
+     await page.locator('#width').fill('900');await page.locator('#width').dispatchEvent('change');
+     if(await page.locator('#zip').isEnabled()||await page.locator('#each').isEnabled())throw new Error('Stale exports remain enabled after settings change');
+     await page.locator('#run').click();await page.locator('#list article').first().waitFor();await page.waitForFunction(()=>!busy);
+     await page.locator('#clear').click();
+     if(await page.locator('#zip').isEnabled()||await page.locator('#each').isEnabled())throw new Error('Exports remain enabled after clearing images');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
