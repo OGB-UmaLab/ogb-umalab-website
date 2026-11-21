@@ -1342,6 +1342,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      if(result.ext!=='png'||result.type!=='image/png'||result.w!==12||result.h!==12)throw new Error('Conversion ignored snapshotted settings');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(async()=>{
+       const data=new TextEncoder().encode('stream-reader-only');
+       let released=false,readCount=0;
+       const fake={stream:()=>({getReader:()=>({read:async()=>{readCount++;return readCount===1?{done:false,value:data}:{done:true}},releaseLock:()=>{released=true}})})};
+       return {expected:crc32(data),actual:await crc32Blob(fake),released,readCount};
+     });
+     if(result.actual!==result.expected||!result.released||result.readCount!==2)throw new Error('ZIP CRC requires async iterator or leaks stream reader');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
