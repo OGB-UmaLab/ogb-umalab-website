@@ -1081,13 +1081,12 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=12;c.height=12;return c.toDataURL('image/png').split(',')[1]});
      await page.locator('#files').setInputFiles({name:'transparent.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
      await page.locator('#format').selectOption('image/jpeg');
-     await page.locator('#bg').fill('#ff0000');
-     await page.locator('#bg').dispatchEvent('change');
-     const red=await page.locator('#preview-stage').evaluate(e=>getComputedStyle(e).backgroundColor);
-     if(red!=='rgb(255, 0, 0)')throw new Error('JPEG background color not shown in preview: '+red);
+     await page.locator('#bg').selectOption('black');
+     const black=await page.locator('#preview-stage').evaluate(e=>getComputedStyle(e).backgroundColor);
+     if(black!=='rgb(0, 0, 0)')throw new Error('JPEG background color not shown in preview: '+black);
      await page.locator('#format').selectOption('image/png');
      const pngBg=await page.locator('#preview-stage').evaluate(e=>getComputedStyle(e).backgroundColor);
-     if(pngBg==='rgb(255, 0, 0)')throw new Error('JPEG background leaked into PNG preview');
+     if(pngBg==='rgb(0, 0, 0)')throw new Error('JPEG background leaked into PNG preview');
    });
    await test(local('tools/image-batch/index.html'),async()=>{
      const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=16;c.height=16;return c.toDataURL('image/png').split(',')[1]});
