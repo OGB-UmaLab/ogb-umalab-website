@@ -1515,6 +1515,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
      for(const x of result.checks){const [w,h]=result.expected[x.preset];if(!x.exists||x.width!==w||x.height!==h||x.fit!=='contain'||x.format!=='image/jpeg'||!x.squareDisabled||!x.guide.includes('余白'))throw new Error('New social platform preset failed: '+JSON.stringify(x));}
    });
+   // Baseline coverage for the PDF tool: file requirement, mode switching and safe reset.
+   await test(local('tools/pdf-split-rename/index.html'),async()=>{
+     await page.locator('#preview').click();
+     const noFile=await page.locator('#message').innerText();
+     if(!noFile.includes('先にPDFを選択'))throw new Error('PDF missing-file validation failed: '+noFile);
+     if(await page.locator('#save').isEnabled())throw new Error('PDF ZIP save enabled without a plan');
+     await page.locator('#mode').selectOption('ranges');
+     if(await page.locator('#rangeWrap').evaluate(el=>el.hidden))throw new Error('PDF range mode hidden');
+     await page.locator('#names').fill('請求書_一件');
+     await page.locator('#ranges').fill('1-3');
+     await page.locator('#clear').click();
+     if(await page.locator('#names').inputValue())throw new Error('PDF filename reset failed');
+     if(await page.locator('#save').isEnabled())throw new Error('PDF ZIP save enabled after reset');
+     await page.locator('#mode').selectOption('each');
+     if(!(await page.locator('#rangeWrap').evaluate(el=>el.hidden)))throw new Error('PDF range mode not hidden after switch');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
