@@ -1089,6 +1089,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const pngBg=await page.locator('#preview-stage').evaluate(e=>getComputedStyle(e).backgroundColor);
      if(pngBg==='rgb(255, 0, 0)')throw new Error('JPEG background leaked into PNG preview');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=16;c.height=16;return c.toDataURL('image/png').split(',')[1]});
+     const buffer=Buffer.from(png,'base64');
+     await page.evaluate(bytes=>{const f=new File([new Uint8Array(bytes)],'stable.png',{type:'image/png',lastModified:123});choose([f])},[...buffer]);
+     await page.locator('#format').selectOption('image/png');
+     await page.locator('#run').click();
+     await page.locator('#list article').first().waitFor();
+     await page.evaluate(bytes=>{const f=new File([new Uint8Array(bytes)],'stable.png',{type:'image/png',lastModified:123});choose([f])},[...buffer]);
+     if(await page.locator('#result').evaluate(e=>e.classList.contains('hidden')))throw new Error('Duplicate-only upload discarded completed exports');
+     await page.evaluate(()=>choose([new File(['bad'],'unsupported.txt',{type:'text/plain'})]));
+     if(await page.locator('#result').evaluate(e=>e.classList.contains('hidden')))throw new Error('Unsupported-only upload discarded completed exports');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
