@@ -1707,6 +1707,8 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    await test(local('tools/image-batch/index.html'),async()=>{
      for(const preset of ['mercari','yahoo','x-post','ig-square']){
        if(await page.locator('#preset option[value="'+preset+'"]').count()!==1)throw new Error('Missing advertised image preset: '+preset);
+     const guideText=await page.locator('main').innerText();
+     if(guideText.includes('販売サービス別プリセットは現在ありません'))throw new Error('Tool still denies existing presets');
      }
    });
    for(const guide of ['guides/index.html','guides/image-batch-hands-on/index.html']){
