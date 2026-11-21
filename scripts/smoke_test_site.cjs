@@ -1361,6 +1361,17 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(result.names[0]===result.names[1]||!result.names[1].endsWith('_2.png'))throw new Error('Long Unicode filename collision not resolved');
      if(!result.names[2].endsWith('.png')||result.names[3]!=='_CON.png')throw new Error('Unicode truncation or reserved name failed');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(()=>{
+       const names=['image.JPG','image.jpeg','image.PNG','image.webp','image.BMP','image.gif','image.svg','image.txt'];
+       const supported=names.map(name=>supportedImage({name,type:''}));
+       const mismatched=supportedImage({name:'image.png',type:'text/plain'});
+       const declared=supportedImage({name:'unknown',type:'image/jpeg'});
+       return {supported,mismatched,declared};
+     });
+     if(JSON.stringify(result.supported)!==JSON.stringify([true,true,true,true,true,true,false,false]))throw new Error('MIME-less image extension filtering failed');
+     if(result.mismatched||!result.declared)throw new Error('Explicit MIME types were ignored');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
