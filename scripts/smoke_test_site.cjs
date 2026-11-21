@@ -1541,8 +1541,8 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#file').setInputFiles({name:'invoices.pdf',mimeType:'application/pdf',buffer:Buffer.from(base64,'base64')});
      await page.waitForFunction(()=>document.querySelector('#fileInfo').textContent.includes('3ページ'));
      await page.locator('#mode').selectOption('ranges');
-     await page.locator('#ranges').fill('1-2\\n3');
-     await page.locator('#names').fill('請求書_前半\\n請求書_後半');
+     await page.locator('#ranges').fill('1-2\n3');
+     await page.locator('#names').fill('請求書_前半\n請求書_後半');
      await page.locator('#preview').click();
      if(!(await page.locator('#summary').innerText()).includes('2ファイル'))throw new Error('PDF split preview did not show two files');
      const result=await page.evaluate(async()=>{
@@ -1550,7 +1550,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        HTMLAnchorElement.prototype.click=function(){if(this.download.endsWith('.zip'))captured={url:this.href,name:this.download};else original.call(this)};
        try{
          document.getElementById('save').click();for(let i=0;i<200&&!captured;i++)await new Promise(resolve=>setTimeout(resolve,50));
-         if(!captured)throw Error('ZIP download was not initiated: '+$('progress').textContent);
+         if(!captured)throw Error('ZIP download was not initiated: '+document.getElementById('progress').textContent);
          const zip=await JSZip.loadAsync(await (await fetch(captured.url)).arrayBuffer());
          const names=Object.keys(zip.files).sort();const counts=[];
          for(const name of names){const bytes=await zip.file(name).async('uint8array');const pdf=await PDFLib.PDFDocument.load(bytes);counts.push(pdf.getPageCount())}
