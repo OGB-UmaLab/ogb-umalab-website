@@ -1077,6 +1077,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const blackRatio=await page.locator('#preview-stage').evaluate(e=>{const r=e.getBoundingClientRect();return r.width/r.height});
      if(Math.abs(blackRatio-1)>0.02)throw new Error('Black square padding preview is not square');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=12;c.height=12;return c.toDataURL('image/png').split(',')[1]});
+     await page.locator('#files').setInputFiles({name:'transparent.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
+     await page.locator('#format').selectOption('image/jpeg');
+     await page.locator('#bg').fill('#ff0000');
+     await page.locator('#bg').dispatchEvent('change');
+     const red=await page.locator('#preview-stage').evaluate(e=>getComputedStyle(e).backgroundColor);
+     if(red!=='rgb(255, 0, 0)')throw new Error('JPEG background color not shown in preview: '+red);
+     await page.locator('#format').selectOption('image/png');
+     const pngBg=await page.locator('#preview-stage').evaluate(e=>getComputedStyle(e).backgroundColor);
+     if(pngBg==='rgb(255, 0, 0)')throw new Error('JPEG background leaked into PNG preview');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
