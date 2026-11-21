@@ -1372,6 +1372,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(JSON.stringify(result.supported)!==JSON.stringify([true,true,true,true,true,true,false,false]))throw new Error('MIME-less image extension filtering failed');
      if(result.mismatched||!result.declared)throw new Error('Explicit MIME types were ignored');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(async()=>{
+       const c=document.createElement('canvas');c.width=2;c.height=2;
+       const blob=await new Promise(resolve=>c.toBlob(resolve,'image/png'));
+       const file=new File([blob],'clipboard.png',{type:'image/png',lastModified:Date.now()});
+       const paste=(target,files)=>{let prevented=false;pasteImages({target,clipboardData:{files},preventDefault(){prevented=true}});return prevented};
+       const first=paste(document.body,[file]);const count=selected.length;
+       const duplicate=paste(document.body,[file]);const afterDuplicate=selected.length;
+       const formPaste=paste($('target'),[new File([blob],'other.png',{type:'image/png'})]);
+       const afterForm=selected.length;
+       const plain=paste(document.body,[new File(['abc'],'text.txt',{type:'text/plain'})]);
+       return {first,count,duplicate,afterDuplicate,formPaste,afterForm,plain};
+     });
+     if(!result.first||result.count!==1||!result.duplicate||result.afterDuplicate!==1)throw new Error('Clipboard image import or deduplication failed');
+     if(result.formPaste||result.afterForm!==1||result.plain)throw new Error('Clipboard handler intercepted form paste or plain text');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
