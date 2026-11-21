@@ -1255,7 +1255,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(await page.locator('#list article').count()!==1)throw new Error('Valid image missing after partial failure');
      if(await page.locator('#failure-report').isHidden())throw new Error('Failure details are not available');
      if(await page.locator('#failure-list li').count()!==5)throw new Error('Failure report truncated');
-     const failures=await page.locator('#failure-list').innerText();
+     const failures=await page.locator('#failure-list').textContent();
      for(let i=0;i<5;i++)if(!failures.includes('bad-'+i+'.png'))throw new Error('Missing failed filename '+i);
      await page.locator('#width').fill('400');await page.locator('#width').dispatchEvent('change');
      if(!(await page.locator('#failure-report').isHidden()))throw new Error('Stale failure report retained after settings change');
