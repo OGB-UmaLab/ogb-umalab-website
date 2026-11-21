@@ -1483,6 +1483,14 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!result.crop.upscaled||result.crop.fit!=='cover'||result.crop.w!==1500||result.crop.h!==500)throw new Error('Crop enlargement metadata failed');
      if(result.resize.upscaled||result.resize.w!==80||result.resize.h!==40)throw new Error('Resize should not enlarge source');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const result=await page.evaluate(()=>{
+       const blob=new Blob(['sample'],{type:'image/jpeg'}),file=new File([blob],'small.jpg',{type:'image/jpeg'});
+       const output={source:file,blob,w:1080,h:1080,sourceWidth:80,sourceHeight:40,upscaled:true,fit:'cover',ext:'jpg',name:'small.jpg',url:URL.createObjectURL(blob),adjustment:{brightness:100,contrast:100},targetBytes:0};
+       outputs=[output];render();const text=$('list').textContent;resetResults();return {text,hidden:$('result').classList.contains('hidden')};
+     });
+     if(!result.text.includes('80 × 40 px → 1080 × 1080 px')||!result.text.includes('元画像を拡大')||!result.text.includes('中央切り抜き')||!result.hidden)throw new Error('Result quality warnings or cleanup failed');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
