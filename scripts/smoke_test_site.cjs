@@ -1106,6 +1106,21 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!chosen.includes('画像が選択されていません')||!chosen.includes('除外 1枚'))throw new Error('Unsupported-only selection shows incorrect empty state: '+chosen);
      if(await page.locator('#run').isEnabled())throw new Error('Conversion enabled without an image');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=16;c.height=8;return c.toDataURL('image/png').split(',')[1]});
+     const buffer=Buffer.from(png,'base64');
+     await page.locator('#files').setInputFiles({name:'first.png',mimeType:'image/png',buffer});
+     await page.locator('#format').selectOption('image/png');
+     await page.locator('#run').click();
+     await page.locator('#list article').first().waitFor();
+     await page.evaluate(bytes=>choose([new File([new Uint8Array(bytes)],'second.png',{type:'image/png',lastModified:456})]),[...buffer]);
+     if(!(await page.locator('#result').evaluate(e=>e.classList.contains('hidden'))))throw new Error('New image did not invalidate stale export');
+     if(!(await page.locator('#status').innerText()).includes('再変換'))throw new Error('Missing clear reconversion instruction');
+     if(await page.locator('#preview-select option').count()!==2)throw new Error('New image was not appended');
+     await page.locator('#run').click();
+     await page.locator('#list article').nth(1).waitFor();
+     if(await page.locator('#list article').count()!==2)throw new Error('Reconversion did not include both images');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
