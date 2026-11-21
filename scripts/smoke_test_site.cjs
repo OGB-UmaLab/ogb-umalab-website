@@ -1531,6 +1531,34 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#mode').selectOption('each');
      if(!(await page.locator('#rangeWrap').evaluate(el=>el.hidden)))throw new Error('PDF range mode not hidden after switch');
    });
+   // End-to-end PDF test: generate a fixture, split by range, inspect ZIP contents and resulting page counts.
+   await test(local('tools/pdf-split-rename/index.html'),async()=>{
+     await page.waitForFunction(()=>Boolean(window.PDFLib&&window.JSZip),{timeout:20000});
+     const base64=await page.evaluate(async()=>{
+       const pdf=await PDFLib.PDFDocument.create();for(let i=0;i<3;i++)pdf.addPage([300,400]);
+       const bytes=await pdf.save();let binary='';for(const b of bytes)binary+=String.fromCharCode(b);return btoa(binary);
+     });
+     await page.locator('#file').setInputFiles({name:'invoices.pdf',mimeType:'application/pdf',buffer:Buffer.from(base64,'base64')});
+     await page.waitForFunction(()=>document.querySelector('#fileInfo').textContent.includes('3ページ'));
+     await page.locator('#mode').selectOption('ranges');
+     await page.locator('#ranges').fill('1-2\\n3');
+     await page.locator('#names').fill('請求書_前半\\n請求書_後半');
+     await page.locator('#preview').click();
+     if(!(await page.locator('#summary').innerText()).includes('2ファイル'))throw new Error('PDF split preview did not show two files');
+     const result=await page.evaluate(async()=>{
+       const original=HTMLAnchorElement.prototype.click;let captured=null;
+       HTMLAnchorElement.prototype.click=function(){if(this.download.endsWith('.zip'))captured={url:this.href,name:this.download};else original.call(this)};
+       try{
+         $('save').click();for(let i=0;i<200&&!captured;i++)await new Promise(resolve=>setTimeout(resolve,50));
+         if(!captured)throw Error('ZIP download was not initiated: '+$('progress').textContent);
+         const zip=await JSZip.loadAsync(await (await fetch(captured.url)).arrayBuffer());
+         const names=Object.keys(zip.files).sort();const counts=[];
+         for(const name of names){const bytes=await zip.file(name).async('uint8array');const pdf=await PDFLib.PDFDocument.load(bytes);counts.push(pdf.getPageCount())}
+         return {name:captured.name,names,counts};
+       }finally{HTMLAnchorElement.prototype.click=original}
+     });
+     if(result.name!=='invoices-split.zip'||JSON.stringify(result.names)!==JSON.stringify(['請求書_前半.pdf','請求書_後半.pdf'])||JSON.stringify(result.counts)!==JSON.stringify([2,1]))throw new Error('PDF ZIP split content mismatch: '+JSON.stringify(result));
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
