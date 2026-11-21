@@ -1201,6 +1201,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.waitForFunction(()=>zipBusy===false);
      if(!(await page.locator('#format').isEnabled())||!(await page.locator('#run').isEnabled()))throw new Error('Controls not restored after ZIP generation');
    });
+   await test(local('tools/image-batch/index.html'),async()=>{
+     const png=await page.evaluate(async()=>{const c=document.createElement('canvas');c.width=7;c.height=5;return [...new Uint8Array(await (await new Promise(r=>c.toBlob(r,'image/png'))).arrayBuffer())]});
+     await page.evaluate(bytes=>{
+       choose([new File([new Uint8Array(bytes)],'good.png',{type:'image/png'}),new File(['not a real image'],'broken.png',{type:'image/png'})]);
+     },png);
+     await page.locator('#format').selectOption('image/png');
+     await page.locator('#run').click();
+     await page.locator('#list article').first().waitFor();
+     await page.waitForFunction(()=>!busy);
+     if(await page.locator('#list article').count()!==1)throw new Error('Corrupt input prevented valid file conversion');
+     const status=await page.locator('#status').innerText();
+     if(!status.includes('失敗 1枚')||!status.includes('broken.png'))throw new Error('Corrupt image failure was not reported: '+status);
+     if(!(await page.locator('#zip').isEnabled()))throw new Error('ZIP disabled after partial conversion success');
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
