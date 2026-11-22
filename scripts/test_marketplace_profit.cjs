@@ -17,5 +17,5 @@ assert.equal(calc({...v,yp:999},'y').fee,100,'Yahoo official tax rounding');
 assert.equal(calc({...v,yp:1000,yf:5},'y').fee,50,'custom rate');
 assert.equal(calc({...v,mp:1000,mf:5},'m').fee,50);
 assert.equal(calc({...v,mp:0},'m').profit,-2300,'zero-price loss');
-assert.throws(()=>calc({...v,mp:Number.MAX_SAFE_INTEGER},'m'),/金額が大きすぎ/);
+assert.throws(()=>calc({...v,mp:Number.MAX_SAFE_INTEGER,cost:Number.MAX_SAFE_INTEGER},'m'),/金額が大きすぎ/);
 console.log('PASS marketplace profit comparison: script syntax and 7 arithmetic cases');
