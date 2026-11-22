@@ -27,7 +27,6 @@ check(labLanding.includes('href="../guides/troubleshooting/"'), 'Data Lab landin
 const marketplace = read('tools/marketplace-profit-compare/index.html');
 const pdfTool = read('tools/pdf-split-rename/index.html');
 const guideDirectory = read('guides/index.html');
-const selectionGuide = read('guides/tool-selection/index.html');
 const marketplaceGuide = read('guides/marketplace-profit-hands-on/index.html');
 const pdfGuide = read('guides/pdf-split-hands-on/index.html');
 for (const [slug, page] of [['marketplace-profit-hands-on', marketplaceGuide], ['pdf-split-hands-on', pdfGuide]]) {
