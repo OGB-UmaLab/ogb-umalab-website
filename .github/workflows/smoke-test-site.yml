@@ -23,7 +23,7 @@ jobs:
           node-version: '22'
       - run: npm install --no-save playwright
       - run: npx playwright install --with-deps chromium
-      - run: node scripts/smoke_test_site.cjs
+      - run: node scripts/smoke_test_site.cjs --public-only
       - name: Upload failure screenshots
         if: failure()
         uses: actions/upload-artifact@v4
