@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 const base = 'https://ogb-umalab.com';
 const toolsOnly = process.argv.includes('--tools-only');
+const publicOnly = process.argv.includes('--public-only');
 const { pathToFileURL } = require('url');
 const path = require('path');
 const fs = require('fs');
@@ -15,6 +16,9 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
  );
  fs.mkdirSync(path.resolve(__dirname,'../test-results'),{recursive:true});
  const test=async (testPath,fn)=>{
+  // Local Data Lab scenarios run in dedicated workflows; public smoke checks
+  // only deployed routes, avoiding duplicate tests and the 12-minute timeout.
+  if(publicOnly && testPath.startsWith('file:')) return;
   try {
    const target=testPath.startsWith('file:')?testPath:base+testPath;
    const response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:30000});
