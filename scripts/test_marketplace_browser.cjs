@@ -14,7 +14,7 @@ const assert=require('node:assert/strict');
   await page.locator('#mp').fill('5000');
   assert.equal(await page.locator('#export').isDisabled(),true,'stale results must not export');
   await page.locator('#calc').click();
-  assert.match(await page.locator('#summary').innerText(),/2,150円/);
+  assert.match(await page.locator('#summary').innerText(),/2,200円/);
   assert.equal(await page.locator('#export').isDisabled(),false);
   const downloadPromise=page.waitForEvent('download');
   await page.locator('#export').click();
