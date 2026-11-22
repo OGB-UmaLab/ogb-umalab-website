@@ -43,7 +43,7 @@ const assert=require('node:assert/strict');
   assert.match(await page.locator('#status').innerText(),/入力値を確認/);
   await page.locator('#mf').fill('10');
   await page.locator('#calc').click();
-  assert.equal(await page.locator('#rows tr').count(),7);
+  assert.equal(await page.locator('#rows tr').count(),8);
   console.log('PASS marketplace browser: initial results, recalculation, stale export, CSV download, invalid rate, recovery');
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
