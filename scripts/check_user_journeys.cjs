@@ -11,7 +11,7 @@ const tools = read('tools/index.html');
 const labLanding = read('data-lab/index.html');
 for (const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/', 'marketplace-profit-compare/']) {
   const page = read('tools/' + slug + 'index.html');
-  check(page.includes('class="skip-link" href="#main"'), 'Tool keyboard skip link missing: ' + slug);
+  check(/<a\b[^>]*class="(?:skip-link|skip)"[^>]*href="#main"/.test(page), 'Tool keyboard skip link missing: ' + slug);
   check(/<main[^>]*id="main"/.test(page), 'Tool main landmark missing: ' + slug);
   check(page.includes('a:focus-visible'), 'Tool focus indicator missing: ' + slug);
 }
