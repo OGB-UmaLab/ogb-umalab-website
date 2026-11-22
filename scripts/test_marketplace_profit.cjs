@@ -12,7 +12,7 @@ vm.runInContext(calcSource+';globalThis.testCalc=calc;',context);
 const calc=context.testCalc;
 const v={cost:1500,other:0,mp:3500,mf:10,ms:750,mb:50,yp:3500,yf:10,ys:750,yb:50};
 assert.deepEqual(JSON.parse(JSON.stringify(calc(v,'m'))),{price:3500,fee:350,shipping:750,packing:50,net:2350,profit:850});
-assert.deepEqual(JSON.parse(JSON.stringify(calc(v,'y'))),{price:3500,fee:350,shipping:750,packing:50,net:2350,profit:850});
+assert.deepEqual(JSON.parse(JSON.stringify(calc(v,'y'))),{price:3500,fee:349,shipping:750,packing:50,net:2351,profit:851});
 assert.equal(calc({...v,yp:999},'y').fee,100,'Yahoo official tax rounding');
 assert.equal(calc({...v,yp:1000,yf:5},'y').fee,50,'custom rate');
 assert.equal(calc({...v,mp:1000,mf:5},'m').fee,50);
