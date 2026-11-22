@@ -1,0 +1,21 @@
+// Focused arithmetic regression for the marketplace comparison page.
+'use strict';
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const html=fs.readFileSync(require('node:path').join(__dirname,'../tools/marketplace-profit-compare/index.html'),'utf8');
+const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+assert.ok(script,'inline calculator script exists');
+new vm.Script(script);
+const calcSource=script.slice(script.indexOf('function calc(v,prefix)'),script.indexOf('function cell('));
+assert.ok(calcSource.startsWith('function calc(v,prefix)'));
+const context=vm.createContext({});
+vm.runInContext(calcSource+';globalThis.testCalc=calc;',context);
+const calc=context.testCalc;
+const v={cost:1500,other:0,mp:3500,mf:10,ms:750,mb:50,yp:3500,yf:10,ys:750,yb:50};
+assert.deepEqual(JSON.parse(JSON.stringify(calc(v,'m'))),{price:3500,fee:350,shipping:750,packing:50,net:2350,profit:850});
+assert.deepEqual(JSON.parse(JSON.stringify(calc(v,'y'))),{price:3500,fee:350,shipping:750,packing:50,net:2350,profit:850});
+assert.equal(calc({...v,yp:999},'y').fee,100,'Yahoo official tax rounding');
+assert.equal(calc({...v,yp:1000,yf:5},'y').fee,50,'custom rate');
+assert.equal(calc({...v,mp:1000,mf:5},'m').fee,50);
+assert.equal(calc({...v,mp:0},'m').profit,-2300,'zero-price loss');
+assert.throws(()=>calc({...v,mp:Number.MAX_SAFE_INTEGER},'m'),/金額が大きすぎ/);
+console.log('PASS marketplace profit comparison: script syntax and 7 arithmetic cases');
