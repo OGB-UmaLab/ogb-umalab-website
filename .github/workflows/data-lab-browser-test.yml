@@ -7,6 +7,7 @@ on:
       - 'examples/**'
       - 'guides/**'
       - 'scripts/smoke_test_site.cjs'
+      - 'scripts/test_marketplace_profit.cjs'
       - '.github/workflows/data-lab-browser-test.yml'
   workflow_dispatch:
 jobs:
@@ -24,6 +25,8 @@ jobs:
         run: |
           npm install --no-save --no-package-lock playwright
           npx playwright install --with-deps chromium
+      - name: Check marketplace comparison calculations
+        run: node scripts/test_marketplace_profit.cjs
       - name: Run local Data Lab browser tests
         run: node scripts/smoke_test_site.cjs --tools-only
       - name: Upload failure screenshots
