@@ -27,6 +27,7 @@ check(labLanding.includes('href="../guides/troubleshooting/"'), 'Data Lab landin
 const marketplace = read('tools/marketplace-profit-compare/index.html');
 const pdfTool = read('tools/pdf-split-rename/index.html');
 const guideDirectory = read('guides/index.html');
+const selectionGuide = read('guides/tool-selection/index.html');
 const marketplaceGuide = read('guides/marketplace-profit-hands-on/index.html');
 const pdfGuide = read('guides/pdf-split-hands-on/index.html');
 for (const [slug, page] of [['marketplace-profit-hands-on', marketplaceGuide], ['pdf-split-hands-on', pdfGuide]]) {
@@ -219,7 +220,7 @@ check(imageTool.includes('options.perImage=new Map('), 'Per-image adjustment sna
 check(imageTool.includes('options.adjustMode=') && imageTool.includes('options.batchSettings='), 'Batch adjustment snapshot missing');
 check(imageGuide.includes('個別調整') && imageGuide.includes('一括調整'), 'Image guide must describe both adjustment modes');
 check(imageGuide.includes('正方形余白'), 'Image guide must describe square padding');
-const selectionGuide = read('guides/tool-selection/index.html');
+
 const listGuide = read('guides/list-cleaner-hands-on/index.html');
 const troubleshooting = read('guides/troubleshooting/index.html');
 for (const slug of ['csv-merge', 'csv-analyzer', 'list-cleaner', 'pricing-simulator', 'order-line-aggregate', 'order-payment-reconcile', 'pdf-split-rename', 'image-batch']) {
