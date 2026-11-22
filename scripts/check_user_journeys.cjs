@@ -9,7 +9,7 @@ const check = (condition, message) => { if (!condition) failures.push(message); 
 const homepage = read('index.html');
 const tools = read('tools/index.html');
 const labLanding = read('data-lab/index.html');
-for (const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']) {
+for (const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/', 'marketplace-profit-compare/']) {
   const page = read('tools/' + slug + 'index.html');
   check(page.includes('class="skip-link" href="#main"'), 'Tool keyboard skip link missing: ' + slug);
   check(/<main[^>]*id="main"/.test(page), 'Tool main landmark missing: ' + slug);
@@ -17,10 +17,32 @@ for (const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'o
 }
 
 check(labLanding.includes('id="tool-catalog-title"'), 'Data Lab landing tool catalog missing');
-for (const slug of ['csv-merge', 'csv-analyzer', 'list-cleaner', 'pricing-simulator', 'order-line-aggregate', 'order-payment-reconcile', 'pdf-split-rename', 'image-batch']) {
+for (const slug of ['csv-merge', 'csv-analyzer', 'list-cleaner', 'pricing-simulator', 'order-line-aggregate', 'order-payment-reconcile', 'pdf-split-rename', 'image-batch', 'marketplace-profit-compare']) {
   check(labLanding.includes('href="../tools/' + slug + '/"'), 'Data Lab landing missing tool: ' + slug);
 }
 check(labLanding.includes('href="../guides/troubleshooting/"'), 'Data Lab landing missing troubleshooting link');
+
+
+// Validate the public discovery path for the two newest practical guides.
+const marketplace = read('tools/marketplace-profit-compare/index.html');
+const pdfTool = read('tools/pdf-split-rename/index.html');
+const guideDirectory = read('guides/index.html');
+const selectionGuide = read('guides/tool-selection/index.html');
+const marketplaceGuide = read('guides/marketplace-profit-hands-on/index.html');
+const pdfGuide = read('guides/pdf-split-hands-on/index.html');
+for (const [slug, page] of [['marketplace-profit-hands-on', marketplaceGuide], ['pdf-split-hands-on', pdfGuide]]) {
+  check(page.includes('rel="canonical" href="https://ogb-umalab.com/guides/' + slug + '/"'), 'New practical guide canonical missing: ' + slug);
+  check(guideDirectory.includes('href="' + slug + '/"'), 'Guide directory missing practical guide: ' + slug);
+  check(selectionGuide.includes('href="../' + slug + '/"'), 'Tool selection guide missing practical guide: ' + slug);
+  check(fs.existsSync(path.join(root, 'guides', slug, 'index.html')), 'Practical guide file missing: ' + slug);
+}
+check(tools.includes('href="marketplace-profit-compare/"'), 'Tool directory missing marketplace comparison');
+check(tools.includes('href="../guides/marketplace-profit-hands-on/"'), 'Tool directory missing marketplace guide');
+check(tools.includes('href="../guides/pdf-split-hands-on/"'), 'Tool directory missing PDF guide');
+check(marketplace.includes('href="/guides/marketplace-profit-hands-on/"'), 'Marketplace tool missing hands-on guide');
+check(pdfTool.includes('href="/guides/pdf-split-hands-on/"'), 'PDF tool missing hands-on guide');
+check(labLanding.includes('href="../guides/pdf-split-hands-on/"'), 'Data Lab landing missing PDF hands-on guide');
+check(labLanding.includes('href="../guides/marketplace-profit-hands-on/"'), 'Data Lab landing missing marketplace hands-on guide');
 
 const guide = read('guides/order-reconciliation-hands-on/index.html');
 const sitemap = read('sitemap.xml');
