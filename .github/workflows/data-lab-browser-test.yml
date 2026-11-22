@@ -8,6 +8,7 @@ on:
       - 'guides/**'
       - 'scripts/smoke_test_site.cjs'
       - 'scripts/test_marketplace_profit.cjs'
+      - 'scripts/test_marketplace_browser.cjs'
       - '.github/workflows/data-lab-browser-test.yml'
   workflow_dispatch:
 jobs:
@@ -27,6 +28,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Check marketplace comparison calculations
         run: node scripts/test_marketplace_profit.cjs
+      - name: Test marketplace browser interactions
+        run: node scripts/test_marketplace_browser.cjs
       - name: Run local Data Lab browser tests
         run: node scripts/smoke_test_site.cjs --tools-only
       - name: Upload failure screenshots
