@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>メルカリ・ヤフオク 手取り・利益比較｜OGBデータ研究所</title>
+<meta name="description" content="同じ商品の販売価格・仕入れ・送料・梱包費を入力し、メルカリとYahoo!オークションの手取りと利益を並べて比較。手数料を変更できる無料ツール。">
+<link rel="canonical" href="https://ogb-umalab.com/tools/marketplace-profit-compare/">
+<style>
+:root{color-scheme:light}*{box-sizing:border-box}body{margin:0;background:#f3f7fa;color:#17313e;font:16px/1.7 system-ui,"Noto Sans JP",sans-serif}header,footer{background:#122f48;color:white;padding:15px max(18px,calc((100vw - 1040px)/2))}header a,footer a{color:white}main{max-width:1040px;margin:auto;padding:24px 16px 48px}h1{font-size:clamp(1.45rem,3vw,2rem);line-height:1.4}h2{font-size:1.2rem}.card{background:#fff;border:1px solid #d7e2e8;border-radius:12px;padding:20px;margin:18px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:12px}label{display:block;font-weight:650}input{width:100%;font:inherit;border:1px solid #8fa4b3;border-radius:7px;padding:9px;margin:4px 0 8px}button{font:inherit;background:#174e72;color:white;border:0;border-radius:7px;padding:11px 18px;cursor:pointer;margin:6px 8px 6px 0}button.secondary{background:#e8eff5;color:#17313e;border:1px solid #9fb3c2}button:disabled{opacity:.5;cursor:not-allowed}a{color:#115c83}.muted{color:#526675;font-size:.92rem}.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:580px}th,td{padding:10px;border-bottom:1px solid #dce6eb;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#edf3f7}output{display:block;white-space:pre-wrap;font-weight:650;background:#edf5f9;border-radius:8px;padding:14px;margin:12px 0}.negative{color:#ae2632}.skip{position:absolute;top:-100px;left:10px;background:white;padding:12px}.skip:focus{top:10px}a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #a96500;outline-offset:3px}
+</style></head><body>
+<a class="skip" href="#main">本文へ移動</a><header><a href="/">OGBデータ研究所</a> ／ <a href="/tools/">無料ツール一覧</a></header>
+<main id="main"><h1>メルカリ・ヤフオク 手取り・利益比較</h1>
+<p>同じ商品を異なる販売先で売ったときの手取りと利益を一度に比較できます。販売価格や送料を販売先ごとに変えられるので、値下げや配送方法の違いも試算できます。無料・登録不要です。</p>
+<section class="card"><h2>共通の商品情報</h2><div class="grid">
+<div><label for="item">商品名（任意）</label><input id="item" maxlength="100" placeholder="例：古着のジャケット"></div>
+<div><label for="cost">仕入れ・商品原価（円）</label><input id="cost" type="number" min="0" step="1" value="1500"></div>
+<div><label for="other">その他の共通費用（円）</label><input id="other" type="number" min="0" step="1" value="0"></div>
+</div><p class="muted">共通費用は商品1点あたりの金額です。送料や梱包費は販売先ごとに入力します。</p></section>
+<section class="card"><h2>販売先別の条件</h2><div class="grid">
+<div><h3>メルカリ</h3><label for="mp">販売価格（円）</label><input id="mp" type="number" min="0" step="1" value="3500"><label for="mf">販売手数料（%）</label><input id="mf" type="number" min="0" max="100" step="0.01" value="10"><label for="ms">送料（出品者負担・円）</label><input id="ms" type="number" min="0" step="1" value="750"><label for="mb">梱包費（円）</label><input id="mb" type="number" min="0" step="1" value="50"></div>
+<div><h3>Yahoo!オークション（個人・通常カテゴリ）</h3><label for="yp">落札価格（円）</label><input id="yp" type="number" min="0" step="1" value="3500"><label for="yf">落札システム利用料（%）</label><input id="yf" type="number" min="0" max="100" step="0.01" value="10"><label for="ys">送料（出品者負担・円）</label><input id="ys" type="number" min="0" step="1" value="750"><label for="yb">梱包費（円）</label><input id="yb" type="number" min="0" step="1" value="50"></div>
+</div><button type="button" id="calc">利益を比較する</button><button type="button" id="export" class="secondary" disabled>結果をCSV保存</button><p id="status" role="status" aria-live="polite"></p><output id="summary" aria-live="polite"></output><div class="scroll"><table><thead><tr><th>項目</th><th>メルカリ</th><th>Yahoo!オークション</th></tr></thead><tbody id="rows"></tbody></table></div></section>
+<section class="card"><h2>このツールの特徴</h2><p>商品原価は1回だけ入力。販売先ごとに価格・送料・梱包費を変えて、手取り（販売額から販売手数料・送料・梱包費を差し引いた金額）と、利益（さらに仕入れ・共通費用を差し引いた金額）を比較できます。比較結果はCSVで保存できます。</p>
+<h2>計算条件と注意点</h2><p>メルカリの通常販売手数料は10%です。Yahoo!オークションの個人向け通常カテゴリの落札システム利用料は10%（税込）です。いずれも2026年11月22日に公式案内を確認した値を初期入力しています。特定カテゴリ、キャンペーン、プロモーション、その他の料金は異なるため、実際の明細に合わせて入力値を修正してください。</p>
+<p>メルカリの販売手数料は販売価格の10%を円未満切り捨てとして試算します。Yahoo!オークションは公式の案内に従い、利用料の税抜き額を9.09%で四捨五入し、消費税を切り捨てて算出するため、単純な「落札価格×10%」と1円程度異なる場合があります。手数料率を変更した場合は、両サービスとも変更後の率を円未満切り捨てとして試算します。振込手数料、出品取消料、返金、値引きクーポン、税金、複数個販売は含みません。Yahoo!オークションの送料は落札額に含めず、出品者負担額のみ費用として扱います。</p>
+<p class="muted">料金の出典：<a href="https://help.jp.mercari.com/guide/articles/65/" target="_blank" rel="noopener noreferrer">メルカリ公式ヘルプ</a> ／ <a href="https://support.yahoo-net.jp/SccAuctions/s/article/H000008975" target="_blank" rel="noopener noreferrer">Yahoo!オークション公式ヘルプ</a>。データはブラウザ内で計算し、当サイトのサーバーに送信しません。</p></section>
+<p><a href="/tools/pricing-simulator/">販売価格の逆算シミュレーター</a> ／ <a href="/tools/image-batch/">画像一括変換</a> ／ <a href="/guides/">実践ガイド一覧</a></p></main><footer>OGBデータ研究所 ／ <a href="/data-lab/organization/">運営情報</a> ／ <a href="/privacy/">プライバシーポリシー</a></footer>
+<script>
+"use strict";
+const $=id=>document.getElementById(id),yen=n=>n.toLocaleString("ja-JP")+"円";
+const ids=["cost","other","mp","mf","ms","mb","yp","yf","ys","yb"];
+let current=null;
+function values(){const v={};for(const id of ids){const raw=$(id).value.trim(),n=Number(raw);if(raw===""||!Number.isFinite(n)||n<0||(id==="mf"||id==="yf"?n>100:!Number.isSafeInteger(n))){throw Error("入力値を確認してください。金額は0以上の整数、手数料率は0～100%です。")}v[id]=n}return v}
+function calc(v,prefix){const price=v[prefix+"p"],rate=v[prefix+"f"],shipping=v[prefix+"s"],packing=v[prefix+"b"];const fee=prefix==="y"&&rate===10?Math.floor(Math.round(price*0.0909)*0.1)+Math.round(price*0.0909):Math.floor(price*rate/100);const net=price-fee-shipping-packing,profit=net-v.cost-v.other;if(![fee,net,profit].every(Number.isSafeInteger))throw Error("金額が大きすぎます。");return {price,fee,shipping,packing,net,profit}}
+function cell(tr,value){const td=document.createElement("td");td.textContent=value;tr.append(td)}
+function render(){try{const v=values(),m=calc(v,"m"),y=calc(v,"y");current={v,m,y,item:$("item").value};const rows=[["販売価格",m.price,y.price],["販売手数料",m.fee,y.fee],["送料",m.shipping,y.shipping],["梱包費",m.packing,y.packing],["手取り",m.net,y.net],["共通原価・費用",v.cost+v.other,v.cost+v.other],["利益",m.profit,y.profit]];$("rows").replaceChildren();for(const [label,a,b] of rows){const tr=document.createElement("tr");cell(tr,label);cell(tr,yen(a));cell(tr,yen(b));$("rows").append(tr)}const diff=m.profit-y.profit;$("summary").textContent="メルカリ利益："+yen(m.profit)+" ／ Yahoo!オークション利益："+yen(y.profit)+"\n"+(diff===0?"利益は同額です。":(diff>0?"メルカリ":"Yahoo!オークション")+"の方が"+yen(Math.abs(diff))+"多く残ります。");$("export").disabled=false;$("status").textContent="比較結果を更新しました。"}catch(e){current=null;$("rows").replaceChildren();$("summary").textContent="";$("export").disabled=true;$("status").textContent=e.message}}
+function csvEscape(s){return '"'+String(s).replace(/"/g,'""')+'"'}
+$("calc").addEventListener("click",render);
+for(const id of [...ids,"item"])$(id).addEventListener("input",()=>{current=null;$("export").disabled=true;$("status").textContent="入力値が変更されました。再計算してください。"});
+$("export").addEventListener("click",()=>{if(!current)return;const {v,m,y,item}=current;const rows=[["項目","メルカリ","Yahoo!オークション"],["商品名",item,item],["販売価格",m.price,y.price],["販売手数料率",v.mf,v.yf],["販売手数料",m.fee,y.fee],["送料",m.shipping,y.shipping],["梱包費",m.packing,y.packing],["仕入れ原価",v.cost,v.cost],["その他共通費用",v.other,v.other],["手取り",m.net,y.net],["利益",m.profit,y.profit]];const csv="\ufeff"+rows.map(row=>row.map(csvEscape).join(",")).join("\r\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const a=document.createElement("a");a.href=url;a.download="ogb-marketplace-profit.csv";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);$("status").textContent="CSVを保存しました。"});
+render();
+</script></body></html>
