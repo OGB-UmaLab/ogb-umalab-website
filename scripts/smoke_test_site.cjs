@@ -33,6 +33,34 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
   }
  };
  try {
+   // Batch audit of local navigation targets across every Data Lab tool and guide.
+   // This runs once per workflow, without opening hundreds of pages in Chromium.
+   const sections=['tools','guides','data-lab'];
+   const pages=sections.flatMap(section=>{
+     const root=path.resolve(__dirname,'..',section);
+     const visit=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry=>{
+       const file=path.join(dir,entry.name);
+       return entry.isDirectory()?visit(file):entry.name==='index.html'?[file]:[];
+     });
+     return visit(root);
+   });
+   let linkCount=0;
+   for(const file of pages){
+     const html=fs.readFileSync(file,'utf8');
+     for(const match of html.matchAll(/\bhref\s*=\s*["']([^"']+)["']/g)){
+       const href=match[1];
+       if(/^(?:#|https?:|mailto:|tel:|javascript:|data:|\/\/)/i.test(href))continue;
+       const pathname=href.split(/[?#]/)[0];
+       if(!pathname)continue;
+       const decoded=decodeURIComponent(pathname);
+       const target=decoded.startsWith('/')?path.resolve(__dirname,'..','.'+decoded):path.resolve(path.dirname(file),decoded);
+       const siteRoot=path.resolve(__dirname,'..');
+       if(target!==siteRoot&&!target.startsWith(siteRoot+path.sep))throw new Error('Link leaves site root: '+file+' -> '+href);
+       if(!fs.existsSync(target)&&!fs.existsSync(path.join(target,'index.html')))throw new Error('Broken Data Lab link: '+path.relative(siteRoot,file)+' -> '+href);
+       linkCount++;
+     }
+   }
+   console.log('PASS Data Lab internal link audit:',pages.length,'pages,',linkCount,'links');
    await test(local('tools/order-payment-reconcile/index.html'),async()=>{
      await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\nA,10')});
      await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\nA,10')});
