@@ -1626,6 +1626,23 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#reset').click();
      if(await page.locator('#a').inputValue()||await page.locator('#b').inputValue()||await page.locator('#out').inputValue())throw new Error('List cleaner reset did not clear data');
    });
+   // Spreadsheet-safe frequency copy must match the protected TSV export.
+   await test(local('tools/list-cleaner/index.html'),async()=>{
+     await page.locator('#mode').selectOption('frequency');
+     await page.locator('#a').fill('=SUM(1,1)\n=SUM(1,1)\n+IMPORTXML(A1,B1)\n-abc\n-12.5\n@cmd');
+     await page.locator('#run').click();
+     await page.evaluate(()=>{
+       window.__copiedText=null;
+       Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.__copiedText=value}}});
+     });
+     await page.locator('#copy').click();
+     const copied=await page.evaluate(()=>window.__copiedText);
+     if(!copied)throw new Error('Frequency copy produced no text');
+     for(const value of ["'=SUM(1,1)\t2","'+IMPORTXML(A1,B1)\t1","'-abc\t1","'@cmd\t1","-12.5\t1"]){
+       if(!copied.split('\n').includes(value))throw new Error('Unsafe frequency copy: '+value);
+     }
+     if((await page.locator('#out').inputValue()).includes("'=SUM"))throw new Error('Copy escaping changed preview');
+   });
    // List cleaner export: output changes invalidate old downloads and TSV keeps a UTF-8 BOM.
    await test(local('tools/list-cleaner/index.html'),async()=>{
      await page.locator('#a').fill('SKU-02\nSKU-01\nSKU-02');
