@@ -493,7 +493,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#sample').click();
      if(await page.locator('#rows tr').count()!==3) throw new Error('Packing checklist sample count incorrect');
      const row=page.locator('#rows tr').first();
-     await row.locator('input[type=checkbox]').nth(4).check();
+     await row.locator('input[type=checkbox]').nth(4).click();
      if(!(await page.locator('#error').innerText()).includes('先に4項目')) throw new Error('Packing completion allowed before verification');
      for(let i=0;i<4;i++)await page.locator('#rows tr').first().locator('input[type=checkbox]').nth(i).check();
      await page.locator('#rows tr').first().locator('input[type=checkbox]').nth(4).check();
