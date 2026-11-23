@@ -490,6 +490,12 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
+     const result=await page.evaluate(()=>median([1e308,1e308]));
+     if(result!==1e308) throw new Error('CSV analyzer median overflowed');
+     const fractional=await page.evaluate(()=>median([1.5,2.5]));
+     if(fractional!==2) throw new Error('CSV analyzer fractional median incorrect');
+   });
+   await test(local('tools/csv-analyzer/index.html'),async()=>{
      await page.evaluate(()=>{
        load('分類,金額\nA,10\nB,20');
        state.rows=[['A','1e308'],['A','1e308']];
