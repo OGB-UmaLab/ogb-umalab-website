@@ -489,6 +489,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/product-listing-prep/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#rows tr').count()!==3) throw new Error('Product listing sample count incorrect');
+     if(!(await page.locator('#rows tr').first().innerText()).includes('ITEM-0001')) throw new Error('Product listing SKU generation incorrect');
+     await page.locator('#limit').fill('2');
+     await page.locator('#generate').click();
+     if(!(await page.locator('#summary').innerText()).includes('文字数目安超過：3件')) throw new Error('Product title limit warning incorrect');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#export').click();
+     const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!csv.includes('ITEM-0001')||!csv.includes('ステンレスボトル')) throw new Error('Product listing CSV export failed');
+     await page.locator('#start').fill('9999');
+     await page.locator('#generate').click();
+     if(!(await page.locator('#error').innerText()).includes('桁数')) throw new Error('SKU overflow not rejected');
+     if(!(await page.locator('#export').isDisabled())) throw new Error('Stale SKU export remained enabled');
+   });
    await test(local('tools/cash-register-close/index.html'),async()=>{
      await page.locator('#sample').click();
      if(!(await page.locator('#result').innerText()).includes('現金過不足：-10,000円')) throw new Error('Cash register shortage calculation incorrect');
