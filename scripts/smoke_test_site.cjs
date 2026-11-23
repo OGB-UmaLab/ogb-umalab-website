@@ -576,11 +576,11 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await result.innerText()).includes('算出できません')) throw new Error('Overflowing price was not rejected');
      if((await page.locator('#comparison').innerText()).includes('Infinity')) throw new Error('Invalid pricing comparison visible');
    });
-   await test(local('tools/index.html'),async()=>{
+   await test(local('tools/basic-statistics/index.html'),async()=>{
      await page.locator('#csv').setInputFiles({name:'quoted.csv',mimeType:'text/csv',buffer:Buffer.from('項目,金額\n"A,B",1200','utf8')});
      await waitForText('#stats-result','引用符付きCSV');
    });
-   await test(local('tools/index.html'),async()=>{
+   await test(local('tools/basic-statistics/index.html'),async()=>{
      await page.locator('#values').fill('999');
      await page.locator('#col').fill('3');
      await page.locator('#csv').setInputFiles({name:'short.csv',mimeType:'text/csv',buffer:Buffer.from('A,B\n10,20','utf8')});
@@ -1942,14 +1942,12 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const body=await page.locator('body').innerText();
      if(!(await page.locator('#result').innerText()).trim()) throw new Error('Pricing output empty');
    });
-   await test('/tools/',async()=>{
-     await page.locator('#calc-profit').click();
-     if(!(await page.locator('#profit-result').innerText()).trim()) throw new Error('Profit result empty');
-     await page.locator('#calc-stats').click();
-     if(!(await page.locator('#stats-result').innerText()).trim()) throw new Error('Statistics result empty');
-     await page.locator('#calc-corr').click();
-     if(!(await page.locator('#corr-result').innerText()).trim()) throw new Error('Correlation result empty');
-   });
+   for(const [slug,button,result] of [['profit-break-even','calc-profit','profit-result'],['basic-statistics','calc-stats','stats-result'],['correlation','calc-corr','corr-result']]){
+     await test('/tools/'+slug+'/',async()=>{
+       await page.locator('#'+button).click();
+       if(!(await page.locator('#'+result).innerText()).trim()) throw new Error('Calculator output empty: '+slug);
+     });
+   }
    await test('/ogb-data/daily/',async()=>{});
    await test('/global-news/',async()=>{});
    await test('/class-promotion/',async()=>{});
