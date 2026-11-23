@@ -489,6 +489,21 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/daily-sales-ledger/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#rows tr').count()!==3) throw new Error('Sales ledger sample rows incorrect');
+     if(!(await page.locator('#summary').innerText()).includes('売上合計：25,000円')) throw new Error('Sales ledger sum incorrect');
+     if(!(await page.locator('#summary').innerText()).includes('カード：8,000円')) throw new Error('Sales ledger payment grouping incorrect');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#export').click();
+     const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!csv.includes('QR決済')||!csv.includes('12000')) throw new Error('Sales ledger CSV export incorrect');
+     await page.locator('#amount').fill('-10');
+     await page.locator('#add').click();
+     if(!(await page.locator('#error').innerText()).includes('0以上')) throw new Error('Negative sales amount accepted');
+     await page.locator('#clear').click();
+     if(!(await page.locator('#export').isDisabled())) throw new Error('Sales ledger stale CSV export enabled');
+   });
    await test(local('tools/packing-checklist/index.html'),async()=>{
      await page.locator('#sample').click();
      if(await page.locator('#rows tr').count()!==3) throw new Error('Packing checklist sample count incorrect');
