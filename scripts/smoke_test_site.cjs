@@ -489,6 +489,19 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/purchase-receiving/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#rows tr').count()!==3) throw new Error('Purchase receiving sample count incorrect');
+     if(!(await page.locator('#summary').innerText()).includes('未入荷金額：4,000円')) throw new Error('Purchase receiving amount incorrect');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#export').click();
+     const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!csv.includes('PO-001')||!csv.includes('未入荷金額')) throw new Error('Purchase receiving CSV incorrect');
+     await page.locator('#data').fill('PO-1,SKU-1,1,2,100');
+     await page.locator('#calculate').click();
+     if(!(await page.locator('#error').innerText()).includes('超えて')) throw new Error('Over-receipt accepted');
+     if(!(await page.locator('#export').isDisabled())) throw new Error('Stale export enabled');
+   });
    await test(local('tools/stocktake-reconcile/index.html'),async()=>{
      await page.locator('#sample').click();
      if(await page.locator('#rows tr').count()!==3) throw new Error('Stocktake sample count incorrect');
