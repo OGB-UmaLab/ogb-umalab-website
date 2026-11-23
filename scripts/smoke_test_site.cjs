@@ -490,6 +490,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.evaluate(()=>{
+       load('分類,金額\\nA,10\\nB,20');
+       const t=state.stats.find(t=>t.index===1);
+       t.min=-1e308;t.max=1e308;t.values=[-1e308,1e308];
+       document.querySelector('#chartType').value='hist';
+       renderChart();
+     });
+     if(!(await page.locator('#chartError').innerText()).includes('数値範囲が大きすぎて')) throw new Error('Histogram overflow was not reported');
+     if(await page.evaluate(()=>state.group.length)!==0) throw new Error('Histogram overflow retained exportable data');
+     if(await page.locator('#groupBody tr').count()!==0) throw new Error('Histogram overflow retained preview rows');
+   });
+   await test(local('tools/csv-analyzer/index.html'),async()=>{
      const result=await page.evaluate(()=>median([1e308,1e308]));
      if(result!==1e308) throw new Error('CSV analyzer median overflowed');
      const fractional=await page.evaluate(()=>median([1.5,2.5]));
