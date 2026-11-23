@@ -489,6 +489,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/inventory-aging/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#rows tr').count()!==3) throw new Error('Inventory aging sample count incorrect');
+     const summary=await page.locator('#summary').innerText();
+     if(!summary.includes('在庫評価額：10,600円')||!summary.includes('91～180日：2件')) throw new Error('Inventory aging bucket totals incorrect');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#export').click();
+     const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!csv.includes('ITEM-001')||!csv.includes('滞留区分')) throw new Error('Inventory aging CSV incorrect');
+     await page.locator('#data').fill('SKU-1,2026-11-25,1,100');
+     await page.locator('#calculate').click();
+     if(!(await page.locator('#error').innerText()).includes('最終入荷日')) throw new Error('Future stock date accepted');
+     if(!(await page.locator('#export').isDisabled())) throw new Error('Stale inventory aging export enabled');
+   });
    await test(local('tools/product-margin-report/index.html'),async()=>{
      await page.locator('#sample').click();
      if(await page.locator('#rows tr').count()!==2) throw new Error('SKU aggregation incorrect');
