@@ -489,6 +489,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/packing-checklist/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#rows tr').count()!==3) throw new Error('Packing checklist sample count incorrect');
+     const row=page.locator('#rows tr').first();
+     await row.locator('input[type=checkbox]').nth(4).check();
+     if(!(await page.locator('#error').innerText()).includes('先に4項目')) throw new Error('Packing completion allowed before verification');
+     for(let i=0;i<4;i++)await page.locator('#rows tr').first().locator('input[type=checkbox]').nth(i).check();
+     await page.locator('#rows tr').first().locator('input[type=checkbox]').nth(4).check();
+     if(!(await page.locator('#summary').innerText()).includes('発送準備完了：1件')) throw new Error('Packing completion count incorrect');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#export').click();
+     const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!csv.includes('ORDER-001')||!csv.includes('発送準備完了')) throw new Error('Packing checklist CSV export missing');
+     await page.locator('#orders').fill('ORDER-001\nORDER-001');
+     await page.locator('#build').click();
+     if(!(await page.locator('#error').innerText()).includes('重複')) throw new Error('Duplicate order accepted');
+     if(!(await page.locator('#export').isDisabled())) throw new Error('Stale packing export remained enabled');
+   });
    await test(local('tools/product-listing-prep/index.html'),async()=>{
      await page.locator('#sample').click();
      if(await page.locator('#rows tr').count()!==3) throw new Error('Product listing sample count incorrect');
