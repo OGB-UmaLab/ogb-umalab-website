@@ -36,9 +36,9 @@ for (const [slug, page] of [['marketplace-profit-hands-on', marketplaceGuide], [
   check(selectionGuide.includes('href="../' + slug + '/"'), 'Tool selection guide missing practical guide: ' + slug);
   check(fs.existsSync(path.join(root, 'guides', slug, 'index.html')), 'Practical guide file missing: ' + slug);
 }
-check(tools.includes('href="marketplace-profit-compare/"'), 'Tool directory missing marketplace comparison');
-check(tools.includes('href="../guides/marketplace-profit-hands-on/"'), 'Tool directory missing marketplace guide');
-check(tools.includes('href="../guides/pdf-split-hands-on/"'), 'Tool directory missing PDF guide');
+check(tools.includes('href="categories/sales-profit/"'), 'Tool directory missing sales-profit category');
+check(read('tools/categories/sales-profit/index.html').includes('href="/tools/marketplace-profit-compare/"'), 'Sales category missing marketplace tool');
+check(read('tools/categories/pdf-image/index.html').includes('href="/tools/pdf-split-rename/"'), 'PDF category missing PDF tool');
 check(marketplace.includes('href="/guides/marketplace-profit-hands-on/"'), 'Marketplace tool missing hands-on guide');
 check(pdfTool.includes('href="/guides/pdf-split-hands-on/"'), 'PDF tool missing hands-on guide');
 const pdfPractice = read('examples/pdf-split-invoice-print/index.html');
@@ -65,7 +65,7 @@ check((homepage.match(/class="task-card"/g) || []).length === 6, 'Homepage must 
 check(homepage.includes('href="#choose-task"'), 'Hero CTA must target task section');
 check(homepage.includes('href="guides/order-reconciliation-hands-on/"'), 'Homepage must link to hands-on guide');
 check(tools.includes('id="task-quick-title"'), 'Tools directory task navigation missing');
-check(tools.includes('href="../guides/order-reconciliation-hands-on/"'), 'Tools directory hands-on guide link missing');
+check(homepage.includes('href="guides/order-reconciliation-hands-on/"'), 'Homepage order reconciliation walkthrough missing');
 check(aggregate.includes('href="/guides/order-reconciliation-hands-on/"'), 'Order aggregation tool must link to walkthrough');
 check(reconcile.includes('href="/guides/order-reconciliation-hands-on/"'), 'Payment reconciliation tool must link to walkthrough');
 check(aggregate.includes('href="/examples/order-lines-sample.csv" download'), 'Aggregation tool must offer input CSV download');
@@ -115,7 +115,7 @@ check(!orders.has('A004') && payments.get('A004') === 700, 'Expected payment-onl
 
 const mergeGuide = read('guides/csv-merge-hands-on/index.html');
 check(homepage.includes('href="guides/csv-merge-hands-on/"'), 'Homepage must link to CSV merge walkthrough');
-check(tools.includes('href="../guides/csv-merge-hands-on/"'), 'Tool directory must link to CSV merge walkthrough');
+check(read('tools/categories/csv-text/index.html').includes('href="/guides/csv-merge-hands-on/"'), 'CSV category missing walkthrough');
 check(mergeTool.includes('href="/guides/csv-merge-hands-on/"'), 'CSV merge tool must link to walkthrough');
 check(sitemap.includes('<loc>https://ogb-umalab.com/guides/csv-merge-hands-on/</loc>'), 'CSV merge walkthrough missing from sitemap');
 check(mergeGuide.includes('rel="canonical" href="https://ogb-umalab.com/guides/csv-merge-hands-on/"'), 'CSV merge canonical missing');
@@ -147,7 +147,7 @@ check(unique.size === 4, 'Merge exercise should have four unique rows without so
 const pricingGuide = read('guides/pricing-simulator-hands-on/index.html');
 const pricingTool = read('tools/pricing-simulator/index.html');
 check(homepage.includes('href="guides/pricing-simulator-hands-on/"'), 'Homepage pricing hands-on link missing');
-check(tools.includes('href="../guides/pricing-simulator-hands-on/"'), 'Tool directory pricing hands-on link missing');
+check(read('tools/categories/sales-profit/index.html').includes('href="/guides/pricing-simulator-hands-on/"'), 'Sales category missing pricing guide');
 check(pricingTool.includes('href="/guides/pricing-simulator-hands-on/"'), 'Pricing tool hands-on link missing');
 check(sitemap.includes('<loc>https://ogb-umalab.com/guides/pricing-simulator-hands-on/</loc>'), 'Pricing guide missing from sitemap');
 check(pricingGuide.includes('rel="canonical" href="https://ogb-umalab.com/guides/pricing-simulator-hands-on/"'), 'Pricing guide canonical missing');
@@ -168,8 +168,8 @@ check(Math.ceil((830+900)/(1-0.10)-1e-10)===1923, 'Physical count comparison mis
 
 const analysisGuide = read('guides/csv-analysis-hands-on/index.html');
 const analyzerTool = read('tools/csv-analyzer/index.html');
-check(homepage.includes('href="guides/csv-analysis-hands-on/"'), 'Homepage analysis hands-on link missing');
-check(tools.includes('href="../guides/csv-analysis-hands-on/"'), 'Tools directory analysis hands-on link missing');
+check(homepage.includes('href="tools/categories/statistics/"'), 'Homepage analysis category link missing');
+check(read('tools/categories/statistics/index.html').includes('href="/guides/csv-analysis-hands-on/"'), 'Statistics category missing analysis guide');
 check(analyzerTool.includes('href="/guides/csv-analysis-hands-on/"'), 'Analyzer must link to hands-on guide');
 check(sitemap.includes('<loc>https://ogb-umalab.com/guides/csv-analysis-hands-on/</loc>'), 'Analysis hands-on guide missing from sitemap');
 check(analysisGuide.includes('rel="canonical" href="https://ogb-umalab.com/guides/csv-analysis-hands-on/"'), 'Analysis hands-on canonical missing');
