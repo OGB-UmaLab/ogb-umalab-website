@@ -41,6 +41,13 @@ check(tools.includes('href="../guides/marketplace-profit-hands-on/"'), 'Tool dir
 check(tools.includes('href="../guides/pdf-split-hands-on/"'), 'Tool directory missing PDF guide');
 check(marketplace.includes('href="/guides/marketplace-profit-hands-on/"'), 'Marketplace tool missing hands-on guide');
 check(pdfTool.includes('href="/guides/pdf-split-hands-on/"'), 'PDF tool missing hands-on guide');
+const pdfPractice = read('examples/pdf-split-invoice-print/index.html');
+check(pdfGuide.includes('href="/examples/pdf-split-invoice-print/"'), 'PDF guide missing printable sample link');
+check(pdfTool.includes('href="/examples/pdf-split-invoice-print/"'), 'PDF tool missing printable sample link');
+check(guideDirectory.includes('href="../examples/pdf-split-invoice-print/"'), 'Guide directory missing printable sample link');
+check(pdfPractice.includes('window.print()'), 'PDF sample must offer browser print to PDF');
+check((pdfPractice.match(/class="sheet"/g) || []).length === 3, 'PDF practice fixture must contain exactly three invoice pages');
+
 check(labLanding.includes('href="../guides/pdf-split-hands-on/"'), 'Data Lab landing missing PDF hands-on guide');
 check(labLanding.includes('href="../guides/marketplace-profit-hands-on/"'), 'Data Lab landing missing marketplace hands-on guide');
 
