@@ -489,6 +489,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/returns-refunds/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#rows tr').count()!==3) throw new Error('Returns sample count incorrect');
+     if(!(await page.locator('#summary').innerText()).includes('返金予定額：5,000円')) throw new Error('Refund planned sum incorrect');
+     if(!(await page.locator('#summary').innerText()).includes('未完了額：3,000円')) throw new Error('Refund outstanding sum incorrect');
+     await page.locator('#rows tr').first().locator('select').selectOption('返金完了');
+     if(!(await page.locator('#summary').innerText()).includes('未完了額：0円')) throw new Error('Refund completion not reflected');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#export').click();
+     const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!csv.includes('ORDER-001')||!csv.includes('返金完了')) throw new Error('Refund ledger CSV export incorrect');
+     await page.locator('#order').fill('ORDER-001');
+     await page.locator('#sku').fill('ITEM-001');
+     await page.locator('#add').click();
+     if(!(await page.locator('#error').innerText()).includes('既に登録')) throw new Error('Duplicate refund case accepted');
+     await page.locator('#clear').click();
+     if(!(await page.locator('#export').isDisabled())) throw new Error('Stale refunds export remained enabled');
+   });
    await test(local('tools/sales-summary/index.html'),async()=>{
      await page.locator('#sample').click();
      if(await page.locator('#rows tr').count()!==2) throw new Error('Monthly sales sample month count incorrect');
