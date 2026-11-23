@@ -489,6 +489,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/product-margin-report/index.html'),async()=>{
+     await page.locator('#entryRows input').first().fill('SKU-TEST');
+     await page.locator('#entryRows input').nth(1).fill('2');
+     await page.locator('#entryRows input').nth(2).fill('2000');
+     await page.locator('#entryRows input').nth(3).fill('800');
+     await page.locator('#entryRows input').nth(4).fill('200');
+     await page.locator('#entryRows input').nth(5).fill('300');
+     if(!(await page.locator('#summary').innerText()).includes('1,900円'))throw new Error('Product margin editable input incorrect');
+   });
+   await test(local('tools/stocktake-reconcile/index.html'),async()=>{
+     await page.locator('#entryRows input').first().fill('SKU-TEST');
+     await page.locator('#entryRows input').nth(1).fill('10');
+     await page.locator('#entryRows input').nth(2).fill('8');
+     await page.locator('#entryRows input').nth(3).fill('500');
+     if(!(await page.locator('#summary').innerText()).includes('-1,000円'))throw new Error('Stocktake editable input incorrect');
+   });
    await test(local('tools/shipping-cost-report/index.html'),async()=>{
      await page.locator('#entryRows input').first().fill('宅配便');
      await page.locator('#entryRows input').nth(1).fill('2');
