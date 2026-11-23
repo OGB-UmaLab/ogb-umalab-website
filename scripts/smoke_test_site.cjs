@@ -489,6 +489,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/product-margin-report/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#rows tr').count()!==2) throw new Error('SKU aggregation incorrect');
+     if(!(await page.locator('#summary').innerText()).includes('利益合計：3,600円')) throw new Error('Product margin total incorrect');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#export').click();
+     const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!csv.includes('ITEM-001')||!csv.includes('利益率')) throw new Error('Product margin CSV incorrect');
+     await page.locator('#data').fill('ITEM-001,1,100,200,0,0');
+     await page.locator('#calculate').click();
+     if(!(await page.locator('#summary').innerText()).includes('利益合計：-100円')) throw new Error('Negative margin incorrect');
+     await page.locator('#data').fill('ITEM-001,-1,100,20,0,0');
+     await page.locator('#calculate').click();
+     if(!(await page.locator('#error').innerText()).includes('0以上')) throw new Error('Invalid quantity accepted');
+     if(!(await page.locator('#export').isDisabled())) throw new Error('Stale margin export enabled');
+   });
    await test(local('tools/supplier-payment-reconcile/index.html'),async()=>{
      await page.locator('#sample').click();
      if(await page.locator('#rows tr').count()!==3) throw new Error('Supplier invoice sample count incorrect');
