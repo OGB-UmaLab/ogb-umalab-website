@@ -73,6 +73,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const pageObjects=(text.match(/\/Type\s*\/Page\b/g)||[]).length;
      if(pageObjects!==3) throw new Error('PDF practice print output is not three pages: '+pageObjects);
    });
+   await test(local('tools/basic-statistics/index.html'),async()=>{
+     await page.locator('#values').fill('1e308,1e308');
+     await page.locator('#calc-stats').click();
+     if(!(await page.locator('#stats-result').innerText()).includes('正確に算出できません')) throw new Error('Nonfinite statistics not rejected');
+   });
+   await test(local('tools/csv-merge/index.html'),async()=>{
+     await page.locator('#demo').click();
+     if(await page.locator('#output').isHidden()) throw new Error('CSV merge demo output missing');
+     await page.locator('#mode').selectOption('position');
+     if(!await page.locator('#output').isHidden()) throw new Error('CSV merge stale output visible after settings change');
+     if(await page.locator('#metrics').locator('*').count()) throw new Error('CSV merge stale metrics retained after settings change');
+   });
    await test(local('tools/profit-break-even/index.html'),async()=>{
      await page.locator('#price').fill('');
      await page.locator('#calc-profit').click();
