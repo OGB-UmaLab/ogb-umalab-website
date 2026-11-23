@@ -668,6 +668,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#export').isDisabled())) throw new Error('Stale monthly summary export enabled');
    });
    await test(local('tools/daily-sales-ledger/index.html'),async()=>{
+     const csv=['営業日,決済方法,売上金額,摘要','2026-11-24,現金,1200,午前','2026-11-24,カード,800,午後'].join(String.fromCharCode(10));
+     await page.locator('#importFile').setInputFiles({name:'daily-sales-ledger.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+     if(await page.locator('#rows tr').count()!==2)throw new Error('Sales CSV restore row count incorrect');
+     if(!(await page.locator('#summary').innerText()).includes('売上合計：2,000円'))throw new Error('Sales CSV restore sum incorrect');
+     const bad=['営業日,決済方法,売上金額,摘要','2026-02-30,現金,100,不正'].join(String.fromCharCode(10));
+     await page.locator('#importFile').setInputFiles({name:'bad.csv',mimeType:'text/csv',buffer:Buffer.from(bad)});
+     if(!(await page.locator('#error').innerText()).includes('営業日'))throw new Error('Invalid sales date imported');
+     if(await page.locator('#rows tr').count()!==2)throw new Error('Failed import overwrote sales ledger');
+   });
+   await test(local('tools/returns-refunds/index.html'),async()=>{
+     const csv=['受付日,注文番号,SKU・商品,理由,返金予定額,対応状況','2026-11-24,ORDER-1,SKU-1,商品不良,2500,返金待ち'].join(String.fromCharCode(10));
+     await page.locator('#importFile').setInputFiles({name:'returns-refunds.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+     if(await page.locator('#rows tr').count()!==1)throw new Error('Returns CSV restore row count incorrect');
+     if(!(await page.locator('#summary').innerText()).includes('未完了額：2,500円'))throw new Error('Returns CSV restore sum incorrect');
+   });
+   await test(local('tools/daily-sales-ledger/index.html'),async()=>{
      await page.locator('#sample').click();
      if(await page.locator('#rows tr').count()!==3) throw new Error('Sales ledger sample rows incorrect');
      if(!(await page.locator('#summary').innerText()).includes('売上合計：25,000円')) throw new Error('Sales ledger sum incorrect');
