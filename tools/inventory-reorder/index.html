@@ -30,6 +30,8 @@ let results=[],version=0;
 function safeInt(x){return Number.isSafeInteger(x)&&x>=0}
 function finiteNonnegative(x){return Number.isFinite(x)&&x>=0}
 function calculate(o){
+const numeric=["stock","incoming","reserved","daily","lead","safety","target"];
+if(numeric.some(k=>String(o[k]??"").trim()===""||!Number.isFinite(Number(o[k]))))throw Error("数値をすべて入力してください。");
 const stock=Number(o.stock),incoming=Number(o.incoming),reserved=Number(o.reserved),daily=Number(o.daily),lead=Number(o.lead),safety=Number(o.safety),target=Number(o.target);
 if(!String(o.sku).trim())throw Error("商品コードを入力してください。");
 if(![stock,incoming,reserved,safety].every(safeInt)||![daily,lead,target].every(finiteNonnegative))throw Error("在庫・入荷待ち・引当済み・安全在庫は0以上の整数、販売数・納期・目標日数は0以上の数値で入力してください。");
@@ -47,8 +49,20 @@ function resetBatch(message=""){results=[];render();$("error").textContent=messa
 $("calc").addEventListener("click",()=>{try{const o=Object.fromEntries(ids.map(id=>[id,$(id).value]));const r=calculate(o);$("singleResult").textContent="在庫ポジション："+r.position+"個\n発注点："+r.point+"個\n判定："+r.status+"\n発注目安："+r.qty+"個"}catch(e){$("singleResult").textContent=e.message}});
 for(const id of ids)$(id).addEventListener("input",()=>{$("singleResult").textContent="入力を変更しました。再計算してください。"});
 function parseCSV(text){
-const rows=[];let row=[],cell="",quoted=false;for(let i=0;i<text.length;i++){const c=text[i];if(quoted){if(c==='"'&&text[i+1]==='"'){cell+='"';i++}else if(c==='"')quoted=false;else cell+=c}else if(c==='"'){if(cell!=="")throw Error("CSVの引用符の位置が不正です。");quoted=true}else if(c===","){row.push(cell);cell=""}else if(c==="\n"||c==="\r"){if(c==="\r"&&text[i+1]==="\n")i++;row.push(cell);if(row.some(x=>x!==""))rows.push(row);row=[];cell=""}else cell+=c}
-if(quoted)throw Error("CSVの引用符が閉じられていません。");row.push(cell);if(row.some(x=>x!==""))rows.push(row);return rows;
+const rows=[];let row=[],cell="",state="start";
+const pushRow=()=>{row.push(cell);if(row.some(x=>x!==""))rows.push(row);row=[];cell="";state="start";};
+for(let i=0;i<text.length;i++){
+const c=text[i];
+if(state==="quoted"){if(c==='"'){if(text[i+1]==='"'){cell+='"';i++}else state="after"}else cell+=c;continue;}
+if(state==="after"&&c!==","&&c!=="\n"&&c!=="\r")throw Error("CSVの閉じ引用符の後に余分な文字があります。");
+if(c===","){row.push(cell);cell="";state="start";}
+else if(c==="\n"||c==="\r"){if(c==="\r"&&text[i+1]==="\n")i++;pushRow();}
+else if(c==='"'){if(state!=="start")throw Error("CSVの引用符の位置が不正です。");state="quoted";}
+else{cell+=c;state="plain";}
+}
+if(state==="quoted")throw Error("CSVの引用符が閉じられていません。");
+if(row.length||cell!=="")pushRow();
+return rows;
 }
 function loadCSV(text){resetBatch();const rows=parseCSV(text.replace(/^\uFEFF/,""));if(rows.length<2)throw Error("見出し行と商品データを含むCSVを指定してください。");if(rows.length>5001)throw Error("商品数は5,000件以内にしてください。");
 const header=["商品コード","現在庫","入荷待ち","引当済み","1日平均販売数","納期日数","安全在庫","目標日数"];if(rows[0].length!==8||rows[0].some((x,i)=>x.trim()!==header[i]))throw Error("CSVの見出しと列順を確認してください。");
