@@ -466,7 +466,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
      await page.evaluate(()=>{
-       load('分類,金額\\nA,10\\nB,20');
+       load('分類,金額\nA,10\nB,20');
        state.rows=[['A','1e308'],['A','1e308']];
        document.querySelector('#chartType').value='pie';
        renderChart();
