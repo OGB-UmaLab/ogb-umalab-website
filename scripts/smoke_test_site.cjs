@@ -465,6 +465,17 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
+     await page.evaluate(()=>{
+       load('分類,金額\\nA,10\\nB,20');
+       state.rows=[['A','1e308'],['A','1e308']];
+       document.querySelector('#chartType').value='pie';
+       renderChart();
+     });
+     if(!(await page.locator('#chartError').innerText()).includes('計算可能な範囲')) throw new Error('Aggregate overflow was not reported');
+     if(await page.evaluate(()=>state.group.length)!==0) throw new Error('Overflow retained exportable aggregate');
+     if(await page.locator('#groupBody tr').count()!==0) throw new Error('Overflow retained chart preview');
+   });
+   await test(local('tools/csv-analyzer/index.html'),async()=>{
      await page.evaluate(()=>load('分類,金額\nA,-10\nB,20'));
      await page.locator('#chartType').selectOption('pie');
      await page.locator('#agg').selectOption('sum');
