@@ -489,6 +489,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/sales-summary/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#rows tr').count()!==2) throw new Error('Monthly sales sample month count incorrect');
+     if(!(await page.locator('#summary').innerText()).includes('25,000円')) throw new Error('Monthly sales overall total incorrect');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#export').click();
+     const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!csv.includes('2026-10')||!csv.includes('2026-11')||!csv.includes('13000')) throw new Error('Monthly sales CSV export incorrect');
+     await page.evaluate(()=>{try{load('営業日,決済方法,売上金額,摘要\n2026-02-30,現金,100,無効')}catch(e){reset();document.getElementById('error').textContent=e.message}});
+     if(!(await page.locator('#error').innerText()).includes('2行目')) throw new Error('Invalid sales date accepted');
+     if(!(await page.locator('#export').isDisabled())) throw new Error('Stale monthly summary export enabled');
+   });
    await test(local('tools/daily-sales-ledger/index.html'),async()=>{
      await page.locator('#sample').click();
      if(await page.locator('#rows tr').count()!==3) throw new Error('Sales ledger sample rows incorrect');
