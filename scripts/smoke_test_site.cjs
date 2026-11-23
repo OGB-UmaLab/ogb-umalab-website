@@ -74,6 +74,11 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(pageObjects!==3) throw new Error('PDF practice print output is not three pages: '+pageObjects);
    });
    await test(local('tools/basic-statistics/index.html'),async()=>{
+     await page.locator('#csv').setInputFiles({name:'uneven.csv',mimeType:'text/csv',buffer:Buffer.from('1,2\n3','utf8')});
+     await page.waitForFunction(() => document.querySelector('#stats-result')?.textContent.includes('列数が一致しません'));
+     if((await page.locator('#values').inputValue()).trim()) throw new Error('Malformed CSV retained previous statistics');
+   });
+   await test(local('tools/basic-statistics/index.html'),async()=>{
      await page.locator('#values').fill('1e308,1e308');
      await page.locator('#calc-stats').click();
      if(!(await page.locator('#stats-result').innerText()).includes('正確に算出できません')) throw new Error('Nonfinite statistics not rejected');
