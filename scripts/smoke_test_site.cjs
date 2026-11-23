@@ -489,6 +489,21 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/inventory-reorder/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#resultBody tr').count()!==3) throw new Error('Inventory sample did not load');
+     if(!(await page.locator('#summary').innerText()).includes('発注対象：2商品')) throw new Error('Inventory reorder sample classification incorrect');
+     const row=await page.locator('#resultBody tr').first().innerText();
+     if(!row.includes('20')||!row.includes('65')) throw new Error('Inventory reorder calculation incorrect');
+     await page.evaluate(()=>{try{loadCSV('商品コード,現在庫,入荷待ち,引当済み,1日平均販売数,納期日数,安全在庫,目標日数\\nA,1,0,0,1,1,1,7\\nA,2,0,0,1,1,1,7')}catch(e){resetBatch(e.message)}});
+     if(!(await page.locator('#error').innerText()).includes('重複')) throw new Error('Duplicate SKU was not rejected');
+     if(!(await page.locator('#export').isDisabled())) throw new Error('Invalid inventory retained CSV export');
+     await page.locator('#sample').click();
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#export').click();
+     const file=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!file.includes('SKU-001')||!file.includes('発注目安')) throw new Error('Inventory CSV export missing results');
+   });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
      await page.evaluate(()=>{
        load('分類,金額\nA,10\nB,20');
