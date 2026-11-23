@@ -490,6 +490,23 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
    await test(local('tools/shipping-cost-report/index.html'),async()=>{
+     await page.locator('#entryRows input').first().fill('宅配便');
+     await page.locator('#entryRows input').nth(1).fill('2');
+     await page.locator('#entryRows input').nth(2).fill('1000');
+     await page.locator('#entryRows input').nth(3).fill('800');
+     if(!(await page.locator('#summary').innerText()).includes('送料差額：200円'))throw new Error('Editable shipping row did not calculate');
+     await page.locator('#addRow').click();
+     if(await page.locator('#entryRows tr').count()!==2)throw new Error('Row addition failed');
+     await page.locator('#entryRows tr').last().locator('button').click();
+     if(await page.locator('#entryRows tr').count()!==1)throw new Error('Row deletion failed');
+   });
+   await test(local('tools/expense-category-report/index.html'),async()=>{
+     await page.locator('#entryRows input').first().fill('広告宣伝費');
+     await page.locator('#entryRows input').nth(1).fill('2026-11-24');
+     await page.locator('#entryRows input').nth(2).fill('3500');
+     if(!(await page.locator('#summary').innerText()).includes('支出合計：3,500円'))throw new Error('Editable expense row did not calculate');
+   });
+   await test(local('tools/shipping-cost-report/index.html'),async()=>{
      await page.locator('#sample').click();
      if(await page.locator('#rows tr').count()!==2)throw new Error('Shipping cost grouping incorrect');
      if(!(await page.locator('#summary').innerText()).includes('送料差額：-1,500円'))throw new Error('Shipping cost total incorrect');
