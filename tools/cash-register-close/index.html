@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>レジ締め・現金過不足チェック｜OGBデータ研究所</title>
+<meta name="description" content="小規模店舗向け無料レジ締めツール。開始現金・現金売上・現金入出金・金種別実査からレジ過不足を計算し、CSV保存できます。">
+<link rel="canonical" href="https://ogb-umalab.com/tools/cash-register-close/">
+<style>body{margin:0;background:#f5f8fa;color:#18313a;font:16px/1.7 system-ui,"Noto Sans JP",sans-serif}header,footer{background:#123c4c;color:#fff;padding:18px max(18px,calc((100vw - 950px)/2))}header a,footer a{color:#fff}.wrap{max-width:950px;margin:auto;padding:24px 16px}.card{background:#fff;border:1px solid #d7e2e9;border-radius:12px;padding:20px;margin:16px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}label{display:block;font-weight:650}input{box-sizing:border-box;width:100%;padding:10px;border:1px solid #9aadb4;border-radius:6px;font:inherit}button{padding:10px 16px;background:#075e78;color:white;border:0;border-radius:7px;font:inherit;cursor:pointer;margin:5px 8px 5px 0}button:disabled{opacity:.5;cursor:not-allowed}.muted{color:#526a72}.error{color:#9a1b1b;white-space:pre-wrap}output{display:block;background:#eaf5f8;padding:14px;border-radius:8px;white-space:pre-wrap;margin-top:12px}table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #d8e4e9;padding:9px;text-align:left}td input{max-width:160px}a{color:#075e78}a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #d28a00;outline-offset:3px}@media(max-width:600px){h1{font-size:1.55rem}.card{padding:14px}td input{max-width:100px}}</style>
+</head><body><header><nav><a href="/">OGBデータ研究所</a> ／ <a href="/tools/">無料ツール一覧</a></nav></header><main class="wrap">
+<h1>レジ締め・現金過不足チェック</h1><p>小規模店舗の閉店時に、帳簿上の現金残高と、実際に数えた紙幣・硬貨の合計を照合します。</p>
+<section class="card"><h2>1. 日付・レジ情報</h2><div class="grid"><div><label for="date">営業日</label><input type="date" id="date"></div><div><label for="register">レジ名・店舗名（任意）</label><input id="register" maxlength="100" placeholder="本店レジ1"></div></div></section>
+<section class="card"><h2>2. 帳簿上の現金を入力</h2><div class="grid">
+<div><label for="opening">開始時の現金（円）</label><input type="number" id="opening" min="0" step="1" value="30000"></div>
+<div><label for="sales">現金売上（円）</label><input type="number" id="sales" min="0" step="1" value="25000"></div>
+<div><label for="cashin">売上以外の現金入金（円）</label><input type="number" id="cashin" min="0" step="1" value="0"></div>
+<div><label for="cashout">現金出金・レジからの回収（円）</label><input type="number" id="cashout" min="0" step="1" value="5000"></div>
+</div><p class="muted">キャッシュレス決済分は現金売上に含めないでください。返金は現金出金に含めてください。レジへの釣銭補充は現金入金に含めます。</p></section>
+<section class="card"><h2>3. 現金を金種別に数える</h2><table><thead><tr><th>金種</th><th>枚数</th><th>小計</th></tr></thead><tbody id="denoms"></tbody></table><button type="button" id="calc">レジ締めを計算</button><button type="button" id="sample">サンプルを入力</button><button type="button" id="clear">枚数をクリア</button><button type="button" id="download" disabled>結果をCSV保存</button><p id="error" class="error" role="alert"></p><output id="result" aria-live="polite">数値を入力して「レジ締めを計算」を押してください。</output></section>
+<section class="card"><h2>計算方法・注意事項</h2><p>帳簿上の現金残高＝開始時の現金＋現金売上＋売上以外の現金入金－現金出金。実査現金＝金種ごとの枚数×金額の合計。過不足＝実査現金－帳簿上の現金残高です。プラスは現金過多、マイナスは現金不足を示します。</p><p class="muted">本ツールは単一レジの現金照合用です。税区分、売掛金、カード決済、銀行入金、複数レジの移動や会計仕訳を自動処理するものではありません。入力内容はこのブラウザ内で計算し、サーバーには送信しません。CSV保存時には端末にデータが保存されます。</p></section></main><footer>OGBデータ研究所 ／ <a href="/privacy/">プライバシーポリシー</a></footer>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const values=[10000,5000,2000,1000,500,100,50,10,5,1],inputs=["opening","sales","cashin","cashout"],nf=new Intl.NumberFormat("ja-JP");
+let last=null;
+function invalidate(){last=null;$("download").disabled=true;$("result").textContent="入力が変更されました。再計算してください。";$("error").textContent="";}
+const tbody=$("denoms");
+for(const yen of values){const tr=document.createElement("tr"),th=document.createElement("th"),td=document.createElement("td"),sum=document.createElement("td"),inp=document.createElement("input");th.textContent=nf.format(yen)+"円";inp.type="number";inp.min="0";inp.step="1";inp.value="0";inp.id="n"+yen;inp.setAttribute("aria-label",nf.format(yen)+"円の枚数");inp.addEventListener("input",()=>{sum.textContent="—";invalidate()});td.append(inp);sum.id="sum"+yen;sum.textContent="0円";tr.append(th,td,sum);tbody.append(tr);}
+function integer(id){const s=$(id).value.trim();if(!/^\d+$/.test(s))throw Error("入力欄「"+($(id).getAttribute("aria-label")||id)+"」は0以上の整数で入力してください。");const n=Number(s);if(!Number.isSafeInteger(n))throw Error("計算可能な整数の範囲を超えています。");return n}
+function calculate(){
+const amounts=inputs.map(integer),counts=values.map(y=>integer("n"+y));
+const expected=amounts[0]+amounts[1]+amounts[2]-amounts[3];
+const subtotals=values.map((y,i)=>y*counts[i]),actual=subtotals.reduce((a,b)=>a+b,0),difference=actual-expected;
+if(![expected,actual,difference,...subtotals].every(Number.isSafeInteger))throw Error("金額が計算可能な範囲を超えています。");
+return {amounts,counts,expected,actual,difference,subtotals,date:$("date").value,register:$("register").value.trim()};
+}
+function show(){try{const r=calculate();last=r;$("error").textContent="";r.subtotals.forEach((v,i)=>{$("sum"+values[i]).textContent=nf.format(v)+"円"});$("result").textContent="帳簿上の現金残高："+nf.format(r.expected)+"円\n実査現金："+nf.format(r.actual)+"円\n現金過不足："+(r.difference>0?"+":"")+nf.format(r.difference)+"円\n判定："+(r.difference===0?"一致":r.difference>0?"現金過多":"現金不足");$("download").disabled=false;}catch(e){last=null;$("download").disabled=true;$("error").textContent=e.message;$("result").textContent="計算できませんでした。入力を確認してください。";}}
+$("calc").addEventListener("click",show);
+for(const id of [...inputs,"date","register"])$(id).addEventListener("input",invalidate);
+$("sample").addEventListener("click",()=>{["30000","25000","0","5000"].forEach((v,i)=>{$(inputs[i]).value=v});const c=[3,2,0,0,0,0,0,0,0,0];values.forEach((v,i)=>{$("n"+v).value=c[i]});invalidate();show()});
+$("clear").addEventListener("click",()=>{values.forEach(v=>{$("n"+v).value="0";$("sum"+v).textContent="0円"});invalidate()});
+function csv(s){let v=String(s);if(/^[=+@]/.test(v.trimStart())||(/^[-]/.test(v.trimStart())&&!/^-(?:\d+(?:\.\d+)?|\.\d+)$/.test(v.trimStart())))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'}
+$("download").addEventListener("click",()=>{if(!last)return;const r=last;const rows=[["項目","値"],["営業日",r.date],["レジ名",r.register],["開始時現金",r.amounts[0]],["現金売上",r.amounts[1]],["現金入金",r.amounts[2]],["現金出金",r.amounts[3]],...values.map((v,i)=>[v+"円枚数",r.counts[i]]),["帳簿上の現金残高",r.expected],["実査現金",r.actual],["現金過不足",r.difference]];const blob=new Blob(["\uFEFF"+rows.map(row=>row.map(csv).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="cash-register-close.csv";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+</script></body></html>
