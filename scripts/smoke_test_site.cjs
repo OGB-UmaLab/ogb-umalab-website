@@ -73,6 +73,21 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const pageObjects=(text.match(/\/Type\s*\/Page\b/g)||[]).length;
      if(pageObjects!==3) throw new Error('PDF practice print output is not three pages: '+pageObjects);
    });
+   await test(local('tools/profit-break-even/index.html'),async()=>{
+     await page.locator('#price').fill('');
+     await page.locator('#calc-profit').click();
+     if(!(await page.locator('#profit-result').innerText()).includes('入力値を確認')) throw new Error('Empty price was treated as zero');
+     await page.locator('#price').fill('1980');
+     await page.locator('#units').fill('1e20');
+     await page.locator('#calc-profit').click();
+     if(!(await page.locator('#profit-result').innerText()).includes('入力値を確認')) throw new Error('Unsafe unit count accepted');
+   });
+   await test(local('tools/correlation/index.html'),async()=>{
+     await page.locator('#xs').fill('1e200,2e200,3e200');
+     await page.locator('#ys').fill('1e200,2e200,3e200');
+     await page.locator('#calc-corr').click();
+     if(!(await page.locator('#corr-result').innerText()).includes('正確に算出できません')) throw new Error('Nonfinite correlation not rejected');
+   });
    await test(local('tools/order-payment-reconcile/index.html'),async()=>{
      await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\nA,10')});
      await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\nA,10')});
