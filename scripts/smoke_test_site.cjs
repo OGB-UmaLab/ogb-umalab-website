@@ -490,6 +490,14 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
    await test(local('tools/product-margin-report/index.html'),async()=>{
+     await page.locator('#importFile').setInputFiles({name:'product-data.csv',mimeType:'text/csv',buffer:Buffer.from(['SKU,販売数量,単価,単位原価,販売手数料合計,送料合計','SKU-A,2,2000,800,200,300','SKU-B,1,1000,500,100,100'].join(String.fromCharCode(10)))});
+     if(await page.locator('#entryRows tr').count()!==2)throw new Error('CSV import row count incorrect');
+     if(!(await page.locator('#summary').innerText()).includes('2,200円'))throw new Error('CSV import calculation incorrect');
+     await page.locator('#entryRows input').first().fill('SKU,INVALID');
+     if(!(await page.locator('#entryError').innerText()).includes('カンマ'))throw new Error('Comma in field accepted');
+     if(!(await page.locator('#export').isDisabled()))throw new Error('Export remained enabled after invalid field');
+   });
+   await test(local('tools/product-margin-report/index.html'),async()=>{
      await page.locator('#entryRows input').first().fill('SKU-TEST');
      await page.locator('#entryRows input').nth(1).fill('2');
      await page.locator('#entryRows input').nth(2).fill('2000');
