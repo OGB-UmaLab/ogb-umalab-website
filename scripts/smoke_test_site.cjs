@@ -104,6 +104,14 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(await page.locator('#metrics').locator('*').count()) throw new Error('CSV merge stale metrics retained after settings change');
    });
    await test(local('tools/profit-break-even/index.html'),async()=>{
+     await page.locator('#calc-profit').click();
+     if(!(await page.locator('#profit-result').innerText()).includes('利益：')) throw new Error('Initial profit result missing');
+     await page.locator('#price').fill('2000');
+     if(!(await page.locator('#profit-result').innerText()).includes('再計算してください')) throw new Error('Stale break-even result after edit');
+     await page.locator('#calc-profit').click();
+     if(!(await page.locator('#profit-result').innerText()).includes('利益：')) throw new Error('Break-even recalculation failed');
+   });
+   await test(local('tools/profit-break-even/index.html'),async()=>{
      await page.locator('#price').fill('');
      await page.locator('#calc-profit').click();
      if(!(await page.locator('#profit-result').innerText()).includes('入力値を確認')) throw new Error('Empty price was treated as zero');
