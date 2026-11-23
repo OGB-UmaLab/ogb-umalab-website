@@ -70,7 +70,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(await page.locator('button[onclick="window.print()"] ').count()!==1) throw new Error('PDF practice print button missing');
      const pdf=await page.pdf({format:'A4',printBackground:true,preferCSSPageSize:true});
      const text=pdf.toString('latin1');
-     const pageObjects=(text.match(/\\/Type\\s*\\/Page\\b/g)||[]).length;
+     const pageObjects=(text.match(/\/Type\s*\/Page\b/g)||[]).length;
      if(pageObjects!==3) throw new Error('PDF practice print output is not three pages: '+pageObjects);
    });
    await test(local('tools/order-payment-reconcile/index.html'),async()=>{
