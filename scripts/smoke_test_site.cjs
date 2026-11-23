@@ -74,6 +74,11 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(pageObjects!==3) throw new Error('PDF practice print output is not three pages: '+pageObjects);
    });
    await test(local('tools/basic-statistics/index.html'),async()=>{
+     await page.locator('#csv').setInputFiles({name:'empty.csv',mimeType:'text/csv',buffer:Buffer.from('','utf8')});
+     await page.waitForFunction(() => document.querySelector('#stats-result')?.textContent.includes('データ行がありません'));
+     if((await page.locator('#values').inputValue()).trim()) throw new Error('Empty CSV retained stale values');
+   });
+   await test(local('tools/basic-statistics/index.html'),async()=>{
      await page.locator('#csv').setInputFiles({name:'uneven.csv',mimeType:'text/csv',buffer:Buffer.from('1,2\n3','utf8')});
      await page.waitForFunction(() => document.querySelector('#stats-result')?.textContent.includes('列数が一致しません'));
      if((await page.locator('#values').inputValue()).trim()) throw new Error('Malformed CSV retained previous statistics');
