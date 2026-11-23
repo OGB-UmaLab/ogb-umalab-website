@@ -491,7 +491,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    });
    await test(local('tools/csv-analyzer/index.html'),async()=>{
      await page.evaluate(()=>{
-       load('分類,金額\\nA,10\\nB,20');
+       load('分類,金額\nA,10\nB,20');
        const t=state.stats.find(t=>t.index===1);
        t.min=-1e308;t.max=1e308;t.values=[-1e308,1e308];
        document.querySelector('#chartType').value='hist';
