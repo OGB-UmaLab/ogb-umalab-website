@@ -57,60 +57,58 @@
 </section>
 <section class="section" id="choose-task" aria-labelledby="choose-task-title">
 <div class="container">
-<div class="section-heading"><h2 id="choose-task-title"><span class="kicker">START HERE</span>何をしたいですか？</h2><p>目的を選ぶと、使えるツールと手順が分かります。アカウント登録は不要です。</p></div>
+<div class="section-heading"><h2 id="choose-task-title"><span class="kicker">FIND YOUR TOOL</span>目的から無料ツールを探す</h2><p>作業に合った無料ツールを選べます。登録は不要です。詳しい操作例は各ツールの実践ガイドで確認できます。</p></div>
 <style>
-#choose-task .task-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,265px),1fr));gap:18px;margin-top:24px}
-#choose-task .task-card{background:#fff;border:1px solid #d9e5eb;border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:10px;box-shadow:0 5px 18px rgba(13,48,74,.06)}
-#choose-task .task-card h3{font-size:1.22rem;margin:0;color:#163a52}
-#choose-task .task-card p{margin:0;line-height:1.75}
-#choose-task .task-card a{font-weight:700;margin-top:auto;padding-top:9px}
-#choose-task .task-example{font-size:.9rem;color:#435d6b}
+#choose-task .task-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:24px}
+#choose-task .task-card,#workflows .workflow-card{background:#fff;border:1px solid #d9e5eb;border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:12px;min-width:0;box-shadow:0 5px 18px rgba(13,48,74,.05)}
+#choose-task .task-card h3,#workflows .workflow-card h3{font-size:1.15rem;line-height:1.5;margin:0;color:#163a52}
+#choose-task .task-card p,#workflows .workflow-card p{margin:0;line-height:1.7}
+#choose-task .task-card a,#workflows .workflow-card>a{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:auto;padding:12px 2px 0;border-top:1px solid #d9e5eb;font-weight:700;text-decoration:none;overflow-wrap:anywhere}
+#choose-task .task-card a:hover,#workflows .workflow-card>a:hover{text-decoration:underline}
+#choose-task .task-card a:focus-visible,#workflows .workflow-card a:focus-visible{outline:3px solid #b57619;outline-offset:3px}
+#workflows .workflow-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:24px}
+#workflows .workflow-card ol{margin:0;padding-left:1.35em;line-height:1.8}
+#workflows .workflow-card .workflow-tools{font-size:.92rem;color:#435d6b}
+@media(max-width:900px){#choose-task .task-grid,#workflows .workflow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){#choose-task .task-grid,#workflows .workflow-grid{grid-template-columns:1fr;gap:14px}#choose-task .task-card,#workflows .workflow-card{padding:18px}}
 </style>
 <div class="task-grid">
-<article class="task-card"><h3>複数のCSVをまとめたい</h3><p>月別・店舗別のファイルを結合し、重複や列の違いを確認できます。</p><p class="task-example">例：3か月分の売上CSVを1つにまとめる</p><a href="guides/csv-merge-hands-on/">3店舗のサンプルCSVで無料体験する →</a></article>
-<article class="task-card"><h3>受注と決済の違いを調べたい</h3><p>注文明細を注文単位にまとめ、受注CSVと決済CSVの金額・注文番号を照合します。</p><p class="task-example">例：注文はあるのに決済データが見つからない行を探す</p><a href="guides/order-reconciliation-hands-on/">サンプルCSVで無料体験する →</a></article>
-<article class="task-card"><h3>売上・経費の数字を分析したい</h3><p>CSVの欠損値・外れ値・統計量・グラフを確認し、データの特徴をつかみます。</p><p class="task-example">例：月別の売上データのばらつきを確認する</p><a href="guides/csv-analysis-hands-on/">10日分の売上CSVで無料体験する →</a></article>
-<article class="task-card"><h3>販売価格と利益を計算したい</h3><p>原価・固定費・手数料・目標利益から、必要な販売価格を逆算します。</p><p class="task-example">例：手数料率が変わった場合の必要価格を比較する</p><a href="guides/pricing-simulator-hands-on/">2つの事例で無料体験する →</a></article>
-<article class="task-card"><h3>PDF・画像を一括整理したい</h3><p>PDFの分割・命名や、画像のサイズ・形式の一括変換を行えます。</p><p class="task-example">例：複数の商品画像をまとめて縮小する</p><a href="tools/">PDF・画像ツールを選ぶ →</a></article>
-<article class="task-card"><h3>ツールの使い方から知りたい</h3><p>具体例と計算方法を確認してから、無料ツールを使えます。</p><p class="task-example">例：CSV分析の平均・中央値・外れ値の意味を確認する</p><a href="guides/csv-analysis-basics/">CSV分析の基本を読む →</a></article>
+<article class="task-card"><h3>CSVの結合・整理</h3><p>月別・店舗別のCSVをまとめ、重複や列の違いを確認します。</p><a href="tools/categories/csv-text/">対応ツールを見る <span aria-hidden="true">›</span></a></article>
+<article class="task-card"><h3>注文・決済データの照合</h3><p>注文番号や金額を比較し、不一致や未照合を確認します。</p><a href="tools/order-payment-reconcile/">照合ツールを開く <span aria-hidden="true">›</span></a></article>
+<article class="task-card"><h3>販売価格・利益の計算</h3><p>原価・手数料などをもとに販売価格や利益を試算します。</p><a href="tools/categories/sales-profit/">対応ツールを見る <span aria-hidden="true">›</span></a></article>
+<article class="task-card"><h3>PDF・画像の整理</h3><p>PDFの分割・一括命名、画像のサイズ・形式変換ができます。</p><a href="tools/categories/pdf-image/">対応ツールを見る <span aria-hidden="true">›</span></a></article>
+<article class="task-card"><h3>統計・データ分析</h3><p>平均・標準偏差・相関やCSVの数値傾向を確認します。</p><a href="tools/categories/statistics/">対応ツールを見る <span aria-hidden="true">›</span></a></article>
+<article class="task-card"><h3>使い方・実践ガイド</h3><p>サンプルデータを使い、操作手順と結果の確認方法を学べます。</p><a href="guides/">実践ガイドを見る <span aria-hidden="true">›</span></a></article>
 </div>
 </div>
 </section>
 <section class="section mist" id="workflows" aria-labelledby="workflows-title">
 <div class="container">
 <div class="section-heading">
-<h2 id="workflows-title"><span class="kicker">PRACTICAL WORKFLOWS</span>単体のツールで終わらせない。実務の流れで試す。</h2>
-<p>サンプルファイルを使って、入力データの準備から結果の確認まで順番に体験できます。各手順は無料で公開しています。</p>
+<h2 id="workflows-title"><span class="kicker">PRACTICAL WORKFLOWS</span>実務での活用例</h2>
+<p>複数のツールを組み合わせる作業を、サンプルデータで順番に確認できます。</p>
 </div>
-<style>
-#workflows .workflow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px;margin-top:24px}
-#workflows .workflow-card{background:#fff;border:1px solid #d9e5eb;border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px}
-#workflows .workflow-card h3{font-size:1.2rem;line-height:1.5;margin:0;color:#163a52}
-#workflows .workflow-card p{margin:0;line-height:1.75}
-#workflows .workflow-card ol{margin:0;padding-left:1.35em;line-height:1.85}
-#workflows .workflow-card a{margin-top:auto;font-weight:700}
-</style>
 <div class="workflow-grid">
 <article class="workflow-card">
-<h3>注文の集計から入金の照合まで</h3>
-<p>注文明細と決済データを突き合わせ、金額が合わない注文や片側にしかない注文を確認します。</p>
-<ol><li>注文明細CSVを注文番号ごとに集計</li><li>注文合計と決済CSVを照合</li><li>一致・不一致・未照合の行を確認</li></ol>
-<p>使うツール：<a href="tools/order-line-aggregate/">注文明細集計</a>・<a href="tools/order-payment-reconcile/">受注・決済照合</a></p>
-<a href="guides/order-reconciliation-hands-on/">サンプルで一連の作業を試す →</a>
+<h3>注文の集計から決済照合まで</h3>
+<p>注文明細を注文単位にまとめ、決済CSVと比較します。</p>
+<ol><li>注文番号ごとに金額を集計</li><li>決済CSVと照合</li><li>不一致・未照合を確認</li></ol>
+<p class="workflow-tools">使用ツール：<a href="tools/order-line-aggregate/">注文明細集計</a>・<a href="tools/order-payment-reconcile/">受注・決済照合</a></p>
+<a href="guides/order-reconciliation-hands-on/">実践手順を見る <span aria-hidden="true">›</span></a>
 </article>
 <article class="workflow-card">
-<h3>複数CSVの統合から売上分析まで</h3>
-<p>店舗ごとに列順が違うCSVをまとめ、集計・分析する前のデータを整えます。</p>
-<ol><li>3店舗のCSVをダウンロード</li><li>列をそろえて結合し、重複を確認</li><li>結合結果をCSV分析ツールで調べる</li></ol>
-<p>使うツール：<a href="tools/csv-merge/">CSV結合</a>・<a href="tools/csv-analyzer/">CSV分析</a></p>
-<a href="guides/csv-merge-hands-on/">3店舗のサンプルで試す →</a>
+<h3>複数CSVの結合から売上分析まで</h3>
+<p>列順の違うCSVをまとめ、分析できるデータに整えます。</p>
+<ol><li>3店舗のサンプルCSVを準備</li><li>列を確認して結合</li><li>結合結果を分析</li></ol>
+<p class="workflow-tools">使用ツール：<a href="tools/csv-merge/">CSV結合</a>・<a href="tools/csv-analyzer/">CSV分析</a></p>
+<a href="guides/csv-merge-hands-on/">実践手順を見る <span aria-hidden="true">›</span></a>
 </article>
 <article class="workflow-card">
-<h3>販売価格を決める前に利益を検証</h3>
-<p>原価・販売手数料・固定費を入力し、目標利益に必要な価格と販売数量を考えます。</p>
-<ol><li>原価と手数料などの条件を入力</li><li>必要販売価格を逆算</li><li>販売数量を変えて利益の違いを確認</li></ol>
-<p>使うツール：<a href="tools/pricing-simulator/">販売価格逆算</a>・<a href="tools/#profit">利益計算</a></p>
-<a href="guides/pricing-simulator-hands-on/">計算例から試す →</a>
+<h3>販売価格の試算から利益確認まで</h3>
+<p>原価・手数料・固定費をもとに、必要価格と利益を比較します。</p>
+<ol><li>原価・手数料を入力</li><li>必要販売価格を逆算</li><li>販売数量と利益を確認</li></ol>
+<p class="workflow-tools">使用ツール：<a href="tools/pricing-simulator/">販売価格逆算</a>・<a href="tools/profit-break-even/">利益計算</a></p>
+<a href="guides/pricing-simulator-hands-on/">実践手順を見る <span aria-hidden="true">›</span></a>
 </article>
 </div>
 </div>
