@@ -74,6 +74,14 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(pageObjects!==3) throw new Error('PDF practice print output is not three pages: '+pageObjects);
    });
    await test(local('tools/basic-statistics/index.html'),async()=>{
+     await page.locator('#values').fill('1.5,2.5');
+     await page.locator('#calc-stats').click();
+     if(!(await page.locator('#stats-result').innerText()).includes('中央値：2')) throw new Error('Fractional median incorrect');
+     await page.locator('#values').fill('1e308,1e308');
+     await page.locator('#calc-stats').click();
+     if(!(await page.locator('#stats-result').innerText()).includes('正確に算出できません')) throw new Error('Extreme statistics overflow not rejected');
+   });
+   await test(local('tools/basic-statistics/index.html'),async()=>{
      const before=await page.locator('#stats-result').innerText();
      if(!before.includes('平均：')) throw new Error('Initial statistics unavailable');
      await page.locator('#values').fill('2,4,6');
