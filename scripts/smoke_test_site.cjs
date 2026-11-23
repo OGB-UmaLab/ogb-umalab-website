@@ -61,6 +61,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      }
    }
    console.log('PASS Data Lab internal link audit:',pages.length,'pages,',linkCount,'links');
+   await test(local('examples/pdf-split-invoice-print/index.html'),async()=>{
+     const sheets=page.locator('.sheet');
+     if(await sheets.count()!==3) throw new Error('PDF practice must contain three invoice sheets');
+     for(const name of ['田中','佐藤','鈴木']){
+       if(await sheets.filter({hasText:name}).count()!==1) throw new Error('Missing or repeated sample invoice: '+name);
+     }
+     if(await page.locator('button[onclick="window.print()"] ').count()!==1) throw new Error('PDF practice print button missing');
+     const pdf=await page.pdf({format:'A4',printBackground:true,preferCSSPageSize:true});
+     const text=pdf.toString('latin1');
+     const pageObjects=(text.match(/\\/Type\\s*\\/Page\\b/g)||[]).length;
+     if(pageObjects!==3) throw new Error('PDF practice print output is not three pages: '+pageObjects);
+   });
    await test(local('tools/order-payment-reconcile/index.html'),async()=>{
      await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\nA,10')});
      await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('id,amount\nA,10')});
