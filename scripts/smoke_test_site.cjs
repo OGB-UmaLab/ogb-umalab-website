@@ -489,6 +489,21 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/cash-register-close/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(!(await page.locator('#result').innerText()).includes('現金過不足：-10,000円')) throw new Error('Cash register shortage calculation incorrect');
+     await page.locator('#n10000').fill('4');
+     await page.locator('#calc').click();
+     if(!(await page.locator('#result').innerText()).includes('現金過不足：0円')) throw new Error('Cash register balanced calculation incorrect');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#download').click();
+     const data=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!data.includes('帳簿上の現金残高')||!data.includes('実査現金')) throw new Error('Cash register CSV export missing values');
+     await page.locator('#opening').fill('');
+     await page.locator('#calc').click();
+     if(!(await page.locator('#download').isDisabled())) throw new Error('Invalid cash close still downloadable');
+     if(!(await page.locator('#error').innerText()).includes('整数')) throw new Error('Empty opening cash accepted');
+   });
    await test(local('tools/inventory-reorder/index.html'),async()=>{
      await page.locator('#sample').click();
      if(await page.locator('#resultBody tr').count()!==3) throw new Error('Inventory sample did not load');
