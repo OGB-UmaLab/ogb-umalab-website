@@ -489,6 +489,23 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/channel-profit-report/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(await page.locator('#rows tr').count()!==2) throw new Error('Sales channel aggregation incorrect');
+     const summary=await page.locator('#summary').innerText();
+     if(!summary.includes('売上合計：23,000円')||!summary.includes('利益合計：9,800円')) throw new Error('Channel profit totals incorrect');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#export').click();
+     const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
+     if(!csv.includes('ネットショップ')||!csv.includes('利益率')) throw new Error('Channel profit CSV incorrect');
+     await page.locator('#data').fill('ネットショップ,0,100,0,0');
+     await page.locator('#calculate').click();
+     if(!(await page.locator('#summary').innerText()).includes('利益合計：-100円')) throw new Error('Negative channel profit incorrect');
+     await page.locator('#data').fill('ネットショップ,-1,100,0,0');
+     await page.locator('#calculate').click();
+     if(!(await page.locator('#error').innerText()).includes('0以上')) throw new Error('Invalid channel sale accepted');
+     if(!(await page.locator('#export').isDisabled())) throw new Error('Stale channel export enabled');
+   });
    await test(local('tools/inventory-aging/index.html'),async()=>{
      await page.locator('#sample').click();
      if(await page.locator('#rows tr').count()!==3) throw new Error('Inventory aging sample count incorrect');
