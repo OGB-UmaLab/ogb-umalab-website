@@ -121,6 +121,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#profit-result').innerText()).includes('入力値を確認')) throw new Error('Unsafe unit count accepted');
    });
    await test(local('tools/correlation/index.html'),async()=>{
+     await page.locator('#calc-corr').click();
+     if(!(await page.locator('#corr-result').innerText()).includes('相関係数：')) throw new Error('Initial correlation result missing');
+     await page.locator('#xs').fill('1,2,3');
+     if(!(await page.locator('#corr-result').innerText()).includes('再計算してください')) throw new Error('Stale correlation after X edit');
+     await page.locator('#calc-corr').click();
+     await page.locator('#ys').fill('3,2,1');
+     if(!(await page.locator('#corr-result').innerText()).includes('再計算してください')) throw new Error('Stale correlation after Y edit');
+   });
+   await test(local('tools/correlation/index.html'),async()=>{
      await page.locator('#xs').fill('1e200,2e200,3e200');
      await page.locator('#ys').fill('1e200,2e200,3e200');
      await page.locator('#calc-corr').click();
