@@ -24,6 +24,9 @@ check(labLanding.includes('href="../guides/troubleshooting/"'), 'Data Lab landin
 
 
 // Validate the public discovery path for the two newest practical guides.
+const reconciliationTool = read('tools/order-payment-reconcile/index.html');
+check(reconciliationTool.includes('BigInt(digits||"0")'), 'Payment reconciliation must parse zero amounts');
+check(reconciliationTool.includes('$("excluded").textContent="";$("statusFilter")'), 'Reconciliation errors must clear previous excluded counts');
 const marketplace = read('tools/marketplace-profit-compare/index.html');
 const pdfTool = read('tools/pdf-split-rename/index.html');
 const guideDirectory = read('guides/index.html');
