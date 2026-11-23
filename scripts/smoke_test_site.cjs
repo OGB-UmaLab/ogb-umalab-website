@@ -204,8 +204,8 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(await page.locator('#results tr').count()) throw new Error('Stale reconciliation rows remain after error');
    });
    await test(local('tools/order-payment-reconcile/index.html'),async()=>{
-     await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\\nZERO,0\\nZERO2,0.00','utf8')});
-     await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\\nZERO,0.00\\nZERO2,0','utf8')});
+     await page.locator('#orders').setInputFiles({name:'orders.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\nZERO,0\nZERO2,0.00','utf8')});
+     await page.locator('#payments').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('注文番号,金額\nZERO,0.00\nZERO2,0','utf8')});
      await page.locator('#load').click();
      await page.waitForFunction(() => document.querySelector('#run')?.disabled === false);
      await page.locator('#run').click();
