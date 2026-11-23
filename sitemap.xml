@@ -1696,7 +1696,22 @@
     <loc>https://ogb-umalab.com/tools/</loc>
   </url>
   <url>
+    <loc>https://ogb-umalab.com/tools/basic-statistics/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/categories/csv-text/</loc>
+  </url>
+  <url>
     <loc>https://ogb-umalab.com/tools/categories/pdf-image/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/categories/sales-profit/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/categories/statistics/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/correlation/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/tools/csv-analyzer/</loc>
@@ -1724,6 +1739,9 @@
   </url>
   <url>
     <loc>https://ogb-umalab.com/tools/pricing-simulator/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/profit-break-even/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/umalab/</loc>
