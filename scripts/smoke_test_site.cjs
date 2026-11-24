@@ -699,6 +699,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#export').isDisabled())) throw new Error('Sales ledger stale CSV export enabled');
    });
    await test(local('tools/packing-checklist/index.html'),async()=>{
+     const csv=['注文番号,商品・数量,商品状態,梱包,宛先・配送方法,発送準備完了','ORDER-1,済,済,済,済,済','ORDER-2,済,未,未,未,未'].join(String.fromCharCode(10));
+     await page.locator('#restore').setInputFiles({name:'packing-checklist.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+     if(await page.locator('#rows tr').count()!==2)throw new Error('Packing CSV restore count incorrect');
+     if(!(await page.locator('#summary').innerText()).includes('発送準備完了：1件'))throw new Error('Packing CSV restore progress incorrect');
+     await page.locator('#orders').fill('ORDER-1'+String.fromCharCode(10)+'ORDER-1');
+     await page.locator('#build').click();
+     if(!(await page.locator('#error').innerText()).includes('重複'))throw new Error('Packing duplicate accepted');
+   });
+   await test(local('tools/packing-checklist/index.html'),async()=>{
      await page.locator('#sample').click();
      if(await page.locator('#rows tr').count()!==3) throw new Error('Packing checklist sample count incorrect');
      const row=page.locator('#rows tr').first();
