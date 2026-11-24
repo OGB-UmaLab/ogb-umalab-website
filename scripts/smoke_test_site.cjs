@@ -525,6 +525,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#summary').innerText()).includes('-1,000円'))throw new Error('Stocktake editable input incorrect');
    });
    await test(local('tools/shipping-cost-report/index.html'),async()=>{
+     await page.getByRole('button',{name:'＋ 5行追加'}).click();
+     if(await page.locator('#entryRows tr').count()!==6)throw new Error('Bulk row addition failed');
+     await page.getByRole('button',{name:'空行を整理'}).click();
+     if(await page.locator('#entryRows tr').count()!==1)throw new Error('Empty row cleanup failed');
+     await page.locator('#entryRows input').first().fill('宅配便');
+     await page.locator('#entryRows input').first().press('Enter');
+     if(!(await page.locator('#entryRows input').nth(1).evaluate(el=>el===document.activeElement)))throw new Error('Keyboard next-field navigation failed');
+   });
+   await test(local('tools/shipping-cost-report/index.html'),async()=>{
      await page.locator('#entryRows input').first().fill('宅配便');
      await page.locator('#entryRows input').nth(1).fill('2');
      await page.locator('#entryRows input').nth(2).fill('1000');
