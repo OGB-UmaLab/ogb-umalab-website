@@ -2192,7 +2192,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        if(actual!==canonical)throw new Error('Canonical mismatch for '+route+': '+actual);
        const description=await page.locator('meta[name="description"]').getAttribute('content');
        if(!description||description.trim().length<35)throw new Error('Missing useful meta description: '+route);
-       const robots=await page.locator('meta[name="robots"]').getAttribute('content').catch(()=>null);
+       const robots=await page.evaluate(()=>document.querySelector('meta[name="robots"]')?.getAttribute('content')??null);
        if(robots&&/noindex/i.test(robots))throw new Error('Unexpected noindex: '+route);
        if(!sitemap.includes('<loc>'+canonical+'</loc>'))throw new Error('Sitemap missing canonical: '+route);
      });
@@ -2207,7 +2207,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        const description=await page.locator('meta[name="description"]').getAttribute('content');
        if(!description||description.trim().length<35)throw new Error('Guide description missing: '+slug);
        if(!(await page.locator('main h1').first().innerText()).trim())throw new Error('Guide heading missing: '+slug);
-       const robots=await page.locator('meta[name="robots"]').getAttribute('content').catch(()=>null);
+       const robots=await page.evaluate(()=>document.querySelector('meta[name="robots"]')?.getAttribute('content')??null);
        if(robots&&/noindex/i.test(robots))throw new Error('Guide marked noindex: '+slug);
      });
    }
