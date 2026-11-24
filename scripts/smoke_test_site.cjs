@@ -490,6 +490,17 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
    await test(local('tools/product-margin-report/index.html'),async()=>{
+     const cells=page.locator('#entryRows input');
+     await cells.nth(0).fill('SKU-SAVE');await cells.nth(1).fill('1');await cells.nth(2).fill('1000');await cells.nth(3).fill('500');await cells.nth(4).fill('100');await cells.nth(5).fill('100');
+     const downloadPromise=page.waitForEvent('download');
+     await page.locator('#saveInput').click();
+     const file=await downloadPromise;
+     const csv=fs.readFileSync(await file.path(),'utf8');
+     if(!csv.includes('SKU-SAVE')||!csv.includes('販売数量'))throw new Error('Input backup CSV missing data');
+     await page.locator('#importFile').setInputFiles({name:'saved.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+     if(!(await page.locator('#summary').innerText()).includes('300円'))throw new Error('Saved input CSV not restored');
+   });
+   await test(local('tools/product-margin-report/index.html'),async()=>{
      await page.locator('#importFile').setInputFiles({name:'product-data.csv',mimeType:'text/csv',buffer:Buffer.from(['SKU,販売数量,単価,単位原価,販売手数料合計,送料合計','SKU-A,2,2000,800,200,300','SKU-B,1,1000,500,100,100'].join(String.fromCharCode(10)))});
      if(await page.locator('#entryRows tr').count()!==2)throw new Error('CSV import row count incorrect');
      if(!(await page.locator('#summary').innerText()).includes('2,200円'))throw new Error('CSV import calculation incorrect');
