@@ -489,6 +489,28 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await (await downloadPromise).path(),'utf8');
      if(!csv.includes("'=1+1,-100")||!csv.includes("'+SUM(1),200")) throw new Error('CSV merge formula guard or negative amount failed');
    });
+   await test(local('tools/expense-category-report/index.html'),async()=>{
+     const csv=Buffer.concat([Buffer.from([0x8d,0x4c,0x8d,0x90]),Buffer.from(',2026/11/2,"1,200"\r\n')]);
+     await page.locator('#importFile').setInputFiles({name:'excel.csv',mimeType:'text/csv',buffer:csv});
+     await page.waitForFunction(()=>!document.querySelector('#importFile').value);
+     const cells=page.locator('#entryRows input');
+     if(await cells.nth(0).inputValue()!=='広告'||await cells.nth(1).inputValue()!=='2026-11-02'||await cells.nth(2).inputValue()!=='1200')throw new Error('Japanese Excel CSV normalization failed');
+     if(!(await page.locator('#summary').innerText()).includes('1,200円'))throw new Error('Normalized CSV calculation failed');
+   });
+   await test(local('tools/product-margin-report/index.html'),async()=>{
+     const cells=page.locator('#entryRows input');
+     await cells.first().fill('UNDO-TEST');
+     await page.getByRole('button',{name:'元に戻す',exact:true}).click();
+     if(await cells.first().inputValue()!=='')throw new Error('Undo failed');
+     await page.getByRole('button',{name:'やり直す',exact:true}).click();
+     if(await cells.first().inputValue()!=='UNDO-TEST')throw new Error('Redo failed');
+     await page.getByRole('checkbox',{name:'この端末に入力途中のデータを自動保存する'}).check();
+     await page.reload();
+     await page.getByRole('button',{name:'前回の入力を復元'}).click();
+     if(await cells.first().inputValue()!=='UNDO-TEST')throw new Error('Draft restore failed');
+     await page.getByRole('button',{name:'保存データを削除'}).click();
+     if(!(await page.getByRole('button',{name:'前回の入力を復元'}).isDisabled()))throw new Error('Draft deletion failed');
+   });
    await test(local('tools/product-margin-report/index.html'),async()=>{
      const cells=page.locator('#entryRows input');
      await cells.nth(0).fill('SKU-SAVE');await cells.nth(1).fill('1');await cells.nth(2).fill('1000');await cells.nth(3).fill('500');await cells.nth(4).fill('100');await cells.nth(5).fill('100');
