@@ -343,6 +343,37 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   await test(local('tools/annual-income-summary/index.html'),async()=>{
+     const fill=async(id,v)=>page.locator('#'+id).fill(String(v));
+     const calc=async()=>page.locator('#calculate').click();
+     const expectResult=async(v)=>{if(!(await page.locator('#result').innerText()).includes(v))throw Error('Annual result mismatch: '+v)};
+     const importCSV=async(csv,expense=false)=>{
+       await page.locator('#file').setInputFiles({name:'annual.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+       await page.locator('#preview').waitFor({state:'visible'});
+       if(!await page.locator('#apply').isDisabled())throw Error('Annual import lacked confirmation');
+       if(expense)await page.locator('#expenseOptions input').first().check();
+       await page.locator('#confirmPeriod').check();await page.locator('#apply').click();
+     };
+     await page.locator('#sample').click();await expectResult('1,300,000円');
+     const dl=page.waitForEvent('download');await page.locator('#export').click();
+     if(!fs.readFileSync(await (await dl).path(),'utf8').includes('2026,青色申告特別控除前所得,1300000'))throw Error('Annual CSV mismatch');
+     await fill('closing',2000000);if(!await page.locator('#export').isDisabled())throw Error('Stale annual result');
+     await calc();if(!await page.locator('#export').isDisabled()||!(await page.locator('#error').innerText()).includes('期末棚卸'))throw Error('Invalid inventory accepted');
+     await page.locator('#clear').click();await fill('expenses',100);await calc();await expectResult('-100円');
+     await page.locator('#clear').click();
+     await importCSV('営業日,決済方法,売上金額,摘要\n2026-01-02,現金,1000,"a,b"\n2026-01-03,カード,2000,');
+     if(await page.locator('#sales').inputValue()!=='3000')throw Error('Daily CSV mapping');
+     await importCSV('対象月,現金,カード,QR決済,その他,合計\n2026-01,2000,3000,0,0,5000');
+     if(await page.locator('#sales').inputValue()!=='5000')throw Error('Monthly replacement');
+     await importCSV('SKU,販売数量,売上,商品原価,販売手数料,送料,利益,利益率（%）\nA,1,10000,4000,1000,500,4500,45');
+     await calc();await expectResult('4,500円');
+     await importCSV('販売チャネル,取引行数,売上,原価,手数料,送料,利益,利益率（%）\nX,1,20000,8000,2000,1000,9000,45');
+     await importCSV('経費科目,取引件数,支出金額\n広告費,1,3000\n送料,1,1000',true);
+     await calc();await expectResult('6,000円');
+     await page.locator('#file').setInputFiles({name:'wrong-year.csv',mimeType:'text/csv',buffer:Buffer.from('営業日,決済方法,売上金額,摘要\n2025-01-01,現金,1000,')});
+     await waitForText('#importError','2026年分以外');if(await page.locator('#sales').inputValue()!=='20000')throw Error('Invalid annual import mutated sales');
+     await fill('sales','9007199254740992');await calc();if(!await page.locator('#export').isDisabled())throw Error('Unsafe annual value accepted');
+   });
    await test(local('tools/product-ledger/index.html'),async()=>{
      await page.evaluate(()=>localStorage.removeItem('ogb-product-ledger-v1'));
      await page.reload();
