@@ -61,6 +61,7 @@ jobs:
               await page.waitForFunction(()=>document.querySelector('#mergeStatus').textContent.includes('重複除外 4件'));
               assert.equal(await page.locator('#history tr').count(),2);
               await page.reload();assert.equal(await page.locator('#history tr').count(),2);
+              await set('#date','2026-11-24');
               await page.locator('#race').selectOption('2');
               await page.locator('select[aria-label="払戻入力方式"]').selectOption('不的中');
               await set('[data-field=buy]',200);
@@ -68,6 +69,7 @@ jobs:
               await page.click('#save');
               assert.equal(await page.locator('#history tr').count(),3);
               assert.match(await page.locator('#summary').innerText(),/56,000円/);
+              await set('#date','2026-11-24');
               await page.locator('#race').selectOption('3');
               await page.locator('select[aria-label="払戻入力方式"]').selectOption('払戻額直接入力');
               await set('[data-field=buy]',200);
@@ -82,6 +84,7 @@ jobs:
               page.once('dialog',d=>d.accept());
               await page.locator('#history tr').filter({hasText:'40,000円'}).getByText('削除',{exact:true}).click();
               assert.equal(await page.locator('#history tr').count(),3);
+              assert.equal(await page.locator('#history tr').filter({hasText:'2026-11-24'}).count(),3);
               await set('#dailyDate','2026-11-24');
               const [daily]=await Promise.all([page.waitForEvent('download'),page.click('#dailyExcel')]);
               await daily.saveAs('/tmp/daily.xlsx');
@@ -105,6 +108,7 @@ jobs:
           assert w['購入明細'].max_row==3
           assert w['確定申告用集計']['D2'].value==81000
           d=openpyxl.load_workbook('/tmp/daily.xlsx')
+          print('Daily detail:', list(d['購入明細'].values))
           assert d['購入明細'].max_row==4
           assert d['日別収支']['E2'].value==56000
           print('PASS: Excel workbook and tax values, daily workbook')
