@@ -359,6 +359,19 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#count').fill('100');
      await page.locator('#calculate').click();
      if(await page.locator('#copyResult').isDisabled()) throw new Error('Pricing result did not recover');
+     await page.locator('#bulkSample').click();
+     if(await page.locator('#bulkRows tr').count()!==2||await page.locator('#bulkRows tr').first().locator('td').nth(1).innerText()!=='1223'||await page.locator('#bulkRows tr').nth(1).locator('td').nth(1).innerText()!=='1063')throw new Error('Bulk pricing sample incorrect');
+     const bulkDownload=page.waitForEvent('download');
+     await page.locator('#bulkExport').click();
+     const bulk=fs.readFileSync(await (await bulkDownload).path(),'utf8');
+     if(!bulk.includes('"ITEM-001","1223","667"'))throw new Error('Bulk pricing CSV incorrect');
+     await page.locator('#bulkInput').fill('A,1,0,1,100,0,0');
+     await page.locator('#bulkCalc').click();
+     if(!await page.locator('#bulkExport').isDisabled()||await page.locator('#bulkRows tr').count())throw new Error('Invalid bulk pricing export enabled');
+     await page.locator('#bulkFile').setInputFiles({name:'prices.csv',mimeType:'text/csv',buffer:Buffer.from('SKU,原価,月間固定費,月間販売数,手数料率,固定手数料,目標月間利益\n0001,90,0,1,10,0,0')});
+     await page.waitForFunction(()=>document.querySelector('#bulkRows tr'));
+     if(await page.locator('#bulkRows tr').first().locator('td').nth(1).innerText()!=='100')throw new Error('Bulk pricing exact boundary incorrect');
+
    });
    // Empty separator lines in exported CSVs are harmless; incomplete data rows are not.
    await test(local('tools/order-line-aggregate/index.html'),async()=>{
