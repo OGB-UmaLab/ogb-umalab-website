@@ -821,10 +821,14 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#inventoryTemplate').click();
      const template=fs.readFileSync(await (await templateDownload).path(),'utf8');
      if(!template.includes('"商品コード","現在庫","入荷待ち","引当済み","1日平均販売数","納期日数","安全在庫","目標日数"')||!template.includes('"ITEM-0001","","","","","","",""'))throw new Error('Inventory template missing SKU or blank inputs');
+     const pricingDownload=page.waitForEvent('download');
+     await page.locator('#pricingTemplate').click();
+     const pricing=fs.readFileSync(await (await pricingDownload).path(),'utf8');
+     if(!pricing.includes('"SKU","原価","月間固定費","月間販売数","手数料率","固定手数料","目標月間利益"')||!pricing.includes('"ITEM-0001","","","","","",""'))throw new Error('Pricing template incorrect');
      await page.locator('#start').fill('9999');
      await page.locator('#generate').click();
      if(!(await page.locator('#error').innerText()).includes('桁数')) throw new Error('SKU overflow not rejected');
-     if(!(await page.locator('#export').isDisabled())||!(await page.locator('#inventoryTemplate').isDisabled())) throw new Error('Stale SKU export remained enabled');
+     if(!(await page.locator('#export').isDisabled())||!(await page.locator('#inventoryTemplate').isDisabled())||!(await page.locator('#pricingTemplate').isDisabled())) throw new Error('Stale SKU export remained enabled');
    });
    await test(local('tools/cash-register-close/index.html'),async()=>{
      await page.locator('#sample').click();
