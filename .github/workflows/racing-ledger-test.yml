@@ -1,0 +1,79 @@
+name: Racing ledger browser tests
+on:
+  push:
+    branches: [main]
+    paths: ['racing-ledger/index.html', '.github/workflows/racing-ledger-test.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install --with-deps chromium
+      - name: Test ledger locally
+        run: |
+          node <<'JS'
+          const {chromium}=require('playwright');
+          const assert=require('node:assert/strict');
+          const fs=require('node:fs');
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            try {
+              const page=await browser.newPage();
+              const errors=[];page.on('pageerror',e=>errors.push(e.message));
+              await page.route('http://localhost:8765/**',r=>r.fulfill({contentType:'text/html',body:fs.readFileSync('racing-ledger/index.html','utf8')}));
+              await page.goto('http://localhost:8765/');
+              const set=async(s,v)=>page.locator(s).fill(String(v));
+              await set('#date','2026-11-24');
+              await page.locator('#venue').selectOption('浦和');
+              await page.locator('[data-type]').selectOption('複勝');
+              await set('[data-field=buy]',200);
+              await set('[data-field=odds]',170);
+              await page.click('#save');
+              assert.equal(await page.locator('#history tr').count(),1);
+              await page.locator('[data-type]').selectOption('ワイド');
+              await page.locator('select[aria-label="払戻入力方式"]').selectOption('払戻金・複数点');
+              await set('[data-field=buy]',200);
+              await set('[data-field=hit]',100);
+              await set('[data-field=odds]',770);
+              await page.click('#save');
+              assert.equal(await page.locator('#history tr').count(),2);
+              assert.match(await page.locator('#summary').innerText(),/71,000円/);
+              assert.match(await page.locator('#tax').innerText(),/81,000円/);
+              await page.locator('#month').selectOption('01');
+              assert.equal(await page.locator('#history tr').count(),0);
+              assert.match(await page.locator('#tax').innerText(),/81,000円/);
+              await page.locator('#month').selectOption('');
+              const [dl]=await Promise.all([page.waitForEvent('download'),page.click('#annualExcel')]);
+              await dl.saveAs('/tmp/ledger.xlsx');
+              const [csv]=await Promise.all([page.waitForEvent('download'),page.locator('#csv').evaluate(b=>b.click())]);
+              await csv.saveAs('/tmp/ledger.csv');
+              await page.evaluate(()=>localStorage.clear());await page.reload();
+              await page.locator('#ledgerFiles').setInputFiles('/tmp/ledger.xlsx');
+              await page.waitForFunction(()=>document.querySelector('#mergeStatus').textContent.includes('追加 2件'));
+              assert.equal(await page.locator('#history tr').count(),2);
+              await page.locator('#ledgerFiles').setInputFiles(['/tmp/ledger.xlsx','/tmp/ledger.csv']);
+              await page.waitForFunction(()=>document.querySelector('#mergeStatus').textContent.includes('重複除外 4件'));
+              assert.equal(await page.locator('#history tr').count(),2);
+              await page.reload();assert.equal(await page.locator('#history tr').count(),2);
+              assert.deepEqual(errors,[]);
+              console.log('PASS: entry, multi-ticket, totals, tax filters, Excel roundtrip, CSV merge, deduplication, persistence');
+            }finally{await browser.close()}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+      - name: Validate Excel workbook
+        run: |
+          python -m pip install openpyxl
+          python - <<'PY'
+          import openpyxl
+          w=openpyxl.load_workbook('/tmp/ledger.xlsx')
+          assert len(w.sheetnames)==8
+          assert w['購入明細'].max_row==3
+          assert w['確定申告用集計']['D2'].value==81000
+          print('PASS: Excel workbook and tax values')
+          PY
