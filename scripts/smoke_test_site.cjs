@@ -343,6 +343,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   await test(local('tools/inventory-movement/index.html'),async()=>{
+     await page.locator('#sample').click();if(!(await page.locator('#result').innerText()).includes('現在庫合計：10個')||await page.locator('#rows tr').count()!==2)throw Error('Inventory movement sample');
+     const dl=page.waitForEvent('download');await page.locator('#reorderTemplate').click();const csv=fs.readFileSync(await (await dl).path(),'utf8');if(!csv.includes('"A001","10","","","","","",""')||!csv.includes('"B001","0","","","","","",""'))throw Error('Inventory reorder template');
+     await page.locator('#data').fill('日付,SKU,区分,数量,摘要\n2026-11-01,A,開始,1,\n2026-11-02,A,出庫,2,');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled()||!(await page.locator('#error').innerText()).includes('負になります'))throw Error('Negative inventory accepted');
+     await page.locator('#data').fill('日付,SKU,区分,数量,摘要\n2026-11-01,A,入庫,2,');await page.locator('#calculate').click();if(!(await page.locator('#error').innerText()).includes('開始在庫'))throw Error('Missing initial inventory accepted');
+   });
+   await test(local('tools/project-profit-report/index.html'),async()=>{
+     await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('115,000円')||!s.includes('3,833円')||await page.locator('#rows tr').count()!==2)throw Error('Project profit sample');
+     const dl=page.waitForEvent('download');await page.locator('#export').click();const csv=fs.readFileSync(await (await dl).path(),'utf8');if(!csv.includes('"P001","制作案件","100000","10000","90000","1500","3600"'))throw Error('Project profit CSV');
+     await page.locator('#data').fill('案件ID,案件名,報酬額,直接経費,作業時間（分）\nA,赤字,10,20,0');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('算出不可'))throw Error('Zero time project');
+     await page.locator('#data').fill('案件ID,案件名,報酬額,直接経費,作業時間（分）\nA,案件A,10,0,1\nA,案件B,10,0,1');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled()||!(await page.locator('#error').innerText()).includes('一致しません'))throw Error('Project mismatch accepted');
+   });
    await test(local('tools/receivables-report/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('140,000円')||!s.includes('60,000円')||!s.includes('5,000円'))throw Error('Receivables totals');
      const dl=page.waitForEvent('download');await page.locator('#forecast').click();const csv=fs.readFileSync(await (await dl).path(),'utf8');if(!csv.includes('"2026-11-26","入金","60000"')||!csv.includes('"2026-12-15","入金","80000"'))throw Error('Receivables forecast');
