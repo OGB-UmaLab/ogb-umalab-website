@@ -12,7 +12,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
  const page = await browser.newPage();
  const errors=[];
  let ledgerOrigin=null;
- const ledgerServer=http.createServer((req,res)=>{const u=new URL(req.url,'http://localhost').pathname;let rel;if(/^\/tools\/(?:product-ledger|daily-sales-ledger|sales-summary|cash-register-close|annual-income-summary|income-tax-simulator|resident-tax-simulator)\/(?:index\.html)?$/.test(u))rel=u.endsWith('/')?u+'index.html':u;else if(/^\/tools\/assets\/(?:tool-handoff|tax-form-draft)\.js$/.test(u))rel=u;else{res.writeHead(404);res.end();return}res.writeHead(200,{'Content-Type':rel.endsWith('.js')?'application/javascript; charset=utf-8':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(fs.readFileSync(path.resolve(__dirname,'..','.'+rel)))});
+ const ledgerServer=http.createServer((req,res)=>{const u=new URL(req.url,'http://localhost').pathname;let rel;if(/^\/tools\/(?:product-ledger|daily-sales-ledger|sales-summary|cash-register-close|annual-income-summary|income-tax-simulator|resident-tax-simulator|product-listing-prep|inventory-movement|inventory-reorder|pricing-simulator|invoice-maker|receivables-report|cash-flow-planner)\/(?:index\.html)?$/.test(u))rel=u.endsWith('/')?u+'index.html':u;else if(/^\/tools\/assets\/(?:tool-handoff|tax-form-draft|csv-grid-editor|result-table-controls|row-form-draft)\.js$/.test(u))rel=u;else{res.writeHead(404);res.end();return}res.writeHead(200,{'Content-Type':rel.endsWith('.js')?'application/javascript; charset=utf-8':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(fs.readFileSync(path.resolve(__dirname,'..','.'+rel)))});
  const waitForText=(selector,expected)=>page.waitForFunction(
   ([selector,expected])=>document.querySelector(selector)?.textContent.includes(expected),
   [selector,expected]
@@ -1076,6 +1076,21 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.evaluate(()=>{try{load('営業日,決済方法,売上金額,摘要\n2026-02-30,現金,100,無効')}catch(e){reset();document.getElementById('error').textContent=e.message}});
      if(!(await page.locator('#error').innerText()).includes('2行目')) throw new Error('Invalid sales date accepted');
      if(!(await page.locator('#export').isDisabled())) throw new Error('Stale monthly summary export enabled');
+   });
+   await test(local('tools/product-listing-prep/index.html'),async()=>{
+     const open=slug=>page.goto(ledgerOrigin+'/tools/'+slug+'/',{waitUntil:'domcontentloaded'}),send=async slug=>{page.once('dialog',d=>d.accept());await page.locator('#handoff-'+slug).click();await page.waitForURL('**/tools/'+slug+'/')};
+     await open('product-listing-prep');await page.evaluate(()=>{sessionStorage.clear();localStorage.removeItem('ogb-product-ledger-v1')});await page.locator('#sample').click();await send('product-ledger');page.once('dialog',d=>d.accept());await page.locator('#handoffAccept').click();await waitForText('#status','3商品を追加');if(await page.locator('#rows tr').count()!==3)throw Error('Product handoff count');
+     const sku=await page.locator('#rows tr').first().locator('td').first().innerText();await send('inventory-movement');await page.locator('#handoffAccept').click();await waitForText('#result','商品コードを引き継ぎ');if(await page.locator('#csvGridRows tr').count()!==3)throw Error('Inventory movement handoff');
+     await page.locator('#data').fill('日付,SKU,区分,数量,摘要\n2026-11-26,'+sku+',開始,10,\n2026-11-27,'+sku+',出庫,2,');await page.locator('#calculate').click();await send('inventory-reorder');await page.locator('#handoffAccept').click();if(!(await page.locator('#batchInput').inputValue()).includes('"'+sku+'","8"'))throw Error('Stock handoff quantity');
+     await page.locator('#batchInput').fill('商品コード,現在庫,入荷待ち,引当済み,1日平均販売数,納期日数,安全在庫,目標日数\n'+sku+',8,0,0,3,5,5,14');await page.locator('#batchCalc').click();if(await page.locator('#resultBody tr td').nth(3).innerText()!=='54')throw Error('Stock handoff calculation');
+     await open('product-ledger');await send('pricing-simulator');await page.locator('#handoffAccept').click();if(!(await page.locator('#bulkInput').inputValue()).includes(sku)||!await page.locator('#bulkExport').isDisabled())throw Error('Pricing handoff');
+     await page.evaluate(()=>{sessionStorage.clear();localStorage.removeItem('ogb-product-ledger-v1')});
+   });
+   await test(local('tools/invoice-maker/index.html'),async()=>{
+     const open=slug=>page.goto(ledgerOrigin+'/tools/'+slug+'/',{waitUntil:'domcontentloaded'}),send=async slug=>{page.once('dialog',d=>d.accept());await page.locator('#handoff-'+slug).click();await page.waitForURL('**/tools/'+slug+'/')};
+     await open('invoice-maker');await page.locator('#sample').click();await send('receivables-report');await page.locator('#sample').click();page.once('dialog',d=>d.accept());await page.locator('#handoffAccept').click();await waitForText('#result','請求明細を追加');if(await page.locator('#csvGridRows tr').count()!==4)throw Error('Invoice appended rows');
+     await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('151,218円'))throw Error('Invoice appended total');
+     await send('cash-flow-planner');await page.locator('#sample').click();page.once('dialog',d=>d.accept());await page.locator('#handoffAccept').click();await waitForText('#result','入金予定を追加');if(await page.locator('#csvGridRows tr').count()!==6)throw Error('Cash plan appended rows');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('181,218円'))throw Error('Cash plan handoff total');
    });
    await test(local('tools/daily-sales-ledger/index.html'),async()=>{
      const open=slug=>page.goto(ledgerOrigin+'/tools/'+slug+'/',{waitUntil:'domcontentloaded'});
