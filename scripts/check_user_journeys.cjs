@@ -15,12 +15,12 @@ const navCatalog=JSON.parse(navSource.match(/const catalog=(\{[^\n]+\});/)[1]);
 const navWorkflows=JSON.parse(navSource.match(/const workflows=(\[[^\n]+\]);/)[1]);
 const directory=tools.slice(tools.indexOf('<details id="toolDirectory">'),tools.indexOf('</details>',tools.indexOf('<details id="toolDirectory">')));
 const listed=[...directory.matchAll(/href="\/tools\/([a-z-]+)\/"/g)].map(m=>m[1]);
-check(listed.length===47&&new Set(listed).size===47,'Navigation directory count mismatch');
-check(Object.keys(navCatalog).length===47&&listed.every(s=>Object.hasOwn(navCatalog,s)),'Navigation catalog mismatch');
+check(listed.length===48&&new Set(listed).size===48,'Navigation directory count mismatch');
+check(Object.keys(navCatalog).length===48&&listed.every(s=>Object.hasOwn(navCatalog,s)),'Navigation catalog mismatch');
 const navCoverage=new Set(navWorkflows.flatMap(w=>w.steps));
 
 const drafts=JSON.parse(navSource.match(/const draftRegistry=(\{[^\n]+\});/)[1]);
-check(Object.keys(drafts).length===46&&Object.keys(drafts).every(s=>listed.includes(s)),'Saved work registry count or unknown tool');
+check(Object.keys(drafts).length===47&&Object.keys(drafts).every(s=>listed.includes(s)),'Saved work registry count or unknown tool');
 for(const s of listed){
  const page=read('tools/'+s+'/index.html');
  const hasDraft=/src="\.\.\/assets\/(?:csv-grid-editor|editable-grid|ledger-draft|row-form-draft|tax-form-draft|form-draft)\.js"/.test(page)||/localStorage\.(?:setItem|getItem)\(/.test(page);
@@ -34,11 +34,11 @@ check(navSource.includes('function restoreWorkspace(')&&navSource.includes('func
 check(navSource.includes('function advanceCycle(')&&navSource.includes('function checkCycle(')&&navSource.includes('ogbWorkCycleHistory'),'Recurring workspace cycle missing');
 check(navSource.includes('function deadlineInfo(')&&navSource.includes('function orderedWork(')&&navSource.includes('ogbWorkDeadlineSummary'),'Workspace deadline management missing');
 
-check(navCoverage.size===47&&listed.every(s=>navCoverage.has(s)),'Workflow coverage mismatch');
+check(navCoverage.size===48&&listed.every(s=>navCoverage.has(s)),'Workflow coverage mismatch');
 const businessPresets=JSON.parse(navSource.match(/const businessPresets=(\[[^\n]+\]);/)[1]);
-check(businessPresets.length===12&&new Set(businessPresets.map(p=>p.id)).size===12,'Business presets count or IDs');
+check(businessPresets.length===13&&new Set(businessPresets.map(p=>p.id)).size===13,'Business presets count or IDs');
 check(businessPresets.every(p=>p.steps.length>0&&new Set(p.steps).size===p.steps.length&&p.steps.every(s=>listed.includes(s))),'Invalid business preset steps');
-check(['online-selling','small-shop','freelance'].every(s=>businessPresets.filter(p=>p.business===s).length===4),'Business preset coverage');
+check(['online-selling','small-shop','freelance'].every(s=>businessPresets.filter(p=>p.business===s).length===(s==='small-shop'?5:4)),'Business preset coverage');
 check(tools.includes('id="quick-resume-entry"')&&navSource.includes('function drawQuickResume('),'Quick resume entry missing');
 for(const s of listed){const page=read('tools/'+s+'/index.html');check(page.includes('src="../assets/tool-handoff.js"'),'Missing common navigation: '+s);}
 for(const s of ['online-selling','small-shop','freelance']){const page=read('tools/business/'+s+'/index.html');check(page.includes('id="direct-workflows-title"')&&page.includes('id="business-start-entry"')&&page.includes('src="../../assets/tool-handoff.js"'),'Business navigation missing: '+s);}
