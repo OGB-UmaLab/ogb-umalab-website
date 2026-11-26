@@ -12,7 +12,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
  const page = await browser.newPage();
  const errors=[];
  let ledgerOrigin=null;
- const ledgerServer=http.createServer((req,res)=>{if(req.url!=='/tools/product-ledger/index.html'){res.writeHead(404);res.end();return}res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(fs.readFileSync(path.resolve(__dirname,'../tools/product-ledger/index.html')))});
+ const ledgerServer=http.createServer((req,res)=>{const u=new URL(req.url,'http://localhost').pathname;let rel;if(/^\/tools\/(?:product-ledger|daily-sales-ledger|sales-summary|cash-register-close|annual-income-summary|income-tax-simulator|resident-tax-simulator)\/(?:index\.html)?$/.test(u))rel=u.endsWith('/')?u+'index.html':u;else if(/^\/tools\/assets\/(?:tool-handoff|tax-form-draft)\.js$/.test(u))rel=u;else{res.writeHead(404);res.end();return}res.writeHead(200,{'Content-Type':rel.endsWith('.js')?'application/javascript; charset=utf-8':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(fs.readFileSync(path.resolve(__dirname,'..','.'+rel)))});
  const waitForText=(selector,expected)=>page.waitForFunction(
   ([selector,expected])=>document.querySelector(selector)?.textContent.includes(expected),
   [selector,expected]
@@ -1061,7 +1061,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#order').fill('ORDER-001');
      await page.locator('#sku').fill('ITEM-001');
      await page.locator('#add').click();
-     if(!(await page.locator('#error').innerText()).includes('既に登録')) throw new Error('Duplicate refund case accepted');
+     if(!(await page.locator('#error').innerText()).includes('重複')||await page.locator('#rows tr').count()!==3) throw new Error('Duplicate refund case accepted');
      page.once('dialog',d=>d.accept());await page.locator('#clear').click();
      if(!(await page.locator('#export').isDisabled())) throw new Error('Stale refunds export remained enabled');
    });
@@ -1076,6 +1076,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.evaluate(()=>{try{load('営業日,決済方法,売上金額,摘要\n2026-02-30,現金,100,無効')}catch(e){reset();document.getElementById('error').textContent=e.message}});
      if(!(await page.locator('#error').innerText()).includes('2行目')) throw new Error('Invalid sales date accepted');
      if(!(await page.locator('#export').isDisabled())) throw new Error('Stale monthly summary export enabled');
+   });
+   await test(local('tools/daily-sales-ledger/index.html'),async()=>{
+     const open=slug=>page.goto(ledgerOrigin+'/tools/'+slug+'/',{waitUntil:'domcontentloaded'});
+     await open('daily-sales-ledger');await page.evaluate(()=>sessionStorage.clear());await page.locator('#sample').click();
+     const send=async(slug)=>{page.once('dialog',d=>d.accept());await page.locator('#handoff-'+slug).click();await page.waitForURL('**/tools/'+slug+'/');await page.locator('#handoffAccept').click()};
+     await send('cash-register-close');await waitForText('#salesImportStatus','12,000円');if(await page.locator('#date').inputValue()!=='2026-11-23'||await page.locator('#salesApply').isDisabled())throw Error('Cash handoff preview');page.once('dialog',d=>d.accept());await page.locator('#salesApply').click();if(await page.locator('#sales').inputValue()!=='12000')throw Error('Cash handoff value');
+     await open('daily-sales-ledger');await page.locator('#sample').click();await send('sales-summary');await waitForText('#summary','25,000円');await send('annual-income-summary');await page.locator('#preview').waitFor({state:'visible'});if(await page.locator('#sales').inputValue()!=='0')throw Error('Annual handoff applied before confirmation');await page.locator('#confirmPeriod').check();await page.locator('#apply').click();if(await page.locator('#sales').inputValue()!=='25000')throw Error('Annual handoff');
+     await page.locator('#calculate').click();await send('income-tax-simulator');await page.locator('#preview').waitFor({state:'visible'});await page.locator('#apply').click();if(await page.locator('#business').inputValue()!=='25000')throw Error('Income handoff');
+     await page.locator('#scope').check();await page.locator('#calculate').click();await send('resident-tax-simulator');await page.locator('#preview').waitFor({state:'visible'});await page.locator('#apply').click();if(await page.locator('#income').inputValue()!=='25000'||await page.locator('#scope').isChecked())throw Error('Resident handoff');if(await page.evaluate(()=>sessionStorage.getItem('ogb-tool-handoff-v1'))!==null)throw Error('Handoff not consumed');
    });
    await test(local('tools/cash-register-close/index.html'),async()=>{
      await page.locator('#date').fill('2026-11-26');const h='営業日,決済方法,売上金額,摘要\n',csv=h+'2026-11-26,現金,12000,午前\n2026-11-26,カード,8000,午後\n2026-11-26,現金,3000,夕方\n2026-11-25,現金,40000,前日';
