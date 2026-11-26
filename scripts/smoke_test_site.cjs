@@ -364,6 +364,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#kind').selectOption('quote');await page.locator('#calculate').click();if(!await page.locator('#receivable').isDisabled()||!(await page.locator('#docTitle').innerText()).includes('見積書'))throw Error('Quote receivable enabled');
      await page.goto(local('tools/receivables-report/index.html'),{waitUntil:'domcontentloaded'});await page.locator('#asOf').fill('2026-11-26');await page.locator('#file').setInputFiles({name:'invoice.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#result','読み込みました');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('11,218円'))throw Error('Invoice receivable import');
    });
+   await test(local('tools/recipe-cost-calculator/index.html'),async()=>{
+     await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('910円')||!s.includes('248円')||!s.includes('31.00%'))throw Error('Recipe cost sample');
+     const ok=await page.evaluate(()=>ingredientCost(1200n,100000n,8000n,40000n)===600n&&ingredientCost(1n,300n,10000n,100n)===1n);if(!ok)throw Error('Recipe cost rounding');
+     const dl=page.waitForEvent('download');await page.locator('#summaryExport').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"見本ランチ","4","910","228","20","248","800","552","31.00"'))throw Error('Recipe summary CSV');
+     await page.locator('#portions').fill('0');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled())throw Error('Zero servings accepted');
+   });
+   await test(local('tools/shop-sales-performance/index.html'),async()=>{
+     await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('140,000円')||!s.includes('1,866円')||!s.includes('100.00%')||await page.locator('#weekdayRows tr').count()!==7)throw Error('Shop sales performance sample');
+     const dl=page.waitForEvent('download');await page.locator('#weekdayExport').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"月","2","110000","55000","55","2000"'))throw Error('Shop weekday CSV');
+     await page.locator('#data').fill('営業日,売上金額,客数,売上目標\n2026-11-02,1000,1,1000\n2026-11-02,1000,1,1000');if(await page.locator('#weekdayRows tr').count()!==0||!await page.locator('#export').isDisabled())throw Error('Stale shop weekday results');
+     await page.locator('#calculate').click();if(!(await page.locator('#error').innerText()).includes('重複'))throw Error('Duplicate shop date accepted');
+   });
    await test(local('tools/staff-cost-planner/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('22,350円')||!s.includes('22.35%')||await page.locator('#rows tr').count()!==2)throw Error('Staff cost sample');
      const dl=page.waitForEvent('download');await page.locator('#export').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"2026-11","A","720","14400","500","14900"'))throw Error('Staff cost CSV');
