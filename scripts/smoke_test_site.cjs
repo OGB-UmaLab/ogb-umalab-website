@@ -343,6 +343,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   await test(local('tools/business-expense-allocation/index.html'),async()=>{
+     await page.locator('#sample').click();
+     if(!(await page.locator('#result').innerText()).includes('348,000円')||await page.locator('#rows tr').count()!==2)throw Error('Allocation sample incorrect');
+     const dl=page.waitForEvent('download');await page.locator('#expenseExport').click();const csv=fs.readFileSync(await (await dl).path(),'utf8');
+     if(!csv.includes('"地代家賃","1","300000"')||!csv.includes('"通信費","1","48000"'))throw Error('Allocation export incorrect');
+     const first=page.locator('#inputRows tr').first();await first.locator('[data-key=used]').fill('81');if(!await page.locator('#export').isDisabled())throw Error('Stale allocation result');
+     await page.locator('#calculate').click();if(!await page.locator('#expenseExport').isDisabled()||!(await page.locator('#error').innerText()).includes('全体量'))throw Error('Invalid allocation accepted');
+     await first.locator('[data-key=used]').fill('0');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('事業分：48,000円'))throw Error('Zero allocation incorrect');
+     const exact=await page.evaluate(()=>{const a=allocate(100n,1n,3n),b=allocate(100n,3n,3n);return a.business===33n&&a.privateAmount===67n&&a.ratio==='33.33'&&b.business===100n});if(!exact)throw Error('Allocation boundaries');
+     await page.goto(local('tools/annual-income-summary/index.html'),{waitUntil:'domcontentloaded'});
+     await page.locator('#file').setInputFiles({name:'expense.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await page.locator('#preview').waitFor({state:'visible'});await page.locator('#expenseOptions input').first().check();await page.locator('#expenseOptions input').nth(1).check();await page.locator('#confirmPeriod').check();await page.locator('#apply').click();if(await page.locator('#expenses').inputValue()!=='348000')throw Error('Allocation annual CSV integration');
+   });
    await test(local('tools/income-tax-simulator/index.html'),async()=>{
      const verify=await page.evaluate(()=>{
        const eq=(a,b,m)=>{if(a!==b)throw Error(m+': '+String(a)+' != '+String(b))};
