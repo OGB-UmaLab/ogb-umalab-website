@@ -1834,6 +1834,9 @@
     <loc>https://ogb-umalab.com/tools/inventory-aging/</loc>
   </url>
   <url>
+    <loc>https://ogb-umalab.com/tools/inventory-movement/</loc>
+  </url>
+  <url>
     <loc>https://ogb-umalab.com/tools/inventory-reorder/</loc>
   </url>
   <url>
@@ -1868,6 +1871,9 @@
   </url>
   <url>
     <loc>https://ogb-umalab.com/tools/profit-break-even/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/project-profit-report/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/tools/purchase-receiving/</loc>
