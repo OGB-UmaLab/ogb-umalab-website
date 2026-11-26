@@ -20,7 +20,7 @@ check(Object.keys(navCatalog).length===47&&listed.every(s=>Object.hasOwn(navCata
 const navCoverage=new Set(navWorkflows.flatMap(w=>w.steps));
 
 const drafts=JSON.parse(navSource.match(/const draftRegistry=(\{[^\n]+\});/)[1]);
-check(Object.keys(drafts).length===40&&Object.keys(drafts).every(s=>listed.includes(s)),'Saved work registry count or unknown tool');
+check(Object.keys(drafts).length===46&&Object.keys(drafts).every(s=>listed.includes(s)),'Saved work registry count or unknown tool');
 for(const s of listed){
  const page=read('tools/'+s+'/index.html');
  const hasDraft=/src="\.\.\/assets\/(?:csv-grid-editor|editable-grid|ledger-draft|row-form-draft|tax-form-draft|form-draft)\.js"/.test(page)||/localStorage\.(?:setItem|getItem)\(/.test(page);

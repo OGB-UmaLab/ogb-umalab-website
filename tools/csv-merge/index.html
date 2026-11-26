@@ -63,4 +63,4 @@ $("reset").onclick=()=>{mergeVersion++;$("files").value="";$("encoding").value="
 $("download").onclick=()=>download(csv([state.headers,...state.rows]),"merged.csv");
 $("downloadLog").onclick=()=>download(csv([["ファイル","入力行数","列の確認結果","出力行数","削除した重複行"],...state.log]),"merge-log.csv");
 </script><script src="../assets/data-transfer.js"></script><script src="../assets/tool-handoff.js"></script><script>
-OGBToolHandoff.init({"slug":"csv-merge","guard":"download","out":[["csv-analyzer","CSV自動分析"],["list-cleaner","リスト整理（列選択）"]],"inbound":{}},()=>({csv:OGBDataTransfer.stringify([state.headers,...state.rows])}),null);</script></body></html>
+OGBToolHandoff.init({"slug":"csv-merge","guard":"download","out":[["csv-analyzer","CSV自動分析"],["list-cleaner","リスト整理（列選択）"]],"inbound":{}},()=>({csv:OGBDataTransfer.stringify([state.headers,...state.rows])}),null);</script><script src="../assets/form-draft.js" data-config='{"slug":"csv-merge","settingsOnly":true,"anchor":"merge","ids":["encoding","mode","source","dedup","dedupMode"],"note":"選択したCSVファイルは保存しません。設定を復元してから元ファイルを選び、結合してください。"}'></script></body></html>
