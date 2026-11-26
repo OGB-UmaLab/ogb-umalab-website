@@ -30,12 +30,12 @@ body.addEventListener("input",saveDraft);new MutationObserver(saveDraft).observe
 
 const meaningful=list=>list.filter(r=>r.some(v=>v!==""));
 let restoredDraftRaw=null;
-window.OGBEditableGrid={mergeTemplate(text,keyIndex){
+window.OGBEditableGrid={mergeTemplate(text,keyIndex,fill=[]){
  const incoming=parseCSV(text),header=incoming.shift();if(!header||JSON.stringify(header)!==JSON.stringify(fields)||!incoming.length||incoming.length>1000||incoming.some(r=>r.length!==fields.length))throw Error("引継ぎ形式が一致しません。");
  const checkRows=list=>{if(!Array.isArray(list)||list.length>1000||list.some(r=>!Array.isArray(r)||r.length!==fields.length||r.some(v=>typeof v!=="string"||/[\r\n,]/.test(v))))throw Error("明細形式を確認してください。");};
  checkRows(incoming);const incomingKeys=new Set();for(const r of incoming){const k=r[keyIndex];if(!k||k!==k.trim()||k.length>100||incomingKeys.has(k))throw Error("商品コードの空欄・重複・形式を確認してください。");incomingKeys.add(k)}
  let current=meaningful(rows());const latest=localStorage.getItem(draftKey);if(latest!==null){const d=JSON.parse(latest);if(!d||JSON.stringify(d.fields)!==JSON.stringify(fields))throw Error("保存データの形式が異なります。");checkRows(d.data);const saved=meaningful(d.data);if(latest!==restoredDraftRaw&&JSON.stringify(current)!==JSON.stringify(saved)){if(current.length)throw Error("保存済みと編集中の入力があります。先に保存・復元して確認してください。");current=saved} }
- checkRows(current);const seen=new Set(current.map(r=>r[keyIndex]).filter(Boolean));const added=incoming.filter(r=>!seen.has(r[keyIndex]));if(current.length+added.length>1000)throw Error("明細は1,000件以内です。");
- load([...current,...added]);restoredDraftRaw=latest;msg.textContent="新規 "+added.length+"件を引き継ぎました。登録済みSKU "+(incoming.length-added.length)+"件は既存明細を維持しました。空欄を確認してください。";return true
+ checkRows(current);const seen=new Set(current.map(r=>r[keyIndex]).filter(Boolean));const added=incoming.filter(r=>!seen.has(r[keyIndex]));if(current.length+added.length>1000)throw Error("明細は1,000件以内です。");const byKey=new Map(incoming.map(r=>[r[keyIndex],r])),counts=new Map();for(const r of current)counts.set(r[keyIndex],(counts.get(r[keyIndex])||0)+1);let filled=0;const merged=current.map(r=>{const src=byKey.get(r[keyIndex]);if(!src||counts.get(r[keyIndex])!==1)return r;return r.map((v,i)=>{if(fill.includes(i)&&v===""&&src[i]!==""){filled++;return src[i]}return v})});
+ load([...merged,...added]);restoredDraftRaw=latest;msg.textContent="新規 "+added.length+"件、既存の空欄 "+filled+"項目を引き継ぎました。登録済みSKU "+(incoming.length-added.length)+"件の入力済み項目は維持しました。内容を確認してください。";return true
 }};
 })();
