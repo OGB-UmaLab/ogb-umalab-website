@@ -355,6 +355,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#data').fill('案件ID,案件名,報酬額,直接経費,作業時間（分）\nA,赤字,10,20,0');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('算出不可'))throw Error('Zero time project');
      await page.locator('#data').fill('案件ID,案件名,報酬額,直接経費,作業時間（分）\nA,案件A,10,0,1\nA,案件B,10,0,1');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled()||!(await page.locator('#error').innerText()).includes('一致しません'))throw Error('Project mismatch accepted');
    });
+   await test(local('tools/invoice-maker/index.html'),async()=>{
+     await page.locator('#sample').click();if(!(await page.locator('#result').innerText()).includes('11,218円')||await page.locator('#taxRows tr').count()!==3)throw Error('Invoice sample');
+     const ok=await page.evaluate(()=>{const a=taxTotals([{tax:'10',amount:5n},{tax:'10',amount:5n}],'exclusive','floor'),b=taxTotals([{tax:'8',amount:108n}],'inclusive','floor');return a.vat===1n&&a.total===11n&&b.vat===8n&&b.total===108n});if(!ok)throw Error('Invoice rate-level rounding');
+     const dl=page.waitForEvent('download');await page.locator('#receivable').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"SAMPLE-001","2026-11-26","2026-12-31","11218","0"'))throw Error('Invoice receivable export');
+     await page.locator('#qualified').check();await page.locator('#calculate').click();if(!await page.locator('#print').isDisabled())throw Error('Missing registration accepted');
+     await page.locator('#registration').fill('T1234567890123');await page.locator('#calculate').click();if(!(await page.locator('#docTitle').innerText()).includes('適格請求書'))throw Error('Invoice qualified preview');
+     await page.locator('#kind').selectOption('quote');await page.locator('#calculate').click();if(!await page.locator('#receivable').isDisabled()||!(await page.locator('#docTitle').innerText()).includes('見積書'))throw Error('Quote receivable enabled');
+     await page.goto(local('tools/receivables-report/index.html'),{waitUntil:'domcontentloaded'});await page.locator('#asOf').fill('2026-11-26');await page.locator('#file').setInputFiles({name:'invoice.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#result','読み込みました');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('11,218円'))throw Error('Invoice receivable import');
+   });
+   await test(local('tools/staff-cost-planner/index.html'),async()=>{
+     await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('22,350円')||!s.includes('22.35%')||await page.locator('#rows tr').count()!==2)throw Error('Staff cost sample');
+     const dl=page.waitForEvent('download');await page.locator('#export').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"2026-11","A","720","14400","500","14900"'))throw Error('Staff cost CSV');
+     await page.locator('#month').fill('2026-12');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled()||!(await page.locator('#error').innerText()).includes('対象年月'))throw Error('Staff month mismatch');
+   });
    await test(local('tools/receivables-report/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('140,000円')||!s.includes('60,000円')||!s.includes('5,000円'))throw Error('Receivables totals');
      const dl=page.waitForEvent('download');await page.locator('#forecast').click();const csv=fs.readFileSync(await (await dl).path(),'utf8');if(!csv.includes('"2026-11-26","入金","60000"')||!csv.includes('"2026-12-15","入金","80000"'))throw Error('Receivables forecast');
