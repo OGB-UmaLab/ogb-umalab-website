@@ -364,6 +364,28 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#kind').selectOption('quote');await page.locator('#calculate').click();if(!await page.locator('#receivable').isDisabled()||!(await page.locator('#docTitle').innerText()).includes('見積書'))throw Error('Quote receivable enabled');
      await page.goto(local('tools/receivables-report/index.html'),{waitUntil:'domcontentloaded'});await page.locator('#asOf').fill('2026-11-26');await page.locator('#file').setInputFiles({name:'invoice.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#result','読み込みました');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('11,218円'))throw Error('Invoice receivable import');
    });
+   await test(local('tools/index.html'),async()=>{
+     const all=page.locator('#toolDirectory li');if(await all.count()!==47)throw Error('Tool directory count');
+     await page.locator('#toolSearch').fill('家事按分');if(!await page.locator('#toolDirectory a[href="/tools/business-expense-allocation/"]').isVisible()||await page.locator('#toolDirectory a[href="/tools/image-batch/"]').isVisible())throw Error('Tool search match');
+     await page.locator('#toolSearch').fill('ＰＤＦ');if(!await page.locator('#toolDirectory a[href="/tools/pdf-split-rename/"]').isVisible())throw Error('Tool search full-width');
+     await page.locator('#toolSearch').fill('zzzz-nonexistent');if(!await page.locator('#toolSearchEmpty').isVisible())throw Error('Tool search empty');
+     await page.locator('#toolSearch').fill('');if(await page.locator('#toolDirectory li:visible').count()!==47)throw Error('Tool search reset');
+   });
+   await test(local('tools/cash-flow-planner/index.html'),async()=>{
+     const key=await page.evaluate(()=>{const k='ogb-csv-grid-draft-v1:'+location.pathname.replace(/index\.html$/,'');localStorage.removeItem(k);return k});await page.reload();
+     await page.locator('#sample').click();
+     if(await page.locator('#csvDraftAuto').isChecked()||await page.evaluate(k=>localStorage.getItem(k),key)!==null)throw Error('Draft must be opt-in');
+     await page.locator('#opening').fill('12345');await page.locator('#csvDraftSave').click();
+     await page.reload();if(await page.locator('#csvDraftAuto').isChecked()||await page.locator('#opening').inputValue()==='12345')throw Error('Draft restored automatically');
+     page.once('dialog',d=>d.accept());await page.locator('#csvDraftRestore').click();
+     if(await page.locator('#opening').inputValue()!=='12345'||await page.locator('#start').inputValue()!=='2026-11'||await page.locator('#csvGridRows tr').count()!==3||!await page.locator('#export').isDisabled())throw Error('Draft restore fields');
+     await page.locator('#csvDraftAuto').check();await page.locator('#opening').fill('20000');
+     if(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).settings.opening,key)!=='20000')throw Error('Draft autosave');
+     await page.evaluate(k=>localStorage.setItem(k,'external'),key);await page.locator('#opening').fill('30000');
+     if(await page.locator('#csvDraftAuto').isChecked()||await page.evaluate(k=>localStorage.getItem(k),key)!=='external')throw Error('Draft conflict');
+     page.once('dialog',d=>d.accept());await page.locator('#csvDraftDelete').click();
+     if(await page.evaluate(k=>localStorage.getItem(k),key)!==null||await page.locator('#opening').inputValue()!=='30000')throw Error('Draft deletion');
+   });
    for(const slug of ['receivables-report','cash-flow-planner','inventory-movement','project-profit-report','staff-cost-planner','recipe-cost-calculator','shop-sales-performance']){
      await test(local('tools/'+slug+'/index.html'),async()=>{
        await page.locator('#sample').click();

@@ -20,5 +20,27 @@ body.addEventListener("paste",e=>{const text=e.clipboardData?.getData("text/plai
 raw.addEventListener("input",readRaw);raw.addEventListener("ogb:csv-loaded",readRaw);for(const id of ["sample","clear"])document.getElementById(id).addEventListener("click",readRaw);
 template.addEventListener("click",()=>save(location.pathname.split("/").filter(Boolean).filter(x=>x!=="index.html").pop()+"-input-template.csv",[labels]));
 saveInput.addEventListener("click",()=>{if(valid)save(location.pathname.split("/").filter(Boolean).filter(x=>x!=="index.html").pop()+"-input.csv",[labels,...matrix().filter(r=>r.some(v=>v!==""))])});
-const hint=node("p","入力データCSVは再読込できます。表計算ソフトでの数式実行を防ぐため、数式に見える文字列には先頭にアポストロフィを追加する場合があります。基準日や売上など表以外の設定値は保存されません。");hint.className="muted";panel.append(hint);readRaw();
+const hint=node("p","入力データCSVは再読込できます。表計算ソフトでの数式実行を防ぐため、数式に見える文字列には先頭にアポストロフィを追加する場合があります。入力CSVには基準日や売上など表以外の設定値は含まれません。下の端末内保存機能では設定値も保存できます。");hint.className="muted";panel.append(hint);readRaw();
+
+// Save drafts only on explicit opt-in or manual save. Never restore automatically.
+const settingIds=JSON.parse(document.currentScript.dataset.settings||"[]"),settingEls=settingIds.map(id=>document.getElementById(id));
+if(settingEls.some(el=>!el))throw Error("Draft settings configuration mismatch");
+const draftKey="ogb-csv-grid-draft-v1:"+location.pathname.replace(/index\.html$/,"");
+const draftPanel=node("div"),draftTitle=node("h3","入力内容の保存・復元"),draftNote=node("p","この端末のブラウザだけに保存します。表と基準日などの設定値を復元できます。共有端末では使用せず、必要に応じて保存データを削除してください。"),autoLabel=node("label"),auto=node("input"),store=node("button","今の入力を保存"),resume=node("button","保存した入力を復元"),forget=node("button","保存データを削除"),draftStatus=node("p");
+auto.type="checkbox";auto.id="csvDraftAuto";auto.style.width="auto";autoLabel.append(auto,document.createTextNode(" この端末に入力途中のデータを自動保存する（初期状態は無効）"));
+store.id="csvDraftSave";resume.id="csvDraftRestore";forget.id="csvDraftDelete";draftStatus.id="csvDraftStatus";draftStatus.setAttribute("role","status");for(const b of [store,resume,forget])b.type="button";draftPanel.append(draftTitle,draftNote,autoLabel,store,resume,forget,draftStatus);panel.append(draftPanel);
+let storedRaw=null,storageOK=true,restoring=false;
+function snapshot(){return {version:1,labels,settings:Object.fromEntries(settingEls.map(el=>[el.id,el.value])),data:raw.value}}
+function decode(s){if(!s)return null;const x=JSON.parse(s);if(!x||x.version!==1||JSON.stringify(x.labels)!==JSON.stringify(labels)||typeof x.data!=="string"||x.data.length>2000000||!x.settings||Object.keys(x.settings).length!==settingIds.length||settingIds.some(id=>typeof x.settings[id]!=="string"||x.settings[id].length>1000))throw Error("保存データの形式を確認できません。");return x}
+function refresh(){resume.disabled=!storageOK||!storedRaw;forget.disabled=!storageOK||!storedRaw;store.disabled=auto.disabled=!storageOK}
+try{storedRaw=localStorage.getItem(draftKey);if(storedRaw){decode(storedRaw);draftStatus.textContent="保存済みの入力があります。必要な場合は復元してください。"}}catch(e){if(storedRaw)draftStatus.textContent="保存データを読み込めません。削除して新規保存できます。";else{storageOK=false;draftStatus.textContent="このブラウザでは保存できません。CSV保存をご利用ください。"}}refresh();
+function persist(manual=false){if(!storageOK||restoring||(!manual&&!auto.checked))return false;try{const latest=localStorage.getItem(draftKey);if(latest!==storedRaw){auto.checked=false;storedRaw=latest;refresh();draftStatus.textContent="別画面で保存データが変更されました。復元・確認後に保存してください。";return false}const x=snapshot();if(x.data.length>2000000||Object.values(x.settings).some(v=>v.length>1000))throw Error("保存できる入力サイズを超えています。");const value=JSON.stringify({...x,savedAt:new Date().toISOString()});localStorage.setItem(draftKey,value);storedRaw=value;refresh();draftStatus.textContent="この端末に保存しました。";return true}catch(e){auto.checked=false;draftStatus.textContent="保存できませんでした。"+e.message;return false}}
+function same(){try{const old=decode(storedRaw);if(!old)return false;const {savedAt,...rest}=old;return JSON.stringify(rest)===JSON.stringify(snapshot())}catch{return false}}
+store.addEventListener("click",()=>{if(storedRaw&&!same()&&!confirm("保存済みの入力を現在の入力で上書きしますか？"))return;persist(true)});
+auto.addEventListener("change",()=>{if(!auto.checked){draftStatus.textContent="自動保存を停止しました。保存済みのデータは残ります。";return}if(storedRaw&&!same()&&!confirm("保存済みの入力を現在の入力で上書きしますか？")){auto.checked=false;return}persist(true)});
+resume.addEventListener("click",()=>{try{const latest=localStorage.getItem(draftKey);storedRaw=latest;refresh();const x=decode(latest);if(!x)throw Error("保存データがありません。");if(!confirm("現在の入力を保存済みの入力で置き換えますか？"))return;restoring=true;for(const el of settingEls){el.value=x.settings[el.id];el.dispatchEvent(new Event("input",{bubbles:true}))}raw.value=x.data;raw.dispatchEvent(new Event("input",{bubbles:true}));draftStatus.textContent="保存した入力を復元しました。内容を確認して集計してください。"}catch(e){draftStatus.textContent=e.message}finally{restoring=false}});
+forget.addEventListener("click",()=>{try{if(!confirm("この端末に保存した入力データを削除しますか？"))return;localStorage.removeItem(draftKey);storedRaw=null;auto.checked=false;refresh();draftStatus.textContent="保存データを削除しました。現在の画面の入力は残っています。"}catch(e){draftStatus.textContent="削除できませんでした。"}});
+raw.addEventListener("input",()=>persist());raw.addEventListener("ogb:csv-loaded",()=>persist());for(const el of settingEls)el.addEventListener("input",()=>persist());for(const id of ["sample","clear"])document.getElementById(id).addEventListener("click",()=>persist());
+window.addEventListener("storage",e=>{if(e.key===draftKey||e.key===null){auto.checked=false;try{storedRaw=localStorage.getItem(draftKey);refresh();draftStatus.textContent="別画面で保存データが変更されました。自動保存を停止しました。"}catch{draftStatus.textContent="保存データを確認できません。"}}});
+
 })();
