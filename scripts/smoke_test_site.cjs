@@ -429,7 +429,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('140,000円')||!s.includes('60,000円')||!s.includes('5,000円'))throw Error('Receivables totals');
      const dl=page.waitForEvent('download');await page.locator('#forecast').click();const csv=fs.readFileSync(await (await dl).path(),'utf8');if(!csv.includes('"2026-11-26","入金","60000"')||!csv.includes('"2026-12-15","入金","80000"'))throw Error('Receivables forecast');
      await page.locator('#data').fill('取引先,請求番号,請求日,入金期限,請求額,入金済額\nA,X,2026-11-01,2026-11-20,100,0\nA,X,2026-11-01,2026-11-20,100,0');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled()||!(await page.locator('#error').innerText()).includes('重複'))throw Error('Receivables duplicate');
-     await page.goto(local('tools/cash-flow-planner/index.html'),{waitUntil:'domcontentloaded'});await page.locator('#file').setInputFiles({name:'forecast.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#result','読み込みました');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('140,000円'))throw Error('Receivables forecast import');
+     await page.goto(local('tools/cash-flow-planner/index.html'),{waitUntil:'domcontentloaded'});await page.locator('#start').fill('2026-11');await page.locator('#file').setInputFiles({name:'forecast.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#result','読み込みました');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('140,000円'))throw Error('Receivables forecast import');
    });
    await test(local('tools/cash-flow-planner/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('30,000円')||!s.includes('-30,000円')||!s.includes('不足月：1か月')||await page.locator('#rows tr').count()!==12)throw Error('Cash flow sample');
@@ -538,6 +538,24 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#clear').click();await page.locator('#calculate').click();
      if(!await page.locator('#export').isDisabled())throw Error('Tax scope unchecked');
    });
+   for(const [slug,field,expected] of [['annual-income-summary','sales','3000000'],['income-tax-simulator','business','5000000'],['resident-tax-simulator','income','4350000'],['side-income-summary','miscRevenue','500000'],['tax-filing-check','salary','5000000'],['tax-reserve-planner','incomeTax','180000'],['consumption-tax-simulator','sales10','5500000'],['withholding-tax-calculator','fee','100000'],['depreciation-calculator','cost','480000']]){
+     await test(local('tools/'+slug+'/index.html'),async()=>{
+       const key=await page.evaluate(()=>{const k='ogb-tax-form-draft-2026-v1:'+location.pathname.replace(/index\.html$/,'');localStorage.removeItem(k);return k});await page.reload();
+       await page.locator('#sample').click();
+       if(await page.evaluate(k=>localStorage.getItem(k),key)!==null)throw Error('Tax draft auto save: '+slug);
+       if(slug==='resident-tax-simulator'){await page.locator('#mode').selectOption('designated');await page.locator('#cityRate').fill('8.2');await page.locator('#incomeStatus').selectOption('yes');await page.locator('#flatStatus').selectOption('yes');await page.locator('#forestStatus').selectOption('yes')}
+       if(slug==='annual-income-summary'){await page.locator('#costMode').selectOption('direct');await page.locator('#goods').fill('1234')}
+       await page.locator('#taxDraftSave').click();
+       const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);if(saved.fields[field]!==expected||'scope' in saved.fields)throw Error('Tax draft stored fields: '+slug);
+       await page.reload();if(await page.locator('#'+field).inputValue()===expected)throw Error('Tax draft auto restore: '+slug);
+       page.once('dialog',d=>d.accept());await page.locator('#taxDraftRestore').click();
+       if(await page.locator('#'+field).inputValue()!==expected||await page.locator('main input[type=checkbox]:checked').count()!==0)throw Error('Tax draft restore: '+slug);
+       if(await page.locator('#export').count()&&!await page.locator('#export').isDisabled())throw Error('Stale tax export: '+slug);
+       if(slug==='resident-tax-simulator'&&(await page.locator('#mode').inputValue()!=='designated'||!await page.locator('#localFields').isVisible()||await page.locator('#cityRate').inputValue()!=='8.2'||await page.locator('#incomeStatus').inputValue()!=='yes'))throw Error('Resident draft settings lost');
+       if(slug==='annual-income-summary'&&(!await page.locator('#direct').isVisible()||await page.locator('#goods').inputValue()!=='1234'))throw Error('Annual draft direct cost lost');
+       page.once('dialog',d=>d.accept());await page.locator('#taxDraftDelete').click();if(await page.evaluate(k=>localStorage.getItem(k),key)!==null||await page.locator('#'+field).inputValue()!==expected)throw Error('Tax draft delete: '+slug);
+     });
+   }
    await test(local('tools/annual-expense-merge/index.html'),async()=>{
      const header='経費科目,取引件数,支出金額\n',a=header+'通信費,2,12000\n広告費,1,2000',b=header+'通信費,1,4000\n減価償却費,1,60000',c=header+'広告費,1,2000\n通信費,2,12000';
      await page.locator('#file').setInputFiles([a,b,c].map((v,i)=>({name:'expense'+i+'.csv',mimeType:'text/csv',buffer:Buffer.from(v)})));await waitForText('#status','3ファイル');
