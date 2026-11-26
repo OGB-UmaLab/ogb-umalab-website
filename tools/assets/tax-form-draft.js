@@ -3,18 +3,20 @@ const cfg=JSON.parse(document.currentScript.dataset.config),els=cfg.ids.map(id=>
 const node=(tag,text)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e},byId=id=>document.getElementById(id);
 const panel=node("div"),h=node("h3","入力金額・設定の保存と復元"),note=node("p","必要な場合だけ、このブラウザ内に金額・選択項目を保存できます。自動保存は行いません。復元時は適用条件・確認チェックを再確認してください。税務情報を含むため、共有端末では保存せず、不要になったデータは削除してください。"),saveBtn=node("button","入力内容を保存"),restoreBtn=node("button","保存内容を復元"),deleteBtn=node("button","保存データを削除"),status=node("p");
 panel.id="taxDraft";panel.style.margin="16px 0";note.className="muted";saveBtn.id="taxDraftSave";restoreBtn.id="taxDraftRestore";deleteBtn.id="taxDraftDelete";status.id="taxDraftStatus";status.setAttribute("role","status");for(const b of [saveBtn,restoreBtn,deleteBtn])b.type="button";panel.append(h,note,saveBtn,restoreBtn,deleteBtn,status);byId("calculate").closest("section").append(panel);
-const key="ogb-tax-form-draft-2026-v1:"+location.pathname.replace(/index\.html$/,"");let stored=null,available=true;
+const key="ogb-tax-form-draft-2026-v1:"+location.pathname.replace(/index\.html$/,"");let stored=null,available=true,restored=null;
 function refresh(){saveBtn.disabled=!available;restoreBtn.disabled=deleteBtn.disabled=!available||stored===null}
 function snapshot(){return Object.fromEntries(els.map(e=>[e.id,e.value]))}
 function parse(value){const x=JSON.parse(value);if(!x||x.version!==1||x.year!==2026||!x.fields||Object.keys(x.fields).length!==els.length||els.some(e=>typeof x.fields[e.id]!=="string"||x.fields[e.id].length>1000||(e.tagName==="SELECT"&&![...e.options].some(o=>o.value===x.fields[e.id]))))throw Error("保存データの形式または対象年度が異なります。");return x.fields}
 try{stored=localStorage.getItem(key);if(stored!==null){parse(stored);status.textContent="保存済みの入力があります。必要な場合は復元してください。"}}catch(e){if(stored!==null)status.textContent=e.message+" 削除して新規保存できます。";else{available=false;status.textContent="このブラウザでは保存機能を使用できません。"}}refresh();
 saveBtn.addEventListener("click",()=>{try{const latest=localStorage.getItem(key);if(latest!==stored){stored=latest;refresh();status.textContent="別の画面で保存データが変更されました。確認後に保存してください。";return}const fields=snapshot();if(Object.values(fields).some(v=>v.length>1000))throw Error("入力値が長すぎます。");if(stored!==null&&!confirm("このツールの保存内容を現在の入力で置き換えますか？"))return;const value=JSON.stringify({version:1,year:2026,fields,savedAt:new Date().toISOString()});localStorage.setItem(key,value);stored=value;refresh();status.textContent="入力内容をこの端末に保存しました。"}catch(e){status.textContent="保存できませんでした。"+e.message}});
-restoreBtn.addEventListener("click",()=>{try{stored=localStorage.getItem(key);refresh();if(stored===null)throw Error("保存データがありません。");const fields=parse(stored);if(!confirm("現在の入力を保存内容で置き換えますか？ 適用条件のチェックは再確認が必要です。"))return;
-reset();for(const id of cfg.modes){const e=byId(id);e.value=fields[id];e.dispatchEvent(new Event("change",{bubbles:true}))}
+function restoreFields(fields){reset();for(const id of cfg.modes){const e=byId(id);e.value=fields[id];e.dispatchEvent(new Event("change",{bubbles:true}))}
 for(const e of els)e.value=fields[e.id];
 for(const e of els)if(!cfg.modes.includes(e.id))e.dispatchEvent(new Event("input",{bubbles:true}));
 for(const e of document.querySelectorAll('main input[type="checkbox"]'))e.checked=false;
-invalidateIfNeeded();status.textContent="保存した入力を復元しました。適用条件を再確認して計算してください。"}catch(e){status.textContent="復元できませんでした。"+e.message}});
+invalidateIfNeeded();status.textContent="保存した入力を復元しました。適用条件を再確認して計算してください。";restored=stored}
+const formState=()=>JSON.stringify([snapshot(),[...document.querySelectorAll('main input[type="checkbox"]')].map(e=>e.checked)]),initialState=formState();
+window.OGBTaxDraft={prepareHandoff(){if(!available)return;const latest=localStorage.getItem(key);if(latest!==stored){stored=latest;refresh()}if(latest===null)return;const fields=parse(latest);if(restored===latest||JSON.stringify(fields)===JSON.stringify(snapshot()))return;if(formState()!==initialState)throw Error("保存済みの入力と編集中の入力があります。先に保存・復元して確認してください。");restoreFields(fields)}};
+restoreBtn.addEventListener("click",()=>{try{stored=localStorage.getItem(key);refresh();if(stored===null)throw Error("保存データがありません。");const fields=parse(stored);if(!confirm("現在の入力を保存内容で置き換えますか？ 適用条件のチェックは再確認が必要です。"))return;restoreFields(fields)}catch(e){status.textContent="復元できませんでした。"+e.message}});
 function invalidateIfNeeded(){if(typeof invalidate==="function")invalidate();else if(typeof resetResult==="function")resetResult()}
 deleteBtn.addEventListener("click",()=>{try{if(!confirm("この端末に保存した税務入力を削除しますか？"))return;localStorage.removeItem(key);stored=null;refresh();status.textContent="保存データを削除しました。現在の画面の入力は残っています。"}catch(e){status.textContent="削除できませんでした。"}});
 window.addEventListener("storage",e=>{if(e.key===key||e.key===null){try{stored=localStorage.getItem(key);refresh();status.textContent="別の画面で保存データが変更されました。"}catch{status.textContent="保存データを確認できません。"}}});
