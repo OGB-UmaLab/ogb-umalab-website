@@ -414,6 +414,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      page.once('dialog',d=>d.accept());await page.locator('#csvDraftDelete').click();
      if(await page.evaluate(k=>localStorage.getItem(k),key)!==null||await page.locator('#opening').inputValue()!=='30000')throw Error('Draft deletion');
    });
+   await test(local('tools/project-profit-report/index.html'),async()=>{
+     await page.locator('#sample').click();const n=await page.locator('#csvGridRows tr').count();
+     await page.locator('#csvGridFive').click();if(await page.locator('#csvGridRows tr').count()!==n+5)throw Error('Grid five rows');
+     await page.locator('#csvGridTidy').click();if(await page.locator('#csvGridRows tr').count()!==n)throw Error('Grid tidy');
+     await page.locator('#csvGridRows tr').first().locator('input').first().focus();await page.locator('#csvGridDuplicate').click();if(await page.locator('#csvGridRows tr').count()!==n+1||!await page.locator('#export').isDisabled())throw Error('Grid duplicate');
+     await page.locator('#csvGridUndo').click();if(await page.locator('#csvGridRows tr').count()!==n)throw Error('Grid undo');
+     await page.locator('#csvGridRedo').click();if(await page.locator('#csvGridRows tr').count()!==n+1)throw Error('Grid redo');
+     await page.locator('#csvGridUndo').click();await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('115,000円'))throw Error('Grid undo calculation');
+     await page.locator('input[aria-label="集計結果を検索"]').fill('P001');if(await page.locator('#rows tr:visible').count()!==1)throw Error('Result filter');
+     await page.locator('input[aria-label="集計結果を検索"]').fill('');await page.locator('button[aria-label="差引利益で並べ替え"]').click();if(!(await page.locator('#rows tr').first().innerText()).includes('P002'))throw Error('Result ascending sort');
+     const dl=page.waitForEvent('download');await page.locator('#export').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('P001')||!csv.includes('P002'))throw Error('Result filter changed export');
+   });
    for(const slug of ['receivables-report','cash-flow-planner','inventory-movement','project-profit-report','staff-cost-planner','recipe-cost-calculator','shop-sales-performance']){
      await test(local('tools/'+slug+'/index.html'),async()=>{
        await page.locator('#sample').click();
