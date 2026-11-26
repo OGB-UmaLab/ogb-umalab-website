@@ -386,6 +386,12 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#kind').selectOption('quote');await page.locator('#calculate').click();if(!await page.locator('#receivable').isDisabled()||!(await page.locator('#docTitle').innerText()).includes('見積書'))throw Error('Quote receivable enabled');
      await page.goto(local('tools/receivables-report/index.html'),{waitUntil:'domcontentloaded'});await page.locator('#asOf').fill('2026-11-26');await page.locator('#file').setInputFiles({name:'invoice.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#result','読み込みました');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('11,218円'))throw Error('Invoice receivable import');
    });
+   for(const [slug,targets] of [['business-inventory-workflow',['product-ledger','inventory-movement','inventory-reorder']],['invoice-cashflow-workflow',['invoice-maker','receivables-report','cash-flow-planner']],['annual-tax-workflow',['annual-income-summary','income-tax-simulator','resident-tax-simulator','tax-reserve-planner']]]){
+     await test(local('guides/'+slug+'/index.html'),async()=>{
+       for(const target of targets)if(!await page.locator('a[href="../../tools/'+target+'/"]').count())throw Error('Workflow guide missing tool: '+target);
+       if(await page.locator('main section').count()<4)throw Error('Workflow guide sections missing');
+     });
+   }
    await test(local('tools/index.html'),async()=>{
      const all=page.locator('#toolDirectory li');if(await all.count()!==47)throw Error('Tool directory count');
      await page.locator('#toolSearch').fill('家事按分');if(!await page.locator('#toolDirectory a[href="/tools/business-expense-allocation/"]').isVisible()||await page.locator('#toolDirectory a[href="/tools/image-batch/"]').isVisible())throw Error('Tool search match');
