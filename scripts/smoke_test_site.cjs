@@ -343,6 +343,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   await test(local('tools/tax-filing-check/index.html'),async()=>{
+     await page.locator('#sample').click();if(!(await page.locator('#result').innerText()).includes('条件内'))throw Error('Filing threshold 200000');
+     await page.locator('#other').fill('200001');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('20万円超'))throw Error('Filing threshold 200001');
+     await page.locator('#voluntary').check();await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('別途申告'))throw Error('Filing voluntary');
+     await page.locator('#voluntary').uncheck();await page.locator('#salary').fill('20000001');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('2,000万円'))throw Error('Filing salary threshold');
+     await page.locator('#scope').uncheck();await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('個別確認'))throw Error('Filing unsupported');
+   });
+   await test(local('tools/tax-reserve-planner/index.html'),async()=>{
+     await page.locator('#sample').click();if(!(await page.locator('#result').innerText()).includes('120,000円'))throw Error('Reserve sample');
+     await page.locator('#months').fill('0');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled())throw Error('Reserve invalid months');
+     await page.locator('#months').fill('3');page.once('dialog',d=>d.accept());await page.locator('#taxFile').setInputFiles({name:'tax.csv',mimeType:'text/csv',buffer:Buffer.from('対象年,項目,金額\n2026,納付・還付見込額（負は還付）,-50000')});await waitForText('#importStatus','反映しました');if(await page.locator('#incomeTax').inputValue()!=='0')throw Error('Reserve refund input');
+     page.once('dialog',d=>d.accept());await page.locator('#residentFile').setInputFiles({name:'resident.csv',mimeType:'text/csv',buffer:Buffer.from('課税年度,所得対象年,項目,金額\n2027,2026,年間税額合計,344500')});await page.waitForFunction(()=>document.querySelector('#residentTax').value==='344500');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('74,834円'))throw Error('Reserve imported amount rounding');
+     await page.locator('#covered').fill('400000');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled())throw Error('Reserve invalid covered amount');
+   });
    await test(local('tools/depreciation-calculator/index.html'),async()=>{
      await page.locator('#sample').click();if(!(await page.locator('#result').innerText()).includes('60,000円'))throw Error('Depreciation sample');
      const v=await page.evaluate(()=>{const a=depreciation(1000000n,100000n,100n,12n),b=depreciation(100001n,100001n,167n,1n),c=depreciation(100000n,1n,250n,12n);return a.amount===99999n&&a.end===1n&&b.amount===1392n&&c.amount===0n});if(!v)throw Error('Depreciation boundaries');
