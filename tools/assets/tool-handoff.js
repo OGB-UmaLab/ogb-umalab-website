@@ -80,6 +80,55 @@ function restoreMissing(storage,entries){
 
 const workKey="ogb-workspace-v1",workLimit=20;
 const businessPresets=[{"id":"shop-close","business":"small-shop","name":"毎日の売上・レジ締め","description":"日々の売上を記録し、営業終了時に現金を照合します。","steps":["daily-sales-ledger","cash-register-close"]},{"id":"shop-monthly","business":"small-shop","name":"月次売上・人件費の確認","description":"月次集計と店舗の売上分析から人件費を確認します。","steps":["daily-sales-ledger","sales-summary","shop-sales-performance","staff-cost-planner"]},{"id":"shop-cost","business":"small-shop","name":"メニュー原価・採算確認","description":"食材原価から販売価格と採算を確認します。","steps":["recipe-cost-calculator","profit-break-even"]},{"id":"shop-stock","business":"small-shop","name":"仕入・在庫・棚卸","description":"入出庫から発注点、仕入照合、棚卸を管理します。","steps":["product-ledger","inventory-movement","inventory-reorder","purchase-receiving","stocktake-reconcile","supplier-payment-reconcile"]},{"id":"seller-listing","business":"online-selling","name":"新商品の登録・出品準備","description":"商品名・SKU、台帳、画像、価格設定を整えます。","steps":["product-listing-prep","product-ledger","image-batch","marketplace-profit-compare","pricing-simulator"]},{"id":"seller-dispatch","business":"online-selling","name":"毎日の受注・決済・発送","description":"注文明細を集計し、決済と発送準備を確認します。","steps":["order-line-aggregate","order-payment-reconcile","packing-checklist"]},{"id":"seller-after","business":"online-selling","name":"返品・送料・販売利益の確認","description":"返品や配送コストを整理し、販売利益を確認します。","steps":["returns-refunds","shipping-cost-report","product-margin-report","channel-profit-report"]},{"id":"seller-stock","business":"online-selling","name":"仕入・在庫・発注管理","description":"商品台帳から入出庫、発注、入荷、在庫を確認します。","steps":["product-ledger","inventory-movement","inventory-reorder","purchase-receiving","stocktake-reconcile","inventory-aging","supplier-payment-reconcile"]},{"id":"free-invoice","business":"freelance","name":"請求書・入金・資金繰り","description":"請求書を作成し、入金状況と資金予定を確認します。","steps":["invoice-maker","receivables-report","cash-flow-planner"]},{"id":"free-project","business":"freelance","name":"案件ごとの採算確認","description":"案件の報酬・経費・作業時間を確認します。源泉徴収は必要な場合のみ確認します。","steps":["project-profit-report","withholding-tax-calculator"]},{"id":"free-tax","business":"freelance","name":"事業所得・年間経費・納税準備","description":"経費資料を整理し、年間所得と概算税額を確認します。","steps":["expense-category-report","business-expense-allocation","depreciation-calculator","annual-expense-merge","annual-income-summary","income-tax-simulator","resident-tax-simulator","tax-reserve-planner"]},{"id":"free-side","business":"freelance","name":"給与所得者の副業・申告準備","description":"副業を業務に係る雑所得として扱う場合の確認用です。事業所得とは区別します。","steps":["project-profit-report","side-income-summary","tax-filing-check"]}];
+
+const cycleNames={manual:"任意・繰り返しなし",daily:"日次",weekly:"週次（月曜始まり）",monthly:"月次",yearly:"年間（暦年）"},cycleHistoryLimit=24;
+function localWorkDay(date=new Date()){return [String(date.getFullYear()).padStart(4,"0"),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-")}
+function workDate(day){if(typeof day!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(day))throw Error("対象日が不正です。");const d=new Date(day+"T00:00:00Z");if(!Number.isFinite(d.getTime())||d.toISOString().slice(0,10)!==day)throw Error("対象日が不正です。");return d}
+function cycleStart(kind,day){
+ if(kind==="manual")return "";
+ const d=workDate(day);
+ if(kind==="weekly")d.setUTCDate(d.getUTCDate()-(d.getUTCDay()+6)%7);
+ else if(kind==="monthly")d.setUTCDate(1);
+ else if(kind==="yearly")d.setUTCMonth(0,1);
+ else if(kind!=="daily")throw Error("未対応の業務周期です。");
+ return d.toISOString().slice(0,10)
+}
+function cycleLabel(kind,start){
+ if(kind==="manual")return "任意の作業";
+ if(kind==="daily")return start;
+ if(kind==="monthly")return start.slice(0,7);
+ if(kind==="yearly")return start.slice(0,4)+"年";
+ const d=workDate(start);d.setUTCDate(d.getUTCDate()+6);return start+" ～ "+d.toISOString().slice(0,10);
+}
+function checkCycle(s){
+ if(s.cycle!==undefined){const x=s.cycle;if(!x||!Object.hasOwn(cycleNames,x.kind)||x.kind==="manual"||cycleStart(x.kind,x.start)!==x.start)throw Error("業務周期の保存形式を確認してください。")}
+ if(s.history!==undefined){if(!Array.isArray(s.history)||s.history.length>cycleHistoryLimit)throw Error("業務履歴の保存形式を確認してください。");
+ for(const h of s.history){if(!h||!Object.hasOwn(cycleNames,h.kind)||h.kind==="manual"||cycleStart(h.kind,h.start)!==h.start||!Number.isInteger(h.total)||h.total<0||h.total>47||!Number.isInteger(h.done)||h.done<0||h.done>h.total||typeof h.closedOn!=="string"||workDate(h.closedOn).toISOString().slice(0,10)!==h.closedOn||h.closedOn<h.start)throw Error("業務履歴の保存形式を確認してください。")}}
+}
+function cycleInfo(s,day=localWorkDay()){
+ const kind=s.cycle?.kind||"manual",start=s.cycle?.start||"",current=cycleStart(kind,day);
+ return {kind,start,current,label:cycleLabel(kind,start),currentLabel:cycleLabel(kind,current),older:!!start&&start<current,future:!!start&&start>current};
+}
+function configureCycle(s,kind,day){
+ if(!Object.hasOwn(cycleNames,kind))throw Error("業務周期を選択してください。");
+ if((s.cycle?.kind||"manual")===kind)return false;
+ if(kind==="manual")delete s.cycle;
+ else s.cycle={kind,start:cycleStart(kind,day)};
+ return true;
+}
+function advanceCycle(s,day,allowPrune=false){
+ const info=cycleInfo(s,day);if(!info.older)throw Error("現在の周期より後の対象期間になってから切り替えてください。");
+ const history=s.history||[];if(history.length>=cycleHistoryLimit&&!allowPrune)throw Error("履歴の保存上限に達しています。");
+ const record={kind:info.kind,start:info.start,total:s.steps.length,done:s.done.length,closedOn:day};
+ s.history=[record,...history].slice(0,cycleHistoryLimit);s.cycle={kind:info.kind,start:info.current};s.done=[];return record;
+}
+function copyWorkSet(s){
+ const x={id:s.id,name:s.name,steps:[...s.steps],done:[...s.done]};
+ if(s.cycle)x.cycle={kind:s.cycle.kind,start:s.cycle.start};
+ if(s.history)x.history=s.history.map(h=>({kind:h.kind,start:h.start,total:h.total,done:h.done,closedOn:h.closedOn}));
+ return x;
+}
+
 function parseWorkspace(raw){
  if(raw===null)return {version:1,active:"",sets:[]};
  if(typeof raw!=="string"||raw.length>100000)throw Error("業務セットの保存形式を確認してください。");
@@ -87,7 +136,7 @@ function parseWorkspace(raw){
  const seen=new Set();
  for(const s of x.sets){
   if(!s||typeof s.id!=="string"||!/^w-[a-z0-9-]{1,70}$/.test(s.id)||seen.has(s.id)||typeof s.name!=="string"||!s.name.trim()||s.name.length>60||!Array.isArray(s.steps)||s.steps.length>47||s.steps.some(t=>!known(t))||new Set(s.steps).size!==s.steps.length||!Array.isArray(s.done)||new Set(s.done).size!==s.done.length||s.done.some(t=>!s.steps.includes(t)))throw Error("業務セットの保存内容を確認してください。");
-  seen.add(s.id);
+  checkCycle(s);seen.add(s.id);
  }
  if(x.active&&!seen.has(x.active))throw Error("選択中の業務セットが存在しません。");
  return x;
@@ -96,10 +145,10 @@ function workspaceNext(s){return s?.steps.find(t=>!s.done.includes(t))||""}
 function workspaceMove(s,slug,delta){const i=s.steps.indexOf(slug),j=i+delta;if(i<0||![-1,1].includes(delta)||j<0||j>=s.steps.length)return false;[s.steps[i],s.steps[j]]=[s.steps[j],s.steps[i]];return true}
 
 
-function cleanWorkspace(x){return {version:1,active:x.active,sets:x.sets.map(s=>({id:s.id,name:s.name,steps:[...s.steps],done:[...s.done]}))}}
+function cleanWorkspace(x){return {version:1,active:x.active,sets:x.sets.map(copyWorkSet)}}
 function mergeWorkspace(current,incoming,selected){
  const next=cleanWorkspace(current),applied=[],skipped=[],full=[];
- for(const s of incoming.sets){if(!selected.includes(s.id))continue;if(next.sets.some(t=>t.id===s.id)){skipped.push(s.id);continue}if(next.sets.length>=workLimit){full.push(s.id);continue}next.sets.push({id:s.id,name:s.name,steps:[...s.steps],done:[...s.done]});applied.push(s.id)}
+ for(const s of incoming.sets){if(!selected.includes(s.id))continue;if(next.sets.some(t=>t.id===s.id)){skipped.push(s.id);continue}if(next.sets.length>=workLimit){full.push(s.id);continue}next.sets.push(copyWorkSet(s));applied.push(s.id)}
  if(!current.sets.length&&applied.length)next.active=applied.includes(incoming.active)?incoming.active:applied[0];
  return {next,applied,skipped,full};
 }
@@ -178,7 +227,8 @@ function renderNavigation(){
    const info=node("p","完了 "+data.done+" / "+data.total+" 工程 ／ 保存済み "+data.saved+" 種類"+(data.check?" ／ 保存確認 "+data.check+" 種類":""));info.style.cssText="margin:4px 0;font-size:.9em";
    const select=b("ogbWorkActivate-"+set.id,set.id===workState.active?"使用中":"この業務を選択");select.disabled=set.id===workState.active;select.onclick=()=>changeWork(x=>{x.active=set.id},"使用する業務セットを変更しました。");
    const nextText=node("p",data.next?"次："+catalog[data.next]:data.total?"全工程完了":"工程未登録");nextText.style.cssText="margin:4px 0;font-size:.9em";
-   tile.append(title,meter,info,nextText,select);dashboard.append(tile);
+   const ci=cycleInfo(set),cycleText=node("p",ci.kind==="manual"?"任意の作業":cycleNames[ci.kind]+" ／ "+ci.label+(ci.older?"（新しい対象期間あり）":ci.future?"（現在日より先の期間）":""));cycleText.style.cssText="margin:4px 0;font-size:.9em;color:"+(ci.older||ci.future?"#9a3412":"#435963");
+   tile.append(title,cycleText,meter,info,nextText,select);dashboard.append(tile);
   }
   if(workState.sets.length)workBody.append(dashboard,node("p","保存状況はツール共通です。業務セットごとに別の台帳が作られるわけではありません。保存済みでも、当該業務の工程が完了したとは限りません。"));
   const create=node("details");create.id="ogbWorkCreatePanel";create.open=!workState.sets.length;
@@ -195,6 +245,30 @@ function renderNavigation(){
   const apply=(fn,msg)=>changeWork(x=>{const s=x.sets.find(t=>t.id===active.id);if(!s)throw Error("業務セットが変更されています。");fn(s,x)},msg);
   rename.onclick=()=>{const v=name.value.trim();if(!v){workStatus.textContent="セット名を入力してください。";return}apply(s=>s.name=v,"名前を変更しました。")};
   box.append(workActions(workLabel("セット名",name),rename));
+
+  const ci=cycleInfo(active),cyclePanel=node("div");cyclePanel.id="ogbWorkCycle";cyclePanel.style.cssText="border:1px solid #d8e4e9;border-radius:8px;padding:10px;margin:10px 0";
+  const cycleSelect=workSelect("ogbWorkCycleKind",Object.entries(cycleNames),ci.kind),cycleApply=b("ogbWorkCycleApply","業務周期を設定");
+  cycleApply.onclick=()=>{const kind=cycleSelect.value;if(kind===ci.kind)return;
+   if(active.done.length&&!confirm("現在の完了チェックを保持したまま、"+cycleNames[kind]+"に変更します。対象期間が正しいか確認してください。過去の履歴は残ります。"))return;
+   apply(s=>configureCycle(s,kind,localWorkDay()),"業務周期を設定しました。")};
+  cyclePanel.append(node("strong","繰り返し業務の対象期間"),workActions(workLabel("業務周期",cycleSelect),cycleApply));
+  const period=node("p",ci.kind==="manual"?"対象期間は設定されていません。":"作業対象："+ci.label+" ／ 現在："+ci.currentLabel);period.id="ogbWorkPeriod";cyclePanel.append(period);
+  if(ci.kind!=="manual"){
+   const advance=b("ogbWorkAdvance","現在の対象期間へ切り替える");advance.disabled=!ci.older;
+   if(ci.older)cyclePanel.append(node("p","新しい対象期間になっています。切り替えるまでは前の対象期間の完了チェックを保持します。必要ならこの画面で前の期間のチェックを修正できます。"));
+   else if(ci.future)cyclePanel.append(node("p","保存された対象期間は現在日より先です。端末の日付を確認してください。"));
+   advance.onclick=()=>{const day=localWorkDay(),now=cycleInfo(active,day);if(!now.older){workStatus.textContent="対象期間を確認してください。";return}
+    const prune=(active.history||[]).length>=cycleHistoryLimit;
+    if(!confirm(now.label+" の進捗 "+active.done.length+" / "+active.steps.length+" を履歴に残し、"+now.currentLabel+" の作業を開始します。完了チェックのみ初期化します。ツールの入力・台帳は変更しません。"+(prune?" 履歴上限のため最も古い1件を削除します。":"")))return;
+    apply(s=>advanceCycle(s,day,prune),"前の対象期間を履歴に保存し、新しい期間を開始しました。")};
+   cyclePanel.append(advance,node("p","期間切替は手動です。途中の未完了工程も含めて記録します。週は月曜始まり、年間は暦年です。端末の日付で判定し、飛ばした期間は自動記録しません。"));
+  }
+  const histories=active.history||[];
+  if(histories.length){const details=node("details");details.id="ogbWorkCycleHistory";details.append(node("summary","過去の業務進捗（"+histories.length+"件）"));
+   for(const h of histories){const line=node("p",cycleNames[h.kind]+" "+cycleLabel(h.kind,h.start)+" ／ 完了 "+h.done+" / "+h.total+" 工程 ／ 切替日 "+h.closedOn);line.style.cssText="border-top:1px solid #e1e9ec;margin:4px 0;padding:5px 0";details.append(line)}
+   details.append(node("p","履歴は最大24件の進捗件数のみです。過去の入力・台帳・工程別のチェック内容は保存しません。"));cyclePanel.append(details)}
+  box.append(cyclePanel);
+
   const progress=node("p","完了 "+active.done.length+" / "+active.steps.length+" 工程");progress.id="ogbWorkProgress";
   const meter=node("progress");meter.max=Math.max(1,active.steps.length);meter.value=active.done.length;meter.setAttribute("aria-label","業務進捗");meter.style.cssText="width:100%;max-width:420px";box.append(progress,meter);
   const next=workspaceNext(active);if(next){const a=link(next,"次の未完了工程を開く： "+catalog[next]);a.id="ogbWorkNext";box.append(workActions(a))}else if(active.steps.length)box.append(node("p","すべての工程を完了しました。次回の作業では進捗をリセットできます。"));
@@ -212,21 +286,21 @@ function renderNavigation(){
   const add=workSelect("ogbWorkAddTool",[["","追加するツールを選択"],...Object.entries(catalog).filter(([s])=>!active.steps.includes(s)).map(([s,n])=>[s,n])],"");
   const addButton=b("ogbWorkAdd","工程を追加");addButton.disabled=active.steps.length===47;
   addButton.onclick=()=>{if(!known(add.value)){workStatus.textContent="追加するツールを選択してください。";return}apply(s=>{if(!s.steps.includes(add.value))s.steps.push(add.value)},"工程を追加しました。")};
-  const reset=b("ogbWorkReset","次回用に進捗をリセット"),del=b("ogbWorkDelete","業務セットを削除"),copy=b("ogbWorkDuplicate","このセットを複製");copy.disabled=workState.sets.length>=workLimit;reset.disabled=!active.done.length;
+  const reset=b("ogbWorkReset","次回用に進捗をリセット"),del=b("ogbWorkDelete","業務セットを削除"),copy=b("ogbWorkDuplicate","このセットを複製");copy.disabled=workState.sets.length>=workLimit;reset.disabled=!active.done.length||ci.kind!=="manual";if(ci.kind!=="manual")reset.title="繰り返し業務では対象期間の切替を使用してください。";
   reset.onclick=()=>{if(confirm("完了チェックだけを解除しますか？ 保存済みデータ・工程は残ります。"))apply(s=>s.done=[],"完了チェックをリセットしました。")};
   del.onclick=()=>{if(confirm(active.name+"を削除しますか？ 各ツールの保存済みデータは残ります。"))apply((s,x)=>{x.sets=x.sets.filter(t=>t.id!==s.id);x.active=x.sets[0]?.id||""},"業務セットを削除しました。")};
-  copy.onclick=()=>{if(!confirm("工程と順番を複製します。新しいセットの進捗は未完了になります。"))return;apply((s,x)=>{if(x.sets.length>=workLimit)throw Error("業務セットは20件までです。");const base="w-"+Date.now().toString(36);let id=base;for(let n=1;x.sets.some(t=>t.id===id);n++)id=base+"-"+n;x.sets.push({id,name:s.name.slice(0,55)+"（複製）",steps:[...s.steps],done:[]});x.active=id},"業務セットを複製しました。")};
+  copy.onclick=()=>{if(!confirm("工程と順番を複製します。新しいセットの進捗は未完了になります。"))return;apply((s,x)=>{if(x.sets.length>=workLimit)throw Error("業務セットは20件までです。");const base="w-"+Date.now().toString(36);let id=base;for(let n=1;x.sets.some(t=>t.id===id);n++)id=base+"-"+n;const duplicate={id,name:s.name.slice(0,55)+"（複製）",steps:[...s.steps],done:[]};if(s.cycle)duplicate.cycle={kind:s.cycle.kind,start:cycleStart(s.cycle.kind,localWorkDay())};x.sets.push(duplicate);x.active=id},"業務セットを複製しました。")};
   box.append(workActions(workLabel("追加する工程",add),addButton),workActions(reset,copy,del),node("p","工程リンクは画面移動のみです。データの直接引継ぎには各ツールの引継ぎボタンを使ってください。作業の完了前に必要なデータを保存してください。"));workBody.append(box);
  }
  function drawWorkCurrent(){
   const old=document.getElementById("ogbCurrentWork");if(old)old.remove();if(!ctx.slug)return;
   const s=getActive();if(!s||!s.steps.includes(ctx.slug))return;
   const row=node("div");row.id="ogbCurrentWork";row.style.cssText="border-top:1px solid #d8e4e9;margin:8px 0;padding-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center";
-  const label=node("span",s.name+" ／ "+(s.steps.indexOf(ctx.slug)+1)+"番目の工程 ／ 完了 "+s.done.length+" / "+s.steps.length);
+  const ci=cycleInfo(s),label=node("span",s.name+" ／ "+(ci.kind==="manual"?"":ci.label+" ／ ")+(s.steps.indexOf(ctx.slug)+1)+"番目の工程 ／ 完了 "+s.done.length+" / "+s.steps.length);
   const done=s.done.includes(ctx.slug),mark=b("ogbWorkMark",done?"未完了に戻す":"この工程を完了にする");mark.setAttribute("aria-pressed",String(done));
   mark.onclick=()=>{if(!done&&!confirm("必要な入力・結果を保存しましたか？ この工程の完了チェックを付けます。"))return;if(changeWork(x=>{const t=x.sets.find(t=>t.id===s.id);if(!t||x.active!==s.id||!t.steps.includes(ctx.slug))throw Error("業務セットが変更されました。");t.done=done?t.done.filter(t=>t!==ctx.slug):[...new Set([...t.done,ctx.slug])]},"進捗を更新しました。"))message.textContent="業務の進捗を更新しました。"};
-  row.append(label,mark);
-  const next=workspaceNext(s);if(next&&next!==ctx.slug)row.append(link(next,"次の未完了工程へ"));row.append(navLink("#workspace-entry","業務セットへ戻る"));panel.append(row);
+  row.append(label,mark);if(ci.older||ci.future){row.append(node("span",ci.older?"新しい対象期間があります。切替前の期間を表示しています。":"対象期間が現在日より先です。"));mark.disabled=true}
+  const next=workspaceNext(s);if(next&&next!==ctx.slug&&!ci.older&&!ci.future)row.append(link(next,"次の未完了工程へ"));row.append(navLink("#workspace-entry","業務セットへ戻る"));panel.append(row);
  }
 
 
@@ -234,9 +308,9 @@ function renderNavigation(){
  function drawQuickResume(){
   quickResume.replaceChildren();if(!ctx.directory)return;const title=node("h2","前回の作業を再開");title.style.cssText="font-size:1.15em;margin:0 0 6px";quickResume.append(title);
   const active=getActive();
-  if(active){const data=workspaceSummary(active,localStorage);quickResume.append(node("strong",active.name),node("p","完了 "+data.done+" / "+data.total+" 工程 ／ 保存済み "+data.saved+" 種類"));
-   if(data.next){const next=link(data.next,"次の未完了工程を開く："+catalog[data.next]);next.id="ogbQuickNext";const draft=data.details.find(d=>d.slug===data.next);const actions=workActions(next);if(draft?.state==="saved"){const restore=link(data.next,"保存内容を確認・復元");restore.href=ctx.base+data.next+"/#"+draft.restore;actions.append(restore)}quickResume.append(actions)}
-   else quickResume.append(node("p",data.total?"全工程完了。業務セットで次回用の進捗をリセットできます。":"工程未登録。業務セットで工程を追加してください。"));
+  if(active){const data=workspaceSummary(active,localStorage),ci=cycleInfo(active);quickResume.append(node("strong",active.name),node("p","完了 "+data.done+" / "+data.total+" 工程 ／ 保存済み "+data.saved+" 種類"));if(ci.kind!=="manual")quickResume.append(node("p",cycleNames[ci.kind]+" ／ "+ci.label));
+   if(ci.older||ci.future){quickResume.append(node("p",ci.older?"新しい対象期間があります："+ci.currentLabel+"。前回の進捗を保持しています。業務ダッシュボードで切り替えてください。":"対象期間が現在日より先です。端末の日付を確認してください。"));const a=navLink("#ogbWorkCycle","対象期間を確認・切替");a.id="ogbQuickCycle";quickResume.append(a)}else if(data.next){const next=link(data.next,"次の未完了工程を開く："+catalog[data.next]);next.id="ogbQuickNext";const draft=data.details.find(d=>d.slug===data.next);const actions=workActions(next);if(draft?.state==="saved"){const restore=link(data.next,"保存内容を確認・復元");restore.href=ctx.base+data.next+"/#"+draft.restore;actions.append(restore)}quickResume.append(actions)}
+   else quickResume.append(node("p",data.total?(ci.kind==="manual"?"全工程完了。業務セットで次回用の進捗をリセットできます。":"この対象期間は全工程完了です。"):"工程未登録。業務セットで工程を追加してください。"));
    quickResume.append(navLink("#workspace-entry","業務ダッシュボードを開く"));
   }else{quickResume.append(node("p","使用中の業務セットはありません。業種別ページで仕事を選ぶか、マイ業務セットを作成してください。"));const row=workActions(...Object.entries(businessNames).map(([s,n])=>navLink("business/"+s+"/#business-start-entry",n)),navLink("#workspace-entry","自由に作成"));quickResume.append(row)}
  }
@@ -269,7 +343,7 @@ function renderNavigation(){
  const reloadSaved=b("ogbSavedRefresh","保存状況を更新"),filterLabel=node("label","保存済みツールを検索"),filter=document.createElement("input");filter.type="search";filter.id="ogbSavedFilter";filter.placeholder="例：台帳、経費、所得税";filter.style.cssText="width:100%;max-width:440px;box-sizing:border-box;padding:6px 8px;font:inherit";filterLabel.append(filter);
  const savedList=node("div");savedList.id="ogbSavedList";savedPanel.append(summarySaved,reloadSaved,filterLabel,savedList,node("p","保存は同じブラウザ内に限られます。ブラウザのデータ削除・端末変更に備え、各ツールのCSV・編集用ファイル等も保管してください。保存日時を持たない旧形式は日時不明と表示します。"));
 
- const backup=node("details"),backupTitle=node("summary","バックアップ・別端末への移行");backup.id="ogbBackupPanel";backupTitle.style.cssText="cursor:pointer;font-weight:650;margin:10px 0";backup.append(backupTitle,node("p","保存済みの入力・設定をJSONファイルにまとめます。CSV・画像・PDFの元ファイル、未保存の入力、お気に入り、利用履歴は含みません。業務セット名・工程・進捗もバックアップ対象です。バックアップは暗号化されません。個人情報や取引情報を含むため、保管場所にご注意ください。"));
+ const backup=node("details"),backupTitle=node("summary","バックアップ・別端末への移行");backup.id="ogbBackupPanel";backupTitle.style.cssText="cursor:pointer;font-weight:650;margin:10px 0";backup.append(backupTitle,node("p","保存済みの入力・設定をJSONファイルにまとめます。CSV・画像・PDFの元ファイル、未保存の入力、お気に入り、利用履歴は含みません。業務セット名・工程・進捗・業務周期・期間別の進捗履歴もバックアップ対象です。バックアップは暗号化されません。個人情報や取引情報を含むため、保管場所にご注意ください。"));
  const exportBackup=b("ogbBackupExport","保存済みデータをバックアップ"),fileLabel=node("label","バックアップを読み込む（JSON）"),backupFile=document.createElement("input");backupFile.id="ogbBackupFile";backupFile.type="file";backupFile.accept=".json,application/json";backupFile.style.cssText="max-width:100%;display:block";fileLabel.append(backupFile);
  const previewBackup=node("div");previewBackup.id="ogbBackupPreview";const backupStatus=node("p");backupStatus.id="ogbBackupStatus";backupStatus.setAttribute("role","status");
  const applyBackup=b("ogbBackupApply","選択した未登録データを復元"),cancelBackup=b("ogbBackupCancel","読み込みを取り消す");applyBackup.disabled=cancelBackup.disabled=true;backup.append(exportBackup,fileLabel,previewBackup,applyBackup,cancelBackup,backupStatus);savedPanel.append(backup);
@@ -291,7 +365,7 @@ function renderNavigation(){
   if(workspace?.sets.length){list.append(node("h3","業務セット・進捗"));let current=null;try{current=parseWorkspace(localStorage.getItem(workKey))}catch{}
    if(!current)list.append(node("p","現在の業務セットの保存形式を確認できないため、業務セットは復元できません。"));
    for(const set of workspace.sets){const exists=current?.sets.some(t=>t.id===set.id),full=current&&current.sets.length>=workLimit,row=node("label"),check=node("input");check.type="checkbox";check.disabled=!current||!!exists||!!full;check.checked=!check.disabled;check.style.width="auto";check.dataset.backupWork=set.id;
-    row.style.cssText="display:block;margin:6px 0";row.append(check,document.createTextNode(" "+set.name+" ／ 完了 "+set.done.length+" / "+set.steps.length+" ／ "+(!current?"保存形式確認":exists?"登録済みのためスキップ":full?"登録上限":"復元可能")));list.append(row);pendingWork.push({set,check});
+    row.style.cssText="display:block;margin:6px 0";row.append(check,document.createTextNode(" "+set.name+" ／ 完了 "+set.done.length+" / "+set.steps.length+(set.cycle?" ／ "+cycleLabel(set.cycle.kind,set.cycle.start):"")+" ／ "+(!current?"保存形式確認":exists?"登録済みのためスキップ":full?"登録上限":"復元可能")));list.append(row);pendingWork.push({set,check});
    }
    list.append(node("p","業務セットは既存IDを上書きせず、20件の上限まで追加します。既存セットの選択・進捗は維持されます。"));
   }

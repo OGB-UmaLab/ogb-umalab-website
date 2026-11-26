@@ -31,6 +31,7 @@ check(tools.includes('id="saved-work-entry"'),'Saved work entry missing');
 check(tools.includes('id="workspace-entry"')&&tools.includes('href="#workspace-entry"'),'Workspace entry missing');
 check(navSource.includes('const workKey="ogb-workspace-v1"')&&navSource.includes('function parseWorkspace('),'Workspace storage missing');
 check(navSource.includes('function restoreWorkspace(')&&navSource.includes('function workspaceSummary(')&&navSource.includes('ogbWorkDashboard'),'Workspace backup or dashboard missing');
+check(navSource.includes('function advanceCycle(')&&navSource.includes('function checkCycle(')&&navSource.includes('ogbWorkCycleHistory'),'Recurring workspace cycle missing');
 
 check(navCoverage.size===47&&listed.every(s=>navCoverage.has(s)),'Workflow coverage mismatch');
 const businessPresets=JSON.parse(navSource.match(/const businessPresets=(\[[^\n]+\]);/)[1]);
