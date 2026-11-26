@@ -364,6 +364,28 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#kind').selectOption('quote');await page.locator('#calculate').click();if(!await page.locator('#receivable').isDisabled()||!(await page.locator('#docTitle').innerText()).includes('見積書'))throw Error('Quote receivable enabled');
      await page.goto(local('tools/receivables-report/index.html'),{waitUntil:'domcontentloaded'});await page.locator('#asOf').fill('2026-11-26');await page.locator('#file').setInputFiles({name:'invoice.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#result','読み込みました');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('11,218円'))throw Error('Invoice receivable import');
    });
+   for(const slug of ['receivables-report','cash-flow-planner','inventory-movement','project-profit-report','staff-cost-planner','recipe-cost-calculator','shop-sales-performance']){
+     await test(local('tools/'+slug+'/index.html'),async()=>{
+       await page.locator('#sample').click();
+       if(await page.locator('#csvGridRows tr').count()<2||await page.locator('#export').isDisabled())throw Error('Grid sample mapping: '+slug);
+       const before=await page.locator('#csvGridRows tr').count();await page.locator('#csvGridAdd').click();if(await page.locator('#csvGridRows tr').count()!==before+1)throw Error('Grid add: '+slug);
+       await page.locator('#csvGridRows tr').last().locator('button').click();
+       if(!await page.locator('#export').isDisabled())throw Error('Grid result invalidation: '+slug);
+       await page.locator('#calculate').click();if(await page.locator('#export').isDisabled())throw Error('Grid roundtrip: '+slug);
+       const dl=page.waitForEvent('download');await page.locator('#csvGridSave').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');
+       await page.locator('#clear').click();await page.locator('#file').setInputFiles({name:'input.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#result','読み込みました');if(await page.locator('#csvGridRows tr').count()!==before)throw Error('Grid CSV import: '+slug);
+       await page.locator('#calculate').click();if(await page.locator('#export').isDisabled())throw Error('Grid CSV calculation: '+slug);
+       await page.locator('#data').fill('invalid');if(!await page.locator('#csvGridAdd').isDisabled())throw Error('Grid malformed CSV protection: '+slug);
+       await page.locator('#clear').click();if(await page.locator('#csvGridAdd').isDisabled())throw Error('Grid recovery: '+slug);
+     });
+   }
+   await test(local('tools/project-profit-report/index.html'),async()=>{
+     const first=page.locator('#csvGridRows input').first();
+     await first.evaluate(el=>{const data=new DataTransfer();data.setData('text/plain','P1\t名称,補足\t１，０００\t100\t30\nP2\t案件B\t2000\t0\t60');el.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}))});
+     if(await page.locator('#csvGridRows tr').count()!==2||await page.locator('#csvGridRows tr').first().locator('input').nth(2).inputValue()!=='1000')throw Error('Excel paste normalization');
+     await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('2,900円'))throw Error('Excel pasted calculation');
+     if(!(await page.locator('#rows').innerText()).includes('名称,補足'))throw Error('Quoted text preservation');
+   });
    await test(local('tools/recipe-cost-calculator/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('910円')||!s.includes('248円')||!s.includes('31.00%'))throw Error('Recipe cost sample');
      const ok=await page.evaluate(()=>ingredientCost(1200n,100000n,8000n,40000n)===600n&&ingredientCost(1n,300n,10000n,100n)===1n);if(!ok)throw Error('Recipe cost rounding');
