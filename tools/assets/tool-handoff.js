@@ -73,6 +73,23 @@ function restoreMissing(storage,entries){
  return {applied,skipped,failed};
 }
 
+
+const workKey="ogb-workspace-v1",workLimit=20;
+function parseWorkspace(raw){
+ if(raw===null)return {version:1,active:"",sets:[]};
+ if(typeof raw!=="string"||raw.length>100000)throw Error("業務セットの保存形式を確認してください。");
+ const x=JSON.parse(raw);if(!x||x.version!==1||!Array.isArray(x.sets)||x.sets.length>workLimit||typeof x.active!=="string")throw Error("業務セットの保存形式を確認してください。");
+ const seen=new Set();
+ for(const s of x.sets){
+  if(!s||typeof s.id!=="string"||!/^w-[a-z0-9-]{1,70}$/.test(s.id)||seen.has(s.id)||typeof s.name!=="string"||!s.name.trim()||s.name.length>60||!Array.isArray(s.steps)||s.steps.length>47||s.steps.some(t=>!known(t))||new Set(s.steps).size!==s.steps.length||!Array.isArray(s.done)||new Set(s.done).size!==s.done.length||s.done.some(t=>!s.steps.includes(t)))throw Error("業務セットの保存内容を確認してください。");
+  seen.add(s.id);
+ }
+ if(x.active&&!seen.has(x.active))throw Error("選択中の業務セットが存在しません。");
+ return x;
+}
+function workspaceNext(s){return s?.steps.find(t=>!s.done.includes(t))||""}
+function workspaceMove(s,slug,delta){const i=s.steps.indexOf(slug),j=i+delta;if(i<0||![-1,1].includes(delta)||j<0||j>=s.steps.length)return false;[s.steps[i],s.steps[j]]=[s.steps[j],s.steps[i]];return true}
+
 function renderNavigation(){
  const ctx=pageContext(location.pathname),main=document.querySelector("main");if(!ctx||!main||document.getElementById("ogbToolNavigation"))return;
  let available=true,state;function readState(){try{return sanitizeNav(JSON.parse(localStorage.getItem(navKey)||"null"))}catch(e){available=false;return sanitizeNav(null)}}
@@ -83,7 +100,79 @@ function renderNavigation(){
  const link=(slug,label)=>{const a=node("a",label||catalog[slug]);a.href=ctx.base+slug+"/";a.style.cssText="color:#075e78;text-decoration:underline";return a};
  const navLink=(href,label)=>{const a=node("a",label);a.href=ctx.base+href;a.style.cssText="color:#075e78;text-decoration:underline";return a};
  const b=(id,label)=>{const a=button(id,label);a.style.cssText="margin:0;padding:6px 10px;border:1px solid #9aadb4;border-radius:6px;background:#f5f8fa;color:#18313a;font:inherit;cursor:pointer";return a};
- const message=node("p");message.id="ogbNavStatus";message.setAttribute("role","status");message.style.cssText="margin:6px 0;font-size:.9em";const fav=b("ogbFavorite","☆ お気に入りに追加");if(ctx.slug)header.append(fav);if(!ctx.directory)header.append(navLink("#tool-directory","全ツール検索"),navLink("#ogbSavedData","保存済みデータ"));panel.append(header);
+ const message=node("p");message.id="ogbNavStatus";message.setAttribute("role","status");message.style.cssText="margin:6px 0;font-size:.9em";const fav=b("ogbFavorite","☆ お気に入りに追加");if(ctx.slug)header.append(fav);if(!ctx.directory)header.append(navLink("#tool-directory","全ツール検索"),navLink("#ogbSavedData","保存済みデータ"),navLink("#workspace-entry","マイ業務セット"));panel.append(header);
+
+
+ const workPanel=node("section");workPanel.id="ogbWorkspace";workPanel.setAttribute("aria-label","マイ業務セット");workPanel.style.cssText="border:1px solid #d8e4e9;border-radius:10px;padding:12px 16px;margin:16px 0;background:#fff;color:#18313a;font:inherit;overflow-wrap:anywhere";
+ const workTitle=node("h2","マイ業務セット・進捗管理");workTitle.style.cssText="font-size:1.15em;margin:0 0 6px";
+ const workStatus=node("p");workStatus.id="ogbWorkStatus";workStatus.setAttribute("role","status");
+ const workBody=node("div");workBody.id="ogbWorkBody";workPanel.append(workTitle,node("p","よく使うツールを作業順に登録できます。完了は自分でチェックしてください。ツールを開いたり計算しただけでは完了になりません。業務セットはこのブラウザに保存され、入力データとは独立しています。"),workBody,workStatus);
+ let workRaw,workState=null;
+ const workInput=(id,value="",placeholder="")=>{const x=node("input");x.id=id;x.type="text";x.maxLength=60;x.value=value;x.placeholder=placeholder;x.style.cssText="width:100%;max-width:420px;box-sizing:border-box;padding:6px;font:inherit";return x};
+ const workSelect=(id,options,value)=>{const x=node("select");x.id=id;x.style.cssText="max-width:100%;padding:6px;font:inherit";for(const [v,label] of options){const o=node("option",label);o.value=v;x.append(o)}if(value!==undefined)x.value=value;return x};
+ const workLabel=(text,input)=>{const label=node("label",text);label.htmlFor=input.id;label.style.cssText="display:block;margin:6px 0";label.append(input);return label};
+ const workActions=(...children)=>{const row=node("div");row.style.cssText="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0";row.append(...children);return row};
+ const getActive=()=>workState?.sets.find(s=>s.id===workState.active);
+ function reloadWork(force=false){
+  try{const latest=localStorage.getItem(workKey);if(!force&&latest===workRaw&&workState)return;workRaw=latest;workState=parseWorkspace(latest);drawWork();drawWorkCurrent()}
+  catch(e){workState=null;workBody.replaceChildren(node("p","業務セットを読み込めません。保存済みデータを保護するため変更しません。"));workStatus.textContent=e.message;drawWorkCurrent()}
+ }
+ function changeWork(fn,success){
+  try{
+   const latest=localStorage.getItem(workKey);if(latest!==workRaw)throw Error("別画面で業務セットが更新されました。最新の状態を確認し、もう一度操作してください。");
+   const next=parseWorkspace(latest);fn(next);const raw=JSON.stringify(next);parseWorkspace(raw);localStorage.setItem(workKey,raw);workRaw=raw;workState=next;workStatus.textContent=success;drawWork();drawWorkCurrent();return true;
+  }catch(e){workStatus.textContent=e.message;if(ctx.slug)message.textContent=e.message;reloadWork();return false}
+ }
+ function drawWork(){
+  if(!ctx.directory||!workState)return;workBody.replaceChildren();
+  const active=getActive(),choose=workSelect("ogbWorkSelect",[["","業務セットを選択"],...workState.sets.map(s=>[s.id,s.name])],workState.active);
+  choose.addEventListener("change",()=>changeWork(x=>{x.active=choose.value},"使用する業務セットを変更しました。"));
+  workBody.append(workLabel("使用中の業務セット",choose));
+  const create=node("details");create.id="ogbWorkCreatePanel";create.open=!workState.sets.length;
+  create.append(node("summary","業務セットを新規作成"));
+  const template=workSelect("ogbWorkTemplate",[["","空のセットから作成"],...workflows.map(w=>[w.id,w.name])],"");
+  const newName=workInput("ogbWorkName","","例：毎日の店舗業務");
+  template.addEventListener("change",()=>{const w=workflows.find(w=>w.id===template.value);if(w)newName.value=w.name});
+  const createButton=b("ogbWorkCreate","セットを作成");createButton.disabled=workState.sets.length>=workLimit;
+  createButton.onclick=()=>{const name=newName.value.trim(),w=workflows.find(w=>w.id===template.value);if(!name){workStatus.textContent="業務セット名を入力してください。";return}changeWork(x=>{if(x.sets.length>=workLimit)throw Error("業務セットは20件までです。");let id="w-"+Date.now().toString(36);for(let n=1;x.sets.some(s=>s.id===id);n++)id="w-"+Date.now().toString(36)+"-"+n;x.sets.push({id,name,steps:w?[...w.steps]:[],done:[]});x.active=id},"業務セットを作成しました。")};
+  create.append(workLabel("業務テンプレート",template),workLabel("セット名",newName),createButton,node("p","登録できる業務セットは20件までです。テンプレートは作成後に自由に編集できます。"));workBody.append(create);
+  if(!active){workBody.append(node("p","業務セットを作成するか選択してください。"));return}
+  const box=node("div");box.style.cssText="margin-top:14px;border-top:1px solid #d8e4e9;padding-top:10px";
+  const name=workInput("ogbWorkRename",active.name),rename=b("ogbWorkRenameApply","名前を変更");
+  const apply=(fn,msg)=>changeWork(x=>{const s=x.sets.find(t=>t.id===active.id);if(!s)throw Error("業務セットが変更されています。");fn(s,x)},msg);
+  rename.onclick=()=>{const v=name.value.trim();if(!v){workStatus.textContent="セット名を入力してください。";return}apply(s=>s.name=v,"名前を変更しました。")};
+  box.append(workActions(workLabel("セット名",name),rename));
+  const progress=node("p","完了 "+active.done.length+" / "+active.steps.length+" 工程");progress.id="ogbWorkProgress";
+  const meter=node("progress");meter.max=Math.max(1,active.steps.length);meter.value=active.done.length;meter.setAttribute("aria-label","業務進捗");meter.style.cssText="width:100%;max-width:420px";box.append(progress,meter);
+  const next=workspaceNext(active);if(next){const a=link(next,"次の未完了工程を開く： "+catalog[next]);a.id="ogbWorkNext";box.append(workActions(a))}else if(active.steps.length)box.append(node("p","すべての工程を完了しました。次回の作業では進捗をリセットできます。"));
+  const steps=node("div");steps.id="ogbWorkSteps";
+  active.steps.forEach((slug,i)=>{
+   const row=node("div");row.style.cssText="border-top:1px solid #e1e9ec;padding:8px 0;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center";
+   const check=node("input");check.type="checkbox";check.id="ogbWorkDone-"+slug;check.checked=active.done.includes(slug);check.style.width="auto";check.setAttribute("aria-label",catalog[slug]+"を完了にする");check.onchange=()=>apply(s=>{s.done=check.checked?[...new Set([...s.done,slug])]:s.done.filter(t=>t!==slug)},"進捗を更新しました。");
+   const a=link(slug,(i+1)+". "+catalog[slug]);a.style.flex="1 1 180px";
+   const up=b("ogbWorkUp-"+slug,"↑"),down=b("ogbWorkDown-"+slug,"↓"),remove=b("ogbWorkRemove-"+slug,"外す");up.disabled=i===0;down.disabled=i===active.steps.length-1;up.setAttribute("aria-label",catalog[slug]+"を上へ");down.setAttribute("aria-label",catalog[slug]+"を下へ");remove.setAttribute("aria-label",catalog[slug]+"をセットから外す");
+   up.onclick=()=>apply(s=>workspaceMove(s,slug,-1),"工程の順番を変更しました。");down.onclick=()=>apply(s=>workspaceMove(s,slug,1),"工程の順番を変更しました。");
+   remove.onclick=()=>{if(!confirm(catalog[slug]+"をこの業務セットから外しますか？ ツールの保存済みデータは残ります。"))return;apply(s=>{s.steps=s.steps.filter(t=>t!==slug);s.done=s.done.filter(t=>t!==slug)},"工程を外しました。")};
+   row.append(check,a,up,down,remove);steps.append(row);
+  });box.append(steps);
+  const add=workSelect("ogbWorkAddTool",[["","追加するツールを選択"],...Object.entries(catalog).filter(([s])=>!active.steps.includes(s)).map(([s,n])=>[s,n])],"");
+  const addButton=b("ogbWorkAdd","工程を追加");addButton.disabled=active.steps.length===47;
+  addButton.onclick=()=>{if(!known(add.value)){workStatus.textContent="追加するツールを選択してください。";return}apply(s=>{if(!s.steps.includes(add.value))s.steps.push(add.value)},"工程を追加しました。")};
+  const reset=b("ogbWorkReset","次回用に進捗をリセット"),del=b("ogbWorkDelete","業務セットを削除");reset.disabled=!active.done.length;
+  reset.onclick=()=>{if(confirm("完了チェックだけを解除しますか？ 保存済みデータ・工程は残ります。"))apply(s=>s.done=[],"完了チェックをリセットしました。")};
+  del.onclick=()=>{if(confirm(active.name+"を削除しますか？ 各ツールの保存済みデータは残ります。"))apply((s,x)=>{x.sets=x.sets.filter(t=>t.id!==s.id);x.active=x.sets[0]?.id||""},"業務セットを削除しました。")};
+  box.append(workActions(workLabel("追加する工程",add),addButton),workActions(reset,del),node("p","工程リンクは画面移動のみです。データの直接引継ぎには各ツールの引継ぎボタンを使ってください。作業の完了前に必要なデータを保存してください。"));workBody.append(box);
+ }
+ function drawWorkCurrent(){
+  const old=document.getElementById("ogbCurrentWork");if(old)old.remove();if(!ctx.slug)return;
+  const s=getActive();if(!s||!s.steps.includes(ctx.slug))return;
+  const row=node("div");row.id="ogbCurrentWork";row.style.cssText="border-top:1px solid #d8e4e9;margin:8px 0;padding-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center";
+  const label=node("span",s.name+" ／ "+(s.steps.indexOf(ctx.slug)+1)+"番目の工程 ／ 完了 "+s.done.length+" / "+s.steps.length);
+  const done=s.done.includes(ctx.slug),mark=b("ogbWorkMark",done?"未完了に戻す":"この工程を完了にする");mark.setAttribute("aria-pressed",String(done));
+  mark.onclick=()=>{if(!done&&!confirm("必要な入力・結果を保存しましたか？ この工程の完了チェックを付けます。"))return;if(changeWork(x=>{const t=x.sets.find(t=>t.id===s.id);if(!t||x.active!==s.id||!t.steps.includes(ctx.slug))throw Error("業務セットが変更されました。");t.done=done?t.done.filter(t=>t!==ctx.slug):[...new Set([...t.done,ctx.slug])]},"進捗を更新しました。"))message.textContent="業務の進捗を更新しました。"};
+  row.append(label,mark);
+  const next=workspaceNext(s);if(next&&next!==ctx.slug)row.append(link(next,"次の未完了工程へ"));row.append(navLink("#workspace-entry","業務セットへ戻る"));panel.append(row);
+ }
 
  const savedPanel=node("section");savedPanel.id="ogbSavedData";savedPanel.setAttribute("aria-label","保存済みデータ・作業再開");savedPanel.style.cssText="border:1px solid #d8e4e9;border-radius:10px;padding:12px 16px;margin:16px 0;background:#fff;color:#18313a;font:inherit;overflow-wrap:anywhere";
  const savedTitle=node("h2","保存済みデータ・作業再開");savedTitle.style.cssText="font-size:1.15em;margin:0 0 6px";savedPanel.append(savedTitle,node("p","このブラウザに保存されている入力を確認できます。自動復元は行いません。復元・削除は各ツールで操作してください。"));
@@ -91,7 +180,7 @@ function renderNavigation(){
  const reloadSaved=b("ogbSavedRefresh","保存状況を更新"),filterLabel=node("label","保存済みツールを検索"),filter=document.createElement("input");filter.type="search";filter.id="ogbSavedFilter";filter.placeholder="例：台帳、経費、所得税";filter.style.cssText="width:100%;max-width:440px;box-sizing:border-box;padding:6px 8px;font:inherit";filterLabel.append(filter);
  const savedList=node("div");savedList.id="ogbSavedList";savedPanel.append(summarySaved,reloadSaved,filterLabel,savedList,node("p","保存は同じブラウザ内に限られます。ブラウザのデータ削除・端末変更に備え、各ツールのCSV・編集用ファイル等も保管してください。保存日時を持たない旧形式は日時不明と表示します。"));
 
- const backup=node("details"),backupTitle=node("summary","バックアップ・別端末への移行");backup.id="ogbBackupPanel";backupTitle.style.cssText="cursor:pointer;font-weight:650;margin:10px 0";backup.append(backupTitle,node("p","保存済みの入力・設定をJSONファイルにまとめます。CSV・画像・PDFの元ファイル、未保存の入力、お気に入り、利用履歴は含みません。バックアップは暗号化されません。個人情報や取引情報を含むため、保管場所にご注意ください。"));
+ const backup=node("details"),backupTitle=node("summary","バックアップ・別端末への移行");backup.id="ogbBackupPanel";backupTitle.style.cssText="cursor:pointer;font-weight:650;margin:10px 0";backup.append(backupTitle,node("p","保存済みの入力・設定をJSONファイルにまとめます。CSV・画像・PDFの元ファイル、未保存の入力、お気に入り、利用履歴、業務セット・進捗は含みません。バックアップは暗号化されません。個人情報や取引情報を含むため、保管場所にご注意ください。"));
  const exportBackup=b("ogbBackupExport","保存済みデータをバックアップ"),fileLabel=node("label","バックアップを読み込む（JSON）"),backupFile=document.createElement("input");backupFile.id="ogbBackupFile";backupFile.type="file";backupFile.accept=".json,application/json";backupFile.style.cssText="max-width:100%;display:block";fileLabel.append(backupFile);
  const previewBackup=node("div");previewBackup.id="ogbBackupPreview";const backupStatus=node("p");backupStatus.id="ogbBackupStatus";backupStatus.setAttribute("role","status");
  const applyBackup=b("ogbBackupApply","選択した未登録データを復元"),cancelBackup=b("ogbBackupCancel","読み込みを取り消す");applyBackup.disabled=cancelBackup.disabled=true;backup.append(exportBackup,fileLabel,previewBackup,applyBackup,cancelBackup,backupStatus);savedPanel.append(backup);
@@ -169,11 +258,12 @@ function renderNavigation(){
  }
  fav.onclick=()=>{const old=readState(),exists=old.favorites.includes(ctx.slug);if(saveState({...old,favorites:exists?old.favorites.filter(s=>s!==ctx.slug):[ctx.slug,...old.favorites]})){message.textContent=exists?"お気に入りから外しました。":"お気に入りに追加しました。";draw()}else message.textContent="端末内保存を利用できません。"};
  detail.open=!!ctx.directory;draw();
- const heading=main.querySelector("h1")||main.querySelector("h2");if(ctx.directory){const target=document.getElementById("tool-directory");if(target){const entry=document.getElementById("saved-work-entry");if(entry)entry.append(savedPanel),entry.before(panel);else target.before(panel,savedPanel);}else main.prepend(panel,savedPanel);refreshSaved()}else if(heading)heading.after(panel);else main.prepend(panel);
+ const heading=main.querySelector("h1")||main.querySelector("h2");if(ctx.directory){const target=document.getElementById("tool-directory");if(target){const entry=document.getElementById("saved-work-entry"),workEntry=document.getElementById("workspace-entry");if(entry)entry.append(savedPanel),entry.before(panel);else target.before(panel,savedPanel);if(workEntry)workEntry.append(workPanel);else target.before(workPanel);}else main.prepend(panel,savedPanel,workPanel);refreshSaved()}else if(heading)heading.after(panel);else main.prepend(panel);
+ if(ctx.directory||ctx.slug)reloadWork(true);
  if(ctx.slug){drawCurrentDraft();document.addEventListener("ogb:draft-changed",drawCurrentDraft);document.addEventListener("click",e=>{const info=draftRegistry[ctx.slug];if(!info)return;const id=e.target?.id;if(id===info.restore||id===info.remove||["csvDraftSave","taxDraftSave","rowDraftSave","draftSave","profitDraftSave","expenseDraftSave","save","clear"].includes(id))queueMicrotask(drawCurrentDraft)});document.addEventListener("change",e=>{if(e.target?.id==="csvDraftAuto"||e.target?.id==="ogbGridAuto")queueMicrotask(drawCurrentDraft)});}
- window.addEventListener("storage",e=>{if(e.key===navKey||e.key===null){state=readState();draw()}if(e.key===null||Object.values(draftRegistry).some(x=>x.key===e.key)){if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()}});
- window.addEventListener("pageshow",()=>{if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()});
- window.addEventListener("focus",()=>{if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()});
+ window.addEventListener("storage",e=>{if(e.key===workKey||e.key===null)reloadWork();if(e.key===navKey||e.key===null){state=readState();draw()}if(e.key===null||Object.values(draftRegistry).some(x=>x.key===e.key)){if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()}});
+ window.addEventListener("pageshow",()=>{if(ctx.directory||ctx.slug)reloadWork();if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()});
+ window.addEventListener("focus",()=>{if(ctx.directory||ctx.slug)reloadWork();if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()});
  const fragment=location.hash.slice(1);if(fragment==="ogbSavedData"&&ctx.directory||ctx.slug&&draftRegistry[ctx.slug]?.restore===fragment)requestAnimationFrame(()=>document.getElementById(fragment)?.scrollIntoView({block:"center"}));
 }
 if(typeof document!=="undefined"){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",renderNavigation,{once:true});else queueMicrotask(renderNavigation)}

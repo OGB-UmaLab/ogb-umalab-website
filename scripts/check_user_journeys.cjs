@@ -28,6 +28,8 @@ for(const s of listed){
  if(drafts[s])check(drafts[s].key.startsWith('ogb-')&&typeof drafts[s].restore==='string','Saved work registry invalid: '+s);
 }
 check(tools.includes('id="saved-work-entry"'),'Saved work entry missing');
+check(tools.includes('id="workspace-entry"')&&tools.includes('href="#workspace-entry"'),'Workspace entry missing');
+check(navSource.includes('const workKey="ogb-workspace-v1"')&&navSource.includes('function parseWorkspace('),'Workspace storage missing');
 
 check(navCoverage.size===47&&listed.every(s=>navCoverage.has(s)),'Workflow coverage mismatch');
 for(const s of listed){const page=read('tools/'+s+'/index.html');check(page.includes('src="../assets/tool-handoff.js"'),'Missing common navigation: '+s);}
