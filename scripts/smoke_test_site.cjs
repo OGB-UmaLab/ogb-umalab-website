@@ -343,6 +343,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   await test(local('tools/consumption-tax-simulator/index.html'),async()=>{
+     await page.locator('#sample').click();const summary=await page.locator('#result').innerText();if(!summary.includes('180,000円')||!summary.includes('116,000円'))throw Error('Consumption estimate sample');
+     const ok=await page.evaluate(()=>{const x=estimate(110n,108n,20n,90n);return x.output===18n&&x.general===-2n&&x.simple===1n&&x.special===3n});if(!ok)throw Error('Consumption boundary');
+     await page.locator('#business').selectOption('');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled())throw Error('Missing business type accepted');
+     await page.locator('#scope').uncheck();await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled())throw Error('Unconfirmed consumption scope');
+   });
+   await test(local('tools/withholding-tax-calculator/index.html'),async()=>{
+     await page.locator('#sample').click();if(!(await page.locator('#result').innerText()).includes('10,210円')||!(await page.locator('#result').innerText()).includes('99,790円'))throw Error('Withholding sample');
+     const ok=await page.evaluate(()=>withholding(0n)===0n&&withholding(1000000n)===102100n&&withholding(1000001n)===102100n&&withholding(1500000n)===204200n);if(!ok)throw Error('Withholding boundary');
+     await page.locator('#mode').selectOption('both');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('11,231円'))throw Error('Withholding tax included');
+     await page.locator('#mode').selectOption('included');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled())throw Error('Double VAT accepted');
+   });
    await test(local('tools/tax-filing-check/index.html'),async()=>{
      await page.locator('#sample').click();if(!(await page.locator('#result').innerText()).includes('条件内'))throw Error('Filing threshold 200000');
      await page.locator('#other').fill('200001');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('20万円超'))throw Error('Filing threshold 200001');
