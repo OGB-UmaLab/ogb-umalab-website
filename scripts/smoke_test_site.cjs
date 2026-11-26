@@ -500,6 +500,17 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await fill('sales','9007199254740992');await calc();if(!await page.locator('#export').isDisabled())throw Error('Unsafe annual value accepted');
    });
    await test(local('tools/product-ledger/index.html'),async()=>{
+     await page.evaluate(()=>localStorage.removeItem('ogb-product-ledger-v1'));await page.reload();
+     await page.locator('#sku').fill('EXISTING');await page.locator('#name').fill('Existing product');await page.locator('#cost').fill('400');await page.locator('#save').click();
+     const prep='SKU,商品名,文字数,確認\nNEW-001,新商品,3,確認済み';
+     page.once('dialog',d=>d.accept());await page.locator('#prepFile').setInputFiles({name:'prep.csv',mimeType:'text/csv',buffer:Buffer.from(prep)});await waitForText('#status','1商品を追加');if(await page.locator('#rows tr').count()!==2)throw Error('Product preparation import failed');
+     await page.locator('#prepFile').setInputFiles({name:'duplicate.csv',mimeType:'text/csv',buffer:Buffer.from(prep+'\nNEW-002,別商品,3,確認済み')});await waitForText('#status','重複');if(await page.locator('#rows tr').count()!==2)throw Error('Duplicate preparation changed ledger');
+     for(const [id,expected] of [['inventoryTemplate','"EXISTING","","","","","","",""'],['pricingTemplate','"EXISTING","400","","","","",""'],['movementTemplate','"","EXISTING","開始","",""']]){
+       const dl=page.waitForEvent('download');await page.locator('#'+id).click();const csv=fs.readFileSync(await (await dl).path(),'utf8');if(!csv.includes(expected))throw Error('Ledger template failed: '+id);
+     }
+     await page.evaluate(()=>localStorage.setItem('ogb-product-ledger-v1',JSON.stringify([['OTHER','Other','','','','準備中']])));await page.locator('#sku').fill('CONFLICT');await page.locator('#name').fill('Conflict');await page.locator('#save').click();await waitForText('#status','別の画面');const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('ogb-product-ledger-v1')));if(stored.length!==1||stored[0][0]!=='OTHER')throw Error('Ledger overwrote concurrent change');await page.evaluate(()=>localStorage.removeItem('ogb-product-ledger-v1'));
+   });
+   await test(local('tools/product-ledger/index.html'),async()=>{
      await page.evaluate(()=>localStorage.removeItem('ogb-product-ledger-v1'));
      await page.reload();
      await page.locator('#sku').fill('TEST-001');
