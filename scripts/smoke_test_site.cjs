@@ -1077,6 +1077,14 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#error').innerText()).includes('2行目')) throw new Error('Invalid sales date accepted');
      if(!(await page.locator('#export').isDisabled())) throw new Error('Stale monthly summary export enabled');
    });
+   await test(local('tools/cash-register-close/index.html'),async()=>{
+     await page.locator('#date').fill('2026-11-26');const h='営業日,決済方法,売上金額,摘要\n',csv=h+'2026-11-26,現金,12000,午前\n2026-11-26,カード,8000,午後\n2026-11-26,現金,3000,夕方\n2026-11-25,現金,40000,前日';
+     await page.locator('#salesFile').setInputFiles({name:'sales.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#salesImportStatus','15,000円');if(await page.locator('#salesApply').isDisabled())throw Error('Register cash preview');
+     page.once('dialog',d=>d.accept());await page.locator('#salesApply').click();if(await page.locator('#sales').inputValue()!=='15000'||!await page.locator('#download').isDisabled())throw Error('Register cash import');
+     await page.locator('#calc').click();if(!(await page.locator('#result').innerText()).includes('40,000円'))throw Error('Register imported balance');
+     await page.locator('#salesFile').setInputFiles({name:'sales.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#salesImportStatus','15,000円');await page.locator('#date').fill('2026-11-27');if(!await page.locator('#salesApply').isDisabled())throw Error('Stale register import');
+     await page.locator('#salesFile').setInputFiles({name:'sales.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#salesImportStatus','明細がありません');if(await page.locator('#sales').inputValue()!=='15000')throw Error('Missing date changed cash sales');
+   });
    await test(local('tools/returns-refunds/index.html'),async()=>{
      const key='ogb-returns-refunds-v1';await page.evaluate(k=>localStorage.removeItem(k),key);await page.reload();await page.locator('#sample').click();
      await page.locator('#rows tr').first().getByRole('button',{name:'編集',exact:true}).click();await page.locator('#amount').fill('3500');await page.locator('#add').click();
