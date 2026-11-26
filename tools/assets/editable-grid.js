@@ -31,7 +31,12 @@ body.addEventListener("input",saveDraft);new MutationObserver(saveDraft).observe
 window.addEventListener("storage",e=>{if(e.key!==draftKey&&e.key!==null)return;enable.checked=false;try{storedRaw=localStorage.getItem(draftKey);stored=JSON.parse(storedRaw||"null");draftButtons();status.textContent=" 別画面で保存データが変更されました。自動保存を停止しました。"}catch{stored=null;draftButtons();status.textContent=" 保存データを確認できません。"}});
 const meaningful=list=>list.filter(r=>r.some(v=>v!==""));
 let restoredDraftRaw=null;
-window.OGBEditableGrid={mergeTemplate(text,keyIndex,fill=[]){
+window.OGBEditableGrid={replaceConfirmedRows(incoming){
+ if(!Array.isArray(incoming)||!incoming.length||incoming.length>1000||incoming.some(r=>!Array.isArray(r)||r.length!==fields.length||r.some((v,i)=>typeof v!=="string"||/[\r\n,]/.test(v)||!v||types[i]==="number"&&(!/^\d+$/.test(v)||!Number.isSafeInteger(Number(v))))))throw Error("引継ぎ明細を確認してください。");
+ const latest=localStorage.getItem(draftKey);if(latest!==null){const d=JSON.parse(latest);if(!d||JSON.stringify(d.fields)!==JSON.stringify(fields)||!Array.isArray(d.data)||d.data.length>1000||d.data.some(r=>!Array.isArray(r)||r.length!==fields.length||r.some(v=>typeof v!=="string")))throw Error("保存データの形式を確認してください。");const current=meaningful(rows()),saved=meaningful(d.data);if(latest!==restoredDraftRaw&&current.length&&JSON.stringify(current)!==JSON.stringify(saved))throw Error("保存済みと編集中の入力があります。先に保存・復元して確認してください。")}
+ if(!confirm("対象期間の販売実績 "+incoming.length+"明細で画面の入力全体を置き換えます。既存の保存データは変更しません。追加ではありません。対象期間と金額・重複を確認しましたか？"))return false;
+ enable.checked=false;storedRaw=latest;stored=JSON.parse(latest||"null");load(incoming);restoredDraftRaw=latest;draftButtons();status.textContent=" 引継ぎ後の自動保存は停止中。必要なら内容を確認して保存してください。";msg.textContent="販売実績 "+incoming.length+"明細を読み込みました。保存済みデータは変更していません。";return true
+},mergeTemplate(text,keyIndex,fill=[]){
  const incoming=parseCSV(text),header=incoming.shift();if(!header||JSON.stringify(header)!==JSON.stringify(fields)||!incoming.length||incoming.length>1000||incoming.some(r=>r.length!==fields.length))throw Error("引継ぎ形式が一致しません。");
  const checkRows=list=>{if(!Array.isArray(list)||list.length>1000||list.some(r=>!Array.isArray(r)||r.length!==fields.length||r.some(v=>typeof v!=="string"||/[\r\n,]/.test(v))))throw Error("明細形式を確認してください。");};
  checkRows(incoming);const incomingKeys=new Set();for(const r of incoming){const k=r[keyIndex];if(!k||k!==k.trim()||k.length>100||incomingKeys.has(k))throw Error("商品コードの空欄・重複・形式を確認してください。");incomingKeys.add(k)}
