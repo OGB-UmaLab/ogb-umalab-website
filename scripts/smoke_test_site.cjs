@@ -5,11 +5,14 @@ const publicOnly = process.argv.includes('--public-only');
 const { pathToFileURL } = require('url');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
 (async () => {
  const browser = await chromium.launch({headless:true});
  const page = await browser.newPage();
  const errors=[];
+ let ledgerOrigin=null;
+ const ledgerServer=http.createServer((req,res)=>{if(req.url!=='/tools/product-ledger/index.html'){res.writeHead(404);res.end();return}res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(fs.readFileSync(path.resolve(__dirname,'../tools/product-ledger/index.html')))});
  const waitForText=(selector,expected)=>page.waitForFunction(
   ([selector,expected])=>document.querySelector(selector)?.textContent.includes(expected),
   [selector,expected]
@@ -20,7 +23,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
   // only deployed routes, avoiding duplicate tests and the 12-minute timeout.
   if(publicOnly && testPath.startsWith('file:')) return;
   try {
-   const target=testPath.startsWith('file:')?testPath:base+testPath;
+   const target=testPath===local('tools/product-ledger/index.html')?ledgerOrigin+'/tools/product-ledger/index.html':testPath.startsWith('file:')?testPath:base+testPath;
    const response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:30000});
    if(target.startsWith('https:')&&(!response||response.status()!==200)) throw new Error(testPath+' HTTP '+response?.status());
    await fn();
@@ -33,6 +36,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
   }
  };
  try {
+   await new Promise((resolve,reject)=>{ledgerServer.once('error',reject);ledgerServer.listen(0,'127.0.0.1',resolve)});ledgerOrigin='http://127.0.0.1:'+ledgerServer.address().port;
    // Batch audit of local navigation targets across every Data Lab tool and guide.
    // This runs once per workflow, without opening hundreds of pages in Chromium.
    const sections=['tools','guides','data-lab'];
@@ -656,8 +660,10 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#price').fill('1000');
      await page.locator('#save').click();
      if(await page.locator('#rows tr').count()!==1)throw new Error('Ledger registration failed');
+     const savedBeforeReload=await page.evaluate(()=>JSON.parse(localStorage.getItem('ogb-product-ledger-v1')));if(savedBeforeReload?.length!==1||savedBeforeReload[0][0]!=='TEST-001')throw Error('Ledger storage write failed');
      await page.reload();
-     if(await page.locator('#rows tr').count()!==1)throw new Error('Ledger persistence failed');
+     await page.waitForFunction(()=>document.querySelectorAll('#rows tr').length===1&&document.querySelector('#rows tr').textContent.includes('TEST-001'));
+     const savedAfterReload=await page.evaluate(()=>JSON.parse(localStorage.getItem('ogb-product-ledger-v1')));if(JSON.stringify(savedAfterReload)!==JSON.stringify(savedBeforeReload))throw Error('Ledger persistence failed');
      await page.locator('#rows button').first().click();
      await page.locator('#state').selectOption('出品中');
      await page.locator('#save').click();
@@ -1056,7 +1062,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#sku').fill('ITEM-001');
      await page.locator('#add').click();
      if(!(await page.locator('#error').innerText()).includes('既に登録')) throw new Error('Duplicate refund case accepted');
-     await page.locator('#clear').click();
+     page.once('dialog',d=>d.accept());await page.locator('#clear').click();
      if(!(await page.locator('#export').isDisabled())) throw new Error('Stale refunds export remained enabled');
    });
    await test(local('tools/sales-summary/index.html'),async()=>{
@@ -1070,6 +1076,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.evaluate(()=>{try{load('営業日,決済方法,売上金額,摘要\n2026-02-30,現金,100,無効')}catch(e){reset();document.getElementById('error').textContent=e.message}});
      if(!(await page.locator('#error').innerText()).includes('2行目')) throw new Error('Invalid sales date accepted');
      if(!(await page.locator('#export').isDisabled())) throw new Error('Stale monthly summary export enabled');
+   });
+   await test(local('tools/returns-refunds/index.html'),async()=>{
+     const key='ogb-returns-refunds-v1';await page.evaluate(k=>localStorage.removeItem(k),key);await page.reload();await page.locator('#sample').click();
+     await page.locator('#rows tr').first().getByRole('button',{name:'編集',exact:true}).click();await page.locator('#amount').fill('3500');await page.locator('#add').click();
+     if(await page.locator('#rows tr').count()!==3||!(await page.locator('#summary').innerText()).includes('未完了額：3,500円'))throw Error('Return edit');
+     await page.locator('#draftSave').click();await page.reload();page.once('dialog',d=>d.accept());await page.locator('#draftRestore').click();await waitForText('#draftStatus','復元しました');if(await page.locator('#rows tr').count()!==3||!(await page.locator('#summary').innerText()).includes('未完了額：3,500円'))throw Error('Return draft');
+     page.once('dialog',d=>d.accept());await page.locator('#draftDelete').click();if(await page.evaluate(k=>localStorage.getItem(k),key)!==null)throw Error('Return draft deletion');
+   });
+   await test(local('tools/packing-checklist/index.html'),async()=>{
+     const key='ogb-packing-checklist-v1';await page.evaluate(k=>localStorage.removeItem(k),key);await page.reload();await page.locator('#sample').click();
+     for(let i=0;i<5;i++)await page.locator('#rows tr').first().locator('input').nth(i).check();
+     await page.locator('#packingFilter').selectOption('open');if(await page.locator('#rows tr:visible').count()!==2)throw Error('Packing open filter');
+     await page.locator('#packingFilter').selectOption('done');if(await page.locator('#rows tr:visible').count()!==1)throw Error('Packing done filter');
+     const dl=page.waitForEvent('download');await page.locator('#export').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('ORDER-003'))throw Error('Packing filter changed CSV');
+     await page.locator('#draftSave').click();await page.reload();page.once('dialog',d=>d.accept());await page.locator('#draftRestore').click();await waitForText('#draftStatus','復元しました');if(!(await page.locator('#summary').innerText()).includes('発送準備完了：1件'))throw Error('Packing draft progress');
+     page.once('dialog',d=>d.accept());await page.locator('#draftDelete').click();if(await page.evaluate(k=>localStorage.getItem(k),key)!==null)throw Error('Packing draft delete');
    });
    await test(local('tools/daily-sales-ledger/index.html'),async()=>{
      const key='ogb-daily-sales-ledger-v1';await page.evaluate(k=>localStorage.removeItem(k),key);await page.reload();
@@ -2792,5 +2814,6 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
    }
  } catch(e) { errors.push(String(e)); }
  await browser.close();
+ if(ledgerServer.listening)await new Promise(resolve=>ledgerServer.close(resolve));
  if(errors.length) {console.error(errors.join('\n')); process.exit(1);}
 })().catch(e=>{console.error(e);process.exit(1)});
