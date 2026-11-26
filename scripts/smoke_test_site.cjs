@@ -343,6 +343,25 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   await test(local('tools/resident-tax-simulator/index.html'),async()=>{
+     const core=await page.evaluate(()=>{
+       const eq=(a,b,m)=>{if(a!==b)throw Error(m+': '+String(a)+' != '+String(b))};
+       for(const [a,b] of [[24000000n,430000n],[24000001n,290000n],[24500000n,290000n],[24500001n,150000n],[25000000n,150000n],[25000001n,0n]])eq(basic(a),b,'Resident basic boundary');
+       eq(tokyoExemption(450000n,0n,'none').flatTaxable,false,'Single exemption');eq(tokyoExemption(450001n,0n,'none').incomeTaxable,true,'Single threshold');
+       eq(tokyoExemption(1010000n,1n,'none').flatTaxable,false,'Dependent exemption');eq(tokyoExemption(1010001n,1n,'none').flatTaxable,true,'Dependent flat threshold');eq(tokyoExemption(1120000n,1n,'none').incomeTaxable,false,'Dependent income threshold');eq(tokyoExemption(1120001n,1n,'none').incomeTaxable,true,'Dependent income above threshold');eq(tokyoExemption(1350000n,0n,'protected').forestTaxable,false,'Special exemption');
+       const input={income:4350000n,social:500000n,deductions:0n,humanDiff:0n,cityRate:600n,prefRate:400n,cityFlat:3000n,prefFlat:1000n,cityCredit:0n,prefCredit:0n,incomeTaxable:true,flatTaxable:true,forestTaxable:true};
+       const v=compute(input);eq(v.taxable,3420000n,'Resident taxable');eq(v.cityAdj,1500n,'City adjustment');eq(v.prefAdj,1000n,'Pref adjustment');eq(v.total,344500n,'Resident annual');
+       const x=compute({...input,income:25000001n});eq(x.cityAdj,0n,'High income no adjustment');
+       const d=compute({...input,designated:true,cityRate:800n,prefRate:200n});eq(d.cityAdj,2000n,'Designated city adjustment');eq(d.prefAdj,500n,'Designated prefecture adjustment');eq(d.total,344500n,'Designated standard annual');return true;
+     });if(!core)throw Error('Resident core tests');
+     await page.locator('#sample').click();if(!(await page.locator('#result').innerText()).includes('344,500円'))throw Error('Resident sample');
+     const dl=page.waitForEvent('download');await page.locator('#export').click();if(!fs.readFileSync(await (await dl).path(),'utf8').includes('2027,2026,年間税額合計,344500'))throw Error('Resident CSV export');
+     await page.locator('#income').fill('450000');if(!await page.locator('#export').isDisabled())throw Error('Stale resident result');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('年間合計：0円'))throw Error('Resident exemption result');
+     await page.locator('#file').setInputFiles({name:'income.csv',mimeType:'text/csv',buffer:Buffer.from('対象年,項目,金額\n2026,合計所得金額（概算）,4350000\n2026,社会保険料控除,500000')});await page.locator('#preview').waitFor({state:'visible'});await page.locator('#apply').click();if(await page.locator('#income').inputValue()!=='4350000'||await page.locator('#social').inputValue()!=='500000')throw Error('Resident tax import');
+     await page.locator('#mode').selectOption('designated');await page.locator('#scope').check();await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled())throw Error('Unconfirmed local exemptions accepted');
+     for(const id of ['incomeStatus','flatStatus','forestStatus'])await page.locator('#'+id).selectOption('yes');
+     await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('344,500円'))throw Error('Resident designated city result');
+   });
    await test(local('tools/business-expense-allocation/index.html'),async()=>{
      await page.locator('#sample').click();
      if(!(await page.locator('#result').innerText()).includes('348,000円')||await page.locator('#rows tr').count()!==2)throw Error('Allocation sample incorrect');
