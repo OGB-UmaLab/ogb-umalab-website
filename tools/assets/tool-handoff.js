@@ -19,6 +19,30 @@ const known=s=>typeof s==="string"&&Object.prototype.hasOwnProperty.call(catalog
 const cleanList=(a,n)=>Array.isArray(a)?[...new Set(a.filter(known))].slice(0,n):[];
 function sanitizeNav(x){return {version:1,favorites:cleanList(x?.favorites,47),historyEnabled:x?.historyEnabled===true,recent:x?.historyEnabled===true?cleanList(x.recent,8):[]}}
 function pageContext(path){const m=path.match(/(?:^|\/)tools\/(?:(business)\/([a-z-]+)\/?|([a-z-]+)\/?)?(?:index\.html)?$/);if(!m)return null;if(m[1])return Object.hasOwn(businessNames,m[2])?{business:m[2],base:"../../"}:null;if(m[3])return known(m[3])?{slug:m[3],base:"../"}:null;return {directory:true,base:"./"}}
+
+const draftRegistry={"inventory-movement":{"key":"ogb-csv-grid-draft-v1:/tools/inventory-movement/","kind":"csv","restore":"csvDraftRestore","remove":"csvDraftDelete"},"receivables-report":{"key":"ogb-csv-grid-draft-v1:/tools/receivables-report/","kind":"csv","restore":"csvDraftRestore","remove":"csvDraftDelete"},"cash-flow-planner":{"key":"ogb-csv-grid-draft-v1:/tools/cash-flow-planner/","kind":"csv","restore":"csvDraftRestore","remove":"csvDraftDelete"},"shop-sales-performance":{"key":"ogb-csv-grid-draft-v1:/tools/shop-sales-performance/","kind":"csv","restore":"csvDraftRestore","remove":"csvDraftDelete"},"recipe-cost-calculator":{"key":"ogb-csv-grid-draft-v1:/tools/recipe-cost-calculator/","kind":"csv","restore":"csvDraftRestore","remove":"csvDraftDelete"},"staff-cost-planner":{"key":"ogb-csv-grid-draft-v1:/tools/staff-cost-planner/","kind":"csv","restore":"csvDraftRestore","remove":"csvDraftDelete"},"project-profit-report":{"key":"ogb-csv-grid-draft-v1:/tools/project-profit-report/","kind":"csv","restore":"csvDraftRestore","remove":"csvDraftDelete"},"stocktake-reconcile":{"key":"ogb-grid-draft-v1:/tools/stocktake-reconcile/","kind":"grid","restore":"ogbGridRestore","remove":"ogbGridDelete"},"purchase-receiving":{"key":"ogb-grid-draft-v1:/tools/purchase-receiving/","kind":"grid","restore":"ogbGridRestore","remove":"ogbGridDelete"},"supplier-payment-reconcile":{"key":"ogb-grid-draft-v1:/tools/supplier-payment-reconcile/","kind":"grid","restore":"ogbGridRestore","remove":"ogbGridDelete"},"inventory-aging":{"key":"ogb-grid-draft-v1:/tools/inventory-aging/","kind":"grid","restore":"ogbGridRestore","remove":"ogbGridDelete"},"shipping-cost-report":{"key":"ogb-grid-draft-v1:/tools/shipping-cost-report/","kind":"grid","restore":"ogbGridRestore","remove":"ogbGridDelete"},"product-margin-report":{"key":"ogb-grid-draft-v1:/tools/product-margin-report/","kind":"grid","restore":"ogbGridRestore","remove":"ogbGridDelete"},"channel-profit-report":{"key":"ogb-grid-draft-v1:/tools/channel-profit-report/","kind":"grid","restore":"ogbGridRestore","remove":"ogbGridDelete"},"expense-category-report":{"key":"ogb-grid-draft-v1:/tools/expense-category-report/","kind":"grid","restore":"ogbGridRestore","remove":"ogbGridDelete"},"annual-income-summary":{"key":"ogb-tax-form-draft-2026-v1:/tools/annual-income-summary/","kind":"tax","restore":"taxDraftRestore","remove":"taxDraftDelete"},"income-tax-simulator":{"key":"ogb-tax-form-draft-2026-v1:/tools/income-tax-simulator/","kind":"tax","restore":"taxDraftRestore","remove":"taxDraftDelete"},"resident-tax-simulator":{"key":"ogb-tax-form-draft-2026-v1:/tools/resident-tax-simulator/","kind":"tax","restore":"taxDraftRestore","remove":"taxDraftDelete"},"depreciation-calculator":{"key":"ogb-tax-form-draft-2026-v1:/tools/depreciation-calculator/","kind":"tax","restore":"taxDraftRestore","remove":"taxDraftDelete"},"side-income-summary":{"key":"ogb-tax-form-draft-2026-v1:/tools/side-income-summary/","kind":"tax","restore":"taxDraftRestore","remove":"taxDraftDelete"},"tax-filing-check":{"key":"ogb-tax-form-draft-2026-v1:/tools/tax-filing-check/","kind":"tax","restore":"taxDraftRestore","remove":"taxDraftDelete"},"tax-reserve-planner":{"key":"ogb-tax-form-draft-2026-v1:/tools/tax-reserve-planner/","kind":"tax","restore":"taxDraftRestore","remove":"taxDraftDelete"},"consumption-tax-simulator":{"key":"ogb-tax-form-draft-2026-v1:/tools/consumption-tax-simulator/","kind":"tax","restore":"taxDraftRestore","remove":"taxDraftDelete"},"withholding-tax-calculator":{"key":"ogb-tax-form-draft-2026-v1:/tools/withholding-tax-calculator/","kind":"tax","restore":"taxDraftRestore","remove":"taxDraftDelete"},"invoice-maker":{"key":"ogb-row-draft-v1:invoice-maker","kind":"row","restore":"rowDraftRestore","remove":"rowDraftDelete"},"business-expense-allocation":{"key":"ogb-row-draft-v1:business-expense-allocation","kind":"row","restore":"rowDraftRestore","remove":"rowDraftDelete"},"daily-sales-ledger":{"key":"ogb-daily-sales-ledger-v1","kind":"ledger","restore":"draftRestore","remove":"draftDelete"},"packing-checklist":{"key":"ogb-packing-checklist-v1","kind":"ledger","restore":"draftRestore","remove":"draftDelete"},"returns-refunds":{"key":"ogb-returns-refunds-v1","kind":"ledger","restore":"draftRestore","remove":"draftDelete"},"product-ledger":{"key":"ogb-product-ledger-v1","kind":"product","restore":"rows","remove":"clear"},"profit-break-even":{"key":"ogb-profit-break-even-v1","kind":"profit","restore":"profitDraftRestore","remove":"profitDraftDelete"},"annual-expense-merge":{"key":"ogb-annual-expense-merge-2026-v1","kind":"expense","restore":"expenseDraftRestore","remove":"expenseDraftDelete"}};
+const draftKinds={csv:"表入力・計算条件",grid:"表入力",tax:"税務計算条件",row:"明細・入力条件",ledger:"台帳・進捗",product:"商品台帳（自動保存）",profit:"計算条件",expense:"年間経費資料"};
+function draftMeta(raw,kind){
+ if(raw===null)return null;
+ try{
+  if(typeof raw!=="string"||raw.length>6000000)throw Error("size");
+  const x=JSON.parse(raw),obj=v=>v!==null&&typeof v==="object"&&!Array.isArray(v),array=Array.isArray;
+  let valid=false,count=null;
+  if(kind==="product"){valid=array(x)&&x.every(r=>array(r)&&r.length===6);if(valid&&x.length===0)return null;if(valid)count=x.length}
+  else if(kind==="grid"){valid=obj(x)&&array(x.fields)&&array(x.data)&&x.data.every(r=>array(r)&&r.length===x.fields.length);if(valid)count=x.data.filter(r=>r.some(v=>v!=="")).length}
+  else if(kind==="csv"){valid=obj(x)&&x.version===1&&array(x.labels)&&typeof x.data==="string"&&obj(x.settings)}
+  else if(kind==="tax"){valid=obj(x)&&x.version===1&&x.year===2026&&obj(x.fields)}
+  else if(kind==="row"){valid=obj(x)&&x.version===1&&obj(x.fields)&&array(x.rows);if(valid)count=x.rows.length}
+  else if(kind==="ledger"){valid=obj(x)&&x.version===1&&array(x.items);if(valid)count=x.items.length}
+  else if(kind==="profit"){valid=obj(x)&&x.version===1&&obj(x.fields)}
+  else if(kind==="expense"){valid=obj(x)&&x.version===1&&x.year===2026&&array(x.sources);if(valid)count=x.sources.length}
+  if(!valid)throw Error("format");
+  const time=typeof x.savedAt==="string"&&Number.isFinite(Date.parse(x.savedAt))?Date.parse(x.savedAt):null;
+  return {state:"saved",time,count};
+ }catch{return {state:"check",time:null,count:null}}
+}
+function inspectDrafts(storage){const result=[];for(const [slug,info] of Object.entries(draftRegistry)){const m=draftMeta(storage.getItem(info.key),info.kind);if(m)result.push({slug,...m})}return result.sort((a,b)=>(b.time??-1)-(a.time??-1)||catalog[a.slug].localeCompare(catalog[b.slug],"ja"))}
+
 function renderNavigation(){
  const ctx=pageContext(location.pathname),main=document.querySelector("main");if(!ctx||!main||document.getElementById("ogbToolNavigation"))return;
  let available=true,state;function readState(){try{return sanitizeNav(JSON.parse(localStorage.getItem(navKey)||"null"))}catch(e){available=false;return sanitizeNav(null)}}
@@ -29,7 +53,39 @@ function renderNavigation(){
  const link=(slug,label)=>{const a=node("a",label||catalog[slug]);a.href=ctx.base+slug+"/";a.style.cssText="color:#075e78;text-decoration:underline";return a};
  const navLink=(href,label)=>{const a=node("a",label);a.href=ctx.base+href;a.style.cssText="color:#075e78;text-decoration:underline";return a};
  const b=(id,label)=>{const a=button(id,label);a.style.cssText="margin:0;padding:6px 10px;border:1px solid #9aadb4;border-radius:6px;background:#f5f8fa;color:#18313a;font:inherit;cursor:pointer";return a};
- const message=node("p");message.id="ogbNavStatus";message.setAttribute("role","status");message.style.cssText="margin:6px 0;font-size:.9em";const fav=b("ogbFavorite","☆ お気に入りに追加");if(ctx.slug)header.append(fav);if(!ctx.directory)header.append(navLink("#tool-directory","全ツール検索"));panel.append(header);
+ const message=node("p");message.id="ogbNavStatus";message.setAttribute("role","status");message.style.cssText="margin:6px 0;font-size:.9em";const fav=b("ogbFavorite","☆ お気に入りに追加");if(ctx.slug)header.append(fav);if(!ctx.directory)header.append(navLink("#tool-directory","全ツール検索"),navLink("#ogbSavedData","保存済みデータ"));panel.append(header);
+
+ const savedPanel=node("section");savedPanel.id="ogbSavedData";savedPanel.setAttribute("aria-label","保存済みデータ・作業再開");savedPanel.style.cssText="border:1px solid #d8e4e9;border-radius:10px;padding:12px 16px;margin:16px 0;background:#fff;color:#18313a;font:inherit;overflow-wrap:anywhere";
+ const savedTitle=node("h2","保存済みデータ・作業再開");savedTitle.style.cssText="font-size:1.15em;margin:0 0 6px";savedPanel.append(savedTitle,node("p","このブラウザに保存されている入力を確認できます。自動復元は行いません。復元・削除は各ツールで操作してください。"));
+ const summarySaved=node("p");summarySaved.id="ogbSavedSummary";summarySaved.setAttribute("role","status");
+ const reloadSaved=b("ogbSavedRefresh","保存状況を更新"),filterLabel=node("label","保存済みツールを検索"),filter=document.createElement("input");filter.type="search";filter.id="ogbSavedFilter";filter.placeholder="例：台帳、経費、所得税";filter.style.cssText="width:100%;max-width:440px;box-sizing:border-box;padding:6px 8px;font:inherit";filterLabel.append(filter);
+ const savedList=node("div");savedList.id="ogbSavedList";savedPanel.append(summarySaved,reloadSaved,filterLabel,savedList,node("p","保存は同じブラウザ内に限られます。ブラウザのデータ削除・端末変更に備え、各ツールのCSV・編集用ファイル等も保管してください。保存日時を持たない旧形式は日時不明と表示します。"));
+ let savedRows=[];
+ function displaySaved(){
+  savedList.replaceChildren();const q=filter.value.normalize("NFKC").toLowerCase().trim();const matches=savedRows.filter(x=>!q||(catalog[x.slug]+" "+draftKinds[draftRegistry[x.slug].kind]).normalize("NFKC").toLowerCase().includes(q));
+  if(!matches.length){savedList.append(node("p",savedRows.length?"検索条件に一致する保存データがありません。":"保存済みデータはありません。各ツールで必要な入力を保存してください。"));return}
+  for(const item of matches){const info=draftRegistry[item.slug],row=node("div");row.style.cssText="border-top:1px solid #d8e4e9;padding:10px 0;display:flex;flex-wrap:wrap;align-items:center;gap:5px 14px";
+   const name=node("strong",catalog[item.slug]),meta=node("span",draftKinds[info.kind]+" ／ "+(item.state==="check"?"形式の確認が必要":item.time===null?"保存日時不明":"保存："+new Date(item.time).toLocaleString("ja-JP"))+(item.count===null?"":" ／ "+item.count+(info.kind==="expense"?"資料":"件")));meta.style.cssText="font-size:.9em";
+   const open=link(item.slug,item.state==="check"?"ツールで確認":info.kind==="product"?"台帳を開く":"復元・管理へ");open.href=ctx.base+item.slug+"/#"+info.restore;open.dataset.savedSlug=item.slug;
+   row.append(name,meta,open);savedList.append(row);
+  }
+ }
+ function refreshSaved(){
+  try{savedRows=inspectDrafts(localStorage);summarySaved.textContent="保存データ："+savedRows.length+"種類（保存対応 "+Object.keys(draftRegistry).length+"種類）";displaySaved()}catch(e){savedRows=[];summarySaved.textContent="このブラウザの保存領域を確認できません。";savedList.replaceChildren()}
+ }
+ reloadSaved.onclick=refreshSaved;filter.addEventListener("input",displaySaved);
+ function drawCurrentDraft(){
+  const old=document.getElementById("ogbCurrentDraft");if(old)old.remove();const info=draftRegistry[ctx.slug];if(!info)return;
+  const current=node("div");current.id="ogbCurrentDraft";current.style.cssText="margin:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap";let meta;
+  try{meta=draftMeta(localStorage.getItem(info.key),info.kind)}catch{current.append(node("span","保存領域を確認できません。"));header.after(current);return}
+  if(!meta){current.append(node("span","このツールの保存済みデータはありません。"));header.after(current);return}
+  current.append(node("span",meta.state==="check"?"保存データの形式を確認してください。":"保存済みデータがあります。"));
+  const resume=b("ogbResumeSaved",info.kind==="product"?"保存済み台帳へ":"保存内容を復元");
+  resume.onclick=()=>{const target=document.getElementById(info.restore);if(!target){message.textContent="このツールの保存・復元欄を確認してください。";return}target.scrollIntoView({block:"center"});if(info.kind==="product"){message.textContent="商品台帳はページを開くと保存内容を読み込みます。";return}if(target.disabled){message.textContent="保存内容を復元できません。保存・復元欄を確認してください。";return}target.click();};
+  const manage=b("ogbManageSaved","保存・削除欄へ");manage.onclick=()=>{const target=document.getElementById(info.remove)||document.getElementById(info.restore);if(target)target.scrollIntoView({block:"center"});else message.textContent="このツールの保存・復元欄を確認してください。"};
+  current.append(resume,manage);header.after(current);
+ }
+
  const detail=node("details"),summary=node("summary",ctx.slug?"関連ツール・お気に入り・最近使ったツール":"お気に入り・最近使ったツール");summary.style.cssText="cursor:pointer;font-weight:650;margin:8px 0";detail.append(summary);
  const body=node("div");detail.append(body);panel.append(detail,message);
  const list=(label,values)=>{const group=node("div");group.style.cssText="margin:8px 0";group.append(node("strong",label));const links=node("ul");links.style.cssText="display:flex;flex-wrap:wrap;gap:4px 18px;list-style:none;padding:0;margin:5px 0";for(const s of values){const li=node("li");if(s===ctx.slug){li.append(node("span",catalog[s]+"（現在）"));li.setAttribute("aria-current","page")}else li.append(link(s));links.append(li)}if(!values.length)group.append(node("p","まだありません。"));else group.append(links);body.append(group)};
@@ -53,8 +109,12 @@ function renderNavigation(){
  }
  fav.onclick=()=>{const old=readState(),exists=old.favorites.includes(ctx.slug);if(saveState({...old,favorites:exists?old.favorites.filter(s=>s!==ctx.slug):[ctx.slug,...old.favorites]})){message.textContent=exists?"お気に入りから外しました。":"お気に入りに追加しました。";draw()}else message.textContent="端末内保存を利用できません。"};
  detail.open=!!ctx.directory;draw();
- const heading=main.querySelector("h1")||main.querySelector("h2");if(ctx.directory){const target=document.getElementById("tool-directory");if(target)target.before(panel);else main.prepend(panel)}else if(heading)heading.after(panel);else main.prepend(panel);
- window.addEventListener("storage",e=>{if(e.key===navKey||e.key===null){state=readState();draw()}});
+ const heading=main.querySelector("h1")||main.querySelector("h2");if(ctx.directory){const target=document.getElementById("tool-directory");if(target){const entry=document.getElementById("saved-work-entry");if(entry)entry.append(savedPanel),entry.before(panel);else target.before(panel,savedPanel);}else main.prepend(panel,savedPanel);refreshSaved()}else if(heading)heading.after(panel);else main.prepend(panel);
+ if(ctx.slug){drawCurrentDraft();document.addEventListener("ogb:draft-changed",drawCurrentDraft);document.addEventListener("click",e=>{const info=draftRegistry[ctx.slug];if(!info)return;const id=e.target?.id;if(id===info.restore||id===info.remove||["csvDraftSave","taxDraftSave","rowDraftSave","draftSave","profitDraftSave","expenseDraftSave","save","clear"].includes(id))queueMicrotask(drawCurrentDraft)});document.addEventListener("change",e=>{if(e.target?.id==="csvDraftAuto"||e.target?.id==="ogbGridAuto")queueMicrotask(drawCurrentDraft)});}
+ window.addEventListener("storage",e=>{if(e.key===navKey||e.key===null){state=readState();draw()}if(e.key===null||Object.values(draftRegistry).some(x=>x.key===e.key)){if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()}});
+ window.addEventListener("pageshow",()=>{if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()});
+ window.addEventListener("focus",()=>{if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()});
+ const fragment=location.hash.slice(1);if(fragment==="ogbSavedData"&&ctx.directory||ctx.slug&&draftRegistry[ctx.slug]?.restore===fragment)requestAnimationFrame(()=>document.getElementById(fragment)?.scrollIntoView({block:"center"}));
 }
 if(typeof document!=="undefined"){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",renderNavigation,{once:true});else queueMicrotask(renderNavigation)}
 

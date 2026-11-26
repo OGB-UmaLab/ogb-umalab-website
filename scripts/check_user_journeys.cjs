@@ -18,6 +18,17 @@ const listed=[...directory.matchAll(/href="\/tools\/([a-z-]+)\/"/g)].map(m=>m[1]
 check(listed.length===47&&new Set(listed).size===47,'Navigation directory count mismatch');
 check(Object.keys(navCatalog).length===47&&listed.every(s=>Object.hasOwn(navCatalog,s)),'Navigation catalog mismatch');
 const navCoverage=new Set(navWorkflows.flatMap(w=>w.steps));
+
+const drafts=JSON.parse(navSource.match(/const draftRegistry=(\{[^\n]+\});/)[1]);
+check(Object.keys(drafts).length===32&&Object.keys(drafts).every(s=>listed.includes(s)),'Saved work registry count or unknown tool');
+for(const s of listed){
+ const page=read('tools/'+s+'/index.html');
+ const hasDraft=/src="\.\.\/assets\/(?:csv-grid-editor|editable-grid|ledger-draft|row-form-draft|tax-form-draft)\.js"/.test(page)||/localStorage\.(?:setItem|getItem)\(/.test(page);
+ check(hasDraft===Object.hasOwn(drafts,s),'Saved work registry does not match tool: '+s);
+ if(drafts[s])check(drafts[s].key.startsWith('ogb-')&&typeof drafts[s].restore==='string','Saved work registry invalid: '+s);
+}
+check(tools.includes('id="saved-work-entry"'),'Saved work entry missing');
+
 check(navCoverage.size===47&&listed.every(s=>navCoverage.has(s)),'Workflow coverage mismatch');
 for(const s of listed){const page=read('tools/'+s+'/index.html');check(page.includes('src="../assets/tool-handoff.js"'),'Missing common navigation: '+s);}
 for(const s of ['online-selling','small-shop','freelance']){const page=read('tools/business/'+s+'/index.html');check(page.includes('id="direct-workflows-title"')&&page.includes('src="../../assets/tool-handoff.js"'),'Business navigation missing: '+s);}
