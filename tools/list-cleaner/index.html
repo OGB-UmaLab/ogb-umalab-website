@@ -34,4 +34,4 @@ OGBToolHandoff.init({"slug":"list-cleaner","guard":"download","out":[["csv-analy
  button.type="button";button.id="listHandoffApply";button.textContent="選択した列を取り込む";
  button.onclick=()=>{try{const values=parsed.rows.map(r=>r[Number(col.value)]);if(values.some(v=>/[\r\n]/.test(v)))throw Error("選択列には項目内改行があります。1行1項目のリストへ正確に取り込めません。");if($(target.value).value&&!confirm("選択したリストを置き換えますか？ もう一方のリストは保持します。"))return;$(target.value).value=values.join("\n");$(target.value).dispatchEvent(new Event("input",{bubbles:true}));status.textContent="選択列 "+values.length+"行を取り込みました。整理方法を確認してください。"}catch(e){status.textContent=e.message}};
  host.append(label,dest,button,status);$("handoffIn").after(host);return true
-});</script></body></html>
+});</script><script src="../assets/form-draft.js" data-config='{"slug":"list-cleaner","anchor":"run","ids":["a","b","trim","empty","case","mode"]}'></script></body></html>

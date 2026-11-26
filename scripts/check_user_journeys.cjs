@@ -20,10 +20,10 @@ check(Object.keys(navCatalog).length===47&&listed.every(s=>Object.hasOwn(navCata
 const navCoverage=new Set(navWorkflows.flatMap(w=>w.steps));
 
 const drafts=JSON.parse(navSource.match(/const draftRegistry=(\{[^\n]+\});/)[1]);
-check(Object.keys(drafts).length===32&&Object.keys(drafts).every(s=>listed.includes(s)),'Saved work registry count or unknown tool');
+check(Object.keys(drafts).length===40&&Object.keys(drafts).every(s=>listed.includes(s)),'Saved work registry count or unknown tool');
 for(const s of listed){
  const page=read('tools/'+s+'/index.html');
- const hasDraft=/src="\.\.\/assets\/(?:csv-grid-editor|editable-grid|ledger-draft|row-form-draft|tax-form-draft)\.js"/.test(page)||/localStorage\.(?:setItem|getItem)\(/.test(page);
+ const hasDraft=/src="\.\.\/assets\/(?:csv-grid-editor|editable-grid|ledger-draft|row-form-draft|tax-form-draft|form-draft)\.js"/.test(page)||/localStorage\.(?:setItem|getItem)\(/.test(page);
  check(hasDraft===Object.hasOwn(drafts,s),'Saved work registry does not match tool: '+s);
  if(drafts[s])check(drafts[s].key.startsWith('ogb-')&&typeof drafts[s].restore==='string','Saved work registry invalid: '+s);
 }
