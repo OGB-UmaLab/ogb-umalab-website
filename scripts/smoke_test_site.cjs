@@ -355,6 +355,28 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#data').fill('案件ID,案件名,報酬額,直接経費,作業時間（分）\nA,赤字,10,20,0');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('算出不可'))throw Error('Zero time project');
      await page.locator('#data').fill('案件ID,案件名,報酬額,直接経費,作業時間（分）\nA,案件A,10,0,1\nA,案件B,10,0,1');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled()||!(await page.locator('#error').innerText()).includes('一致しません'))throw Error('Project mismatch accepted');
    });
+   for(const slug of ['invoice-maker','business-expense-allocation']){
+     await test(local('tools/'+slug+'/index.html'),async()=>{
+       const key='ogb-row-draft-v1:'+slug;
+       await page.evaluate(k=>localStorage.removeItem(k),key);await page.reload();
+       await page.locator('#sample').click();
+       if(await page.evaluate(k=>localStorage.getItem(k),key)!==null)throw Error('Unexpected autosave');
+       const check=slug==='invoice-maker'?'qualified':'confirm';
+       const first=slug==='invoice-maker'?'name':'category';
+       await page.locator('#inputRows tr').first().locator('[data-key='+first+']').fill('保存確認');
+       await page.locator('#rowDraftSave').click();
+       const saved=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+       if(saved.rows.length!==2||saved.rows[0][first]!=='保存確認'||check in saved.fields)throw Error('Row draft data');
+       const dl=page.waitForEvent('download');await page.locator('#rowDraftDownload').click();const json=fs.readFileSync(await(await dl).path(),'utf8');
+       await page.reload();page.once('dialog',d=>d.accept());await page.locator('#rowDraftRestore').click();
+       if(await page.locator('#inputRows tr').count()!==2||await page.locator('#inputRows tr').first().locator('[data-key='+first+']').inputValue()!=='保存確認'||await page.locator('#'+check).isChecked())throw Error('Row restore');
+       if(!await page.locator(slug==='invoice-maker'?'#print':'#export').isDisabled())throw Error('Stale calculation');
+       await page.locator('#clear').click();page.once('dialog',d=>d.accept());await page.locator('#rowDraftFile').setInputFiles({name:'draft.json',mimeType:'application/json',buffer:Buffer.from(json)});await waitForText('#rowDraftStatus','入力を復元');
+       if(await page.locator('#inputRows tr').count()!==2)throw Error('Portable draft import');
+       await page.locator('#rowDraftFile').setInputFiles({name:'wrong.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...saved,tool:'wrong'}))});await waitForText('#rowDraftStatus','一致しません');if(await page.locator('#inputRows tr').count()!==2)throw Error('Invalid import mutated rows');
+       page.once('dialog',d=>d.accept());await page.locator('#rowDraftDelete').click();if(await page.evaluate(k=>localStorage.getItem(k),key)!==null)throw Error('Row draft delete');
+     });
+   }
    await test(local('tools/invoice-maker/index.html'),async()=>{
      await page.locator('#sample').click();if(!(await page.locator('#result').innerText()).includes('11,218円')||await page.locator('#taxRows tr').count()!==3)throw Error('Invoice sample');
      const ok=await page.evaluate(()=>{const a=taxTotals([{tax:'10',amount:5n},{tax:'10',amount:5n}],'exclusive','floor'),b=taxTotals([{tax:'8',amount:108n}],'inclusive','floor');return a.vat===1n&&a.total===11n&&b.vat===8n&&b.total===108n});if(!ok)throw Error('Invoice rate-level rounding');
