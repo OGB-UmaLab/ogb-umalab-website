@@ -343,6 +343,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   await test(local('tools/depreciation-calculator/index.html'),async()=>{
+     await page.locator('#sample').click();if(!(await page.locator('#result').innerText()).includes('60,000円'))throw Error('Depreciation sample');
+     const v=await page.evaluate(()=>{const a=depreciation(1000000n,100000n,100n,12n),b=depreciation(100001n,100001n,167n,1n),c=depreciation(100000n,1n,250n,12n);return a.amount===99999n&&a.end===1n&&b.amount===1392n&&c.amount===0n});if(!v)throw Error('Depreciation boundaries');
+     const dl=page.waitForEvent('download');await page.locator('#expenseExport').click();const csv=fs.readFileSync(await (await dl).path(),'utf8');if(!csv.includes('"減価償却費","1","60000"'))throw Error('Depreciation CSV');
+     await page.locator('#months').fill('7');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled())throw Error('Depreciation invalid month accepted');
+     await page.goto(local('tools/annual-income-summary/index.html'),{waitUntil:'domcontentloaded'});await page.locator('#file').setInputFiles({name:'expense.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await page.locator('#preview').waitFor({state:'visible'});await page.locator('#expenseOptions input').check();await page.locator('#confirmPeriod').check();await page.locator('#apply').click();if(await page.locator('#expenses').inputValue()!=='60000')throw Error('Depreciation annual CSV');
+   });
+   await test(local('tools/side-income-summary/index.html'),async()=>{
+     await page.locator('#sample').click();if(!(await page.locator('#result').innerText()).includes('3,550,000円'))throw Error('Side income sample');
+     const v=await page.evaluate(()=>{const a=summarize(10n,20n,500000n,0n,100n),b=summarize(0n,0n,500001n,0n,0n),c=summarize(0n,0n,500002n,0n,0n);return a.total===100n&&a.misc===-10n&&b.tempIncluded===0n&&c.tempIncluded===1n});if(!v)throw Error('Side income boundaries');
+     const dl=page.waitForEvent('download');await page.locator('#export').click();const csv=fs.readFileSync(await (await dl).path(),'utf8');if(!csv.includes('2026,その他総合課税所得,3550000'))throw Error('Side income CSV');
+     await page.locator('#tempExpense').fill('1000000');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled())throw Error('Unsupported temporary loss accepted');
+     await page.goto(local('tools/income-tax-simulator/index.html'),{waitUntil:'domcontentloaded'});page.once('dialog',d=>d.accept());await page.locator('#sideFile').setInputFiles({name:'side.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#sideStatus','反映しました');if(await page.locator('#other').inputValue()!=='3550000')throw Error('Side income tax import');
+   });
    await test(local('tools/resident-tax-simulator/index.html'),async()=>{
      const core=await page.evaluate(()=>{
        const eq=(a,b,m)=>{if(a!==b)throw Error(m+': '+String(a)+' != '+String(b))};
