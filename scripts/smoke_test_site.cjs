@@ -343,6 +343,35 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   await test(local('tools/income-tax-simulator/index.html'),async()=>{
+     const verify=await page.evaluate(()=>{
+       const eq=(a,b,m)=>{if(a!==b)throw Error(m+': '+String(a)+' != '+String(b))};
+       for(const [n,b] of [[0n,1040000n],[4890000n,1040000n],[4890001n,670000n],[6550000n,670000n],[6550001n,620000n],[23500000n,620000n],[23500001n,480000n],[24000000n,480000n],[24000001n,320000n],[24500000n,320000n],[24500001n,160000n],[25000000n,160000n],[25000001n,0n]])eq(basic(n),b,'Basic deduction boundary');
+       for(const [taxable,tax] of [[1949000n,97450n],[1950000n,97500n],[3299000n,232400n],[3300000n,232500n],[6949000n,962300n],[6950000n,962500n],[8999000n,1433770n],[9000000n,1434000n],[17999000n,4403670n],[18000000n,4404000n],[39999000n,13203600n],[40000000n,13204000n]]){
+         const income=taxable+2000000n;const x=compute(income,0n,0n,2000000n-basic(income),0n);eq(x.tax,tax,'Bracket boundary');eq(x.reconstruction,tax*21n/1000n,'Reconstruction');
+       }
+       const v=compute(9000000n,0n,1380000n,0n,0n);eq(v.taxable,7000000n,'NTA example taxable');eq(v.tax,974000n,'NTA example tax');eq(v.reconstruction,20454n,'NTA example reconstruction');
+       eq(compute(100000n,0n,0n,0n,650000n).applied,100000n,'Blue cap');
+       eq(compute(-100000n,0n,0n,0n,650000n).applied,0n,'Loss cap');
+       eq(compute(1040999n,0n,0n,0n,0n).taxable,0n,'Taxable rounding');
+       eq(compute(2000000n,0n,0n,0n,0n,0n,100000n).settlement,-50992n,'Refund');
+       return true;
+     });if(!verify)throw Error('Income tax core checks failed');
+     await page.locator('#sample').click();
+     if(!(await page.locator('#result').innerText()).includes('187,353円')||await page.locator('#compareRows tr').count()!==4)throw Error('Tax sample incorrect');
+     const dl=page.waitForEvent('download');await page.locator('#export').click();
+     if(!fs.readFileSync(await (await dl).path(),'utf8').includes('2026,復興特別所得税,3853'))throw Error('Tax CSV incorrect');
+     await page.locator('#business').fill('100000');if(!await page.locator('#export').isDisabled())throw Error('Stale tax result');
+     await page.locator('#file').setInputFiles({name:'annual.csv',mimeType:'text/csv',buffer:Buffer.from('\uFEFF対象年,項目,金額\r\n2026,青色申告特別控除前所得,1300000')});
+     await page.locator('#preview').waitFor({state:'visible'});await page.locator('#apply').click();
+     if(await page.locator('#business').inputValue()!=='1300000')throw Error('Tax annual import mismatch');
+     await page.locator('#file').setInputFiles({name:'wrong.csv',mimeType:'text/csv',buffer:Buffer.from('対象年,項目,金額\n2025,青色申告特別控除前所得,90000')});
+     await waitForText('#importError','年度');if(await page.locator('#business').inputValue()!=='1300000')throw Error('Wrong year changed tax input');
+     await page.locator('#business').fill('-100');await page.locator('#other').fill('1000');await page.locator('#calculate').click();
+     if(!await page.locator('#export').isDisabled()||!(await page.locator('#error').innerText()).includes('損益通算'))throw Error('Unsupported loss accepted');
+     await page.locator('#clear').click();await page.locator('#calculate').click();
+     if(!await page.locator('#export').isDisabled())throw Error('Tax scope unchecked');
+   });
    await test(local('tools/annual-income-summary/index.html'),async()=>{
      const fill=async(id,v)=>page.locator('#'+id).fill(String(v));
      const calc=async()=>page.locator('#calculate').click();
