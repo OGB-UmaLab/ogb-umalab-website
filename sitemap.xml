@@ -1771,10 +1771,16 @@
     <loc>https://ogb-umalab.com/tools/business-expense-allocation/</loc>
   </url>
   <url>
+    <loc>https://ogb-umalab.com/tools/business/freelance/</loc>
+  </url>
+  <url>
     <loc>https://ogb-umalab.com/tools/business/online-selling/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/tools/business/small-shop/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/cash-flow-planner/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/tools/cash-register-close/</loc>
@@ -1865,6 +1871,9 @@
   </url>
   <url>
     <loc>https://ogb-umalab.com/tools/purchase-receiving/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/receivables-report/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/tools/resident-tax-simulator/</loc>
