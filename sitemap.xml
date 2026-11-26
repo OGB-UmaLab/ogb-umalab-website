@@ -1798,6 +1798,9 @@
     <loc>https://ogb-umalab.com/tools/channel-profit-report/</loc>
   </url>
   <url>
+    <loc>https://ogb-umalab.com/tools/consumption-tax-simulator/</loc>
+  </url>
+  <url>
     <loc>https://ogb-umalab.com/tools/correlation/</loc>
   </url>
   <url>
@@ -1889,6 +1892,9 @@
   </url>
   <url>
     <loc>https://ogb-umalab.com/tools/tax-reserve-planner/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/withholding-tax-calculator/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/umalab/</loc>
