@@ -1885,6 +1885,12 @@
     <loc>https://ogb-umalab.com/tools/supplier-payment-reconcile/</loc>
   </url>
   <url>
+    <loc>https://ogb-umalab.com/tools/tax-filing-check/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/tools/tax-reserve-planner/</loc>
+  </url>
+  <url>
     <loc>https://ogb-umalab.com/umalab/</loc>
   </url>
 </urlset>
