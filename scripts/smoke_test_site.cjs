@@ -1072,6 +1072,17 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(!(await page.locator('#export').isDisabled())) throw new Error('Stale monthly summary export enabled');
    });
    await test(local('tools/daily-sales-ledger/index.html'),async()=>{
+     const key='ogb-daily-sales-ledger-v1';await page.evaluate(k=>localStorage.removeItem(k),key);await page.reload();
+     await page.locator('#sample').click();
+     await page.locator('#rows tr').first().getByRole('button',{name:/の明細を編集/}).click();
+     await page.locator('#amount').fill('13000');await page.locator('#add').click();
+     if(await page.locator('#rows tr').count()!==3||!(await page.locator('#summary').innerText()).includes('26,000円'))throw Error('Daily sales edit');
+     await page.locator('#draftSave').click();await page.reload();if(await page.locator('#rows tr').count()!==0)throw Error('Ledger restored without request');
+     page.once('dialog',d=>d.accept());await page.locator('#draftRestore').click();
+     if(await page.locator('#rows tr').count()!==3||!(await page.locator('#summary').innerText()).includes('26,000円'))throw Error('Daily sales restore');
+     page.once('dialog',d=>d.accept());await page.locator('#draftDelete').click();if(await page.evaluate(k=>localStorage.getItem(k),key)!==null||await page.locator('#rows tr').count()!==3)throw Error('Daily sales delete');
+   });
+   await test(local('tools/daily-sales-ledger/index.html'),async()=>{
      const csv=['営業日,決済方法,売上金額,摘要','2026-11-24,現金,1200,午前','2026-11-24,カード,800,午後'].join(String.fromCharCode(10));
      await page.locator('#importFile').setInputFiles({name:'daily-sales-ledger.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
      await page.waitForFunction(()=>!document.querySelector('#importFile,#restore').value);
@@ -1102,6 +1113,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#amount').fill('-10');
      await page.locator('#add').click();
      if(!(await page.locator('#error').innerText()).includes('0以上')) throw new Error('Negative sales amount accepted');
+     page.once('dialog',d=>d.accept());
      await page.locator('#clear').click();
      if(!(await page.locator('#export').isDisabled())) throw new Error('Sales ledger stale CSV export enabled');
    });
