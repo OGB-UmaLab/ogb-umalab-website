@@ -862,6 +862,12 @@
     <loc>https://ogb-umalab.com/guides/</loc>
   </url>
   <url>
+    <loc>https://ogb-umalab.com/guides/annual-tax-workflow/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/guides/business-inventory-workflow/</loc>
+  </url>
+  <url>
     <loc>https://ogb-umalab.com/guides/csv-analysis-basics/</loc>
   </url>
   <url>
@@ -872,6 +878,9 @@
   </url>
   <url>
     <loc>https://ogb-umalab.com/guides/image-batch-hands-on/</loc>
+  </url>
+  <url>
+    <loc>https://ogb-umalab.com/guides/invoice-cashflow-workflow/</loc>
   </url>
   <url>
     <loc>https://ogb-umalab.com/guides/list-cleaner-hands-on/</loc>
