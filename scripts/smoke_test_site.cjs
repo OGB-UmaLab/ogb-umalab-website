@@ -343,6 +343,19 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      const csv=fs.readFileSync(await downloaded.path(),'utf8');
      if(!csv.includes('R001,-100,1')) throw new Error('Negative amount changed by CSV export guard');
    });
+   await test(local('tools/receivables-report/index.html'),async()=>{
+     await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('140,000円')||!s.includes('60,000円')||!s.includes('5,000円'))throw Error('Receivables totals');
+     const dl=page.waitForEvent('download');await page.locator('#forecast').click();const csv=fs.readFileSync(await (await dl).path(),'utf8');if(!csv.includes('"2026-11-26","入金","60000"')||!csv.includes('"2026-12-15","入金","80000"'))throw Error('Receivables forecast');
+     await page.locator('#data').fill('取引先,請求番号,請求日,入金期限,請求額,入金済額\nA,X,2026-11-01,2026-11-20,100,0\nA,X,2026-11-01,2026-11-20,100,0');await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled()||!(await page.locator('#error').innerText()).includes('重複'))throw Error('Receivables duplicate');
+     await page.goto(local('tools/cash-flow-planner/index.html'),{waitUntil:'domcontentloaded'});await page.locator('#file').setInputFiles({name:'forecast.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#result','読み込みました');await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('140,000円'))throw Error('Receivables forecast import');
+   });
+   await test(local('tools/cash-flow-planner/index.html'),async()=>{
+     await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('30,000円')||!s.includes('-30,000円')||!s.includes('不足月：1か月')||await page.locator('#rows tr').count()!==12)throw Error('Cash flow sample');
+     await page.locator('#start').fill('2027-01');if(!await page.locator('#export').isDisabled())throw Error('Stale cash flow');await page.locator('#calculate').click();if(!(await page.locator('#error').innerText()).includes('期間外'))throw Error('Cash flow out of range');
+   });
+   await test(local('tools/business/freelance/index.html'),async()=>{
+     for(const slug of ['receivables-report','cash-flow-planner','annual-income-summary','income-tax-simulator','tax-reserve-planner'])if(!await page.locator('a[href="/tools/'+slug+'/"]').count())throw Error('Freelance journey missing: '+slug);
+   });
    await test(local('tools/consumption-tax-simulator/index.html'),async()=>{
      await page.locator('#sample').click();const summary=await page.locator('#result').innerText();if(!summary.includes('180,000円')||!summary.includes('116,000円'))throw Error('Consumption estimate sample');
      const ok=await page.evaluate(()=>{const x=estimate(110n,108n,20n,90n);return x.output===18n&&x.general===-2n&&x.simple===1n&&x.special===3n});if(!ok)throw Error('Consumption boundary');
