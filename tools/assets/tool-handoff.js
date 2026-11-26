@@ -53,19 +53,23 @@ function validBackupRaw(slug,raw){
  try{const x=JSON.parse(raw);return !["row","form"].includes(info.kind)||x.tool===slug}catch{return false}
 }
 function makeBackup(storage){
- const entries=[],skipped=[];
+ const entries=[],skipped=[];let workspace=null,workspaceSkipped=false;
  for(const [slug,info] of Object.entries(draftRegistry)){const raw=storage.getItem(info.key);if(raw===null||draftMeta(raw,info.kind)===null)continue;if(validBackupRaw(slug,raw))entries.push({slug,raw});else skipped.push(slug)}
- const data={format:"ogb-data-lab-backup",version:1,createdAt:new Date().toISOString(),entries};
- const text=JSON.stringify(data);if(text.length>backupLimit)throw Error("バックアップの容量が上限を超えています。各ツールのCSV・編集用ファイルをご利用ください。");
- return {text,entries,skipped};
+ try{const saved=parseWorkspace(storage.getItem(workKey));if(saved.sets.length)workspace=cleanWorkspace(saved)}catch{workspaceSkipped=true}
+ const data={format:"ogb-data-lab-backup",version:2,createdAt:new Date().toISOString(),entries,workspace};
+ const text=JSON.stringify(data);if(new TextEncoder().encode(text).length>backupLimit)throw Error("バックアップの容量が上限を超えています。各ツールのCSV・編集用ファイルをご利用ください。");
+ return {text,entries,skipped,workspace,workspaceSkipped};
 }
 function parseBackup(text){
- if(typeof text!=="string"||text.length>backupLimit)throw Error("バックアップファイルの容量が上限を超えています。");
+ if(typeof text!=="string"||new TextEncoder().encode(text).length>backupLimit)throw Error("バックアップファイルの容量が上限を超えています。");
  const data=JSON.parse(text.replace(/^\uFEFF/,""));
- if(!data||data.format!=="ogb-data-lab-backup"||data.version!==1||!Array.isArray(data.entries)||!data.entries.length||data.entries.length>Object.keys(draftRegistry).length)throw Error("Data Labのバックアップ形式と一致しません。");
- const seen=new Set(),result=[];
- for(const e of data.entries){if(!e||typeof e.slug!=="string"||seen.has(e.slug)||!validBackupRaw(e.slug,e.raw))throw Error("未対応のツール、重複、または保存形式に問題があります。元の端末で確認してください。");seen.add(e.slug);result.push({slug:e.slug,raw:e.raw,meta:draftMeta(e.raw,draftRegistry[e.slug].kind)})}
- return result;
+ if(!data||data.format!=="ogb-data-lab-backup"||![1,2].includes(data.version)||!Array.isArray(data.entries)||data.entries.length>Object.keys(draftRegistry).length)throw Error("Data Labのバックアップ形式と一致しません。");
+ const seen=new Set(),entries=[];
+ for(const e of data.entries){if(!e||typeof e.slug!=="string"||seen.has(e.slug)||!validBackupRaw(e.slug,e.raw))throw Error("未対応のツール、重複、または保存形式に問題があります。元の端末で確認してください。");seen.add(e.slug);entries.push({slug:e.slug,raw:e.raw,meta:draftMeta(e.raw,draftRegistry[e.slug].kind)})}
+ let workspace=null;
+ if(data.version===2&&data.workspace!==null&&data.workspace!==undefined)workspace=cleanWorkspace(parseWorkspace(JSON.stringify(data.workspace)));
+ if(!entries.length&&!workspace?.sets.length)throw Error("復元できるデータがありません。");
+ return {entries,workspace};
 }
 function restoreMissing(storage,entries){
  const applied=[],skipped=[],failed=[];
@@ -89,6 +93,28 @@ function parseWorkspace(raw){
 }
 function workspaceNext(s){return s?.steps.find(t=>!s.done.includes(t))||""}
 function workspaceMove(s,slug,delta){const i=s.steps.indexOf(slug),j=i+delta;if(i<0||![-1,1].includes(delta)||j<0||j>=s.steps.length)return false;[s.steps[i],s.steps[j]]=[s.steps[j],s.steps[i]];return true}
+
+
+function cleanWorkspace(x){return {version:1,active:x.active,sets:x.sets.map(s=>({id:s.id,name:s.name,steps:[...s.steps],done:[...s.done]}))}}
+function mergeWorkspace(current,incoming,selected){
+ const next=cleanWorkspace(current),applied=[],skipped=[],full=[];
+ for(const s of incoming.sets){if(!selected.includes(s.id))continue;if(next.sets.some(t=>t.id===s.id)){skipped.push(s.id);continue}if(next.sets.length>=workLimit){full.push(s.id);continue}next.sets.push({id:s.id,name:s.name,steps:[...s.steps],done:[...s.done]});applied.push(s.id)}
+ if(!current.sets.length&&applied.length)next.active=applied.includes(incoming.active)?incoming.active:applied[0];
+ return {next,applied,skipped,full};
+}
+function restoreWorkspace(storage,incoming,selected){
+ if(!incoming||!selected.length)return {applied:[],skipped:[],full:[],failed:[]};
+ try{
+ const raw=storage.getItem(workKey),current=parseWorkspace(raw),valid=cleanWorkspace(parseWorkspace(JSON.stringify(incoming))),result=mergeWorkspace(current,valid,selected);
+ if(result.applied.length){if(storage.getItem(workKey)!==raw)throw Error("changed");const next=JSON.stringify(result.next);parseWorkspace(next);storage.setItem(workKey,next)}
+ return {applied:result.applied,skipped:result.skipped,full:result.full,failed:[]};
+ }catch{return {applied:[],skipped:[],full:[],failed:[...selected]}}
+}
+function workDraftInfo(slug,storage){
+ const info=draftRegistry[slug];if(!info)return {state:"unsupported",label:"元CSVから集計"};
+ try{const meta=draftMeta(storage.getItem(info.key),info.kind);if(!meta)return {state:"missing",label:"保存なし"};if(meta.state==="check")return {state:"check",label:"保存形式の確認が必要"};return {state:"saved",label:info.settingsOnly?"設定保存済み":"保存済み",time:meta.time,restore:info.restore}}catch{return {state:"check",label:"保存状況不明"}}
+}
+function workspaceSummary(set,storage){const details=set.steps.map(slug=>({slug,done:set.done.includes(slug),...workDraftInfo(slug,storage)}));return {total:details.length,done:set.done.length,saved:details.filter(d=>d.state==="saved").length,check:details.filter(d=>d.state==="check").length,next:workspaceNext(set),details}}
 
 function renderNavigation(){
  const ctx=pageContext(location.pathname),main=document.querySelector("main");if(!ctx||!main||document.getElementById("ogbToolNavigation"))return;
@@ -128,6 +154,15 @@ function renderNavigation(){
   const active=getActive(),choose=workSelect("ogbWorkSelect",[["","業務セットを選択"],...workState.sets.map(s=>[s.id,s.name])],workState.active);
   choose.addEventListener("change",()=>changeWork(x=>{x.active=choose.value},"使用する業務セットを変更しました。"));
   workBody.append(workLabel("使用中の業務セット",choose));
+  const dashboard=node("div");dashboard.id="ogbWorkDashboard";dashboard.style.cssText="margin:10px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:8px";
+  for(const set of workState.sets){const data=workspaceSummary(set,localStorage),tile=node("div");tile.style.cssText="border:1px solid #d8e4e9;border-radius:8px;padding:10px;min-width:0";tile.dataset.workSet=set.id;
+   const title=node("strong",set.name+(set.id===workState.active?"（使用中）":"")),meter=node("progress");meter.max=Math.max(1,data.total);meter.value=data.done;meter.setAttribute("aria-label",set.name+"の進捗");meter.style.width="100%";
+   const info=node("p","完了 "+data.done+" / "+data.total+" 工程 ／ 保存済み "+data.saved+" 種類"+(data.check?" ／ 保存確認 "+data.check+" 種類":""));info.style.cssText="margin:4px 0;font-size:.9em";
+   const select=b("ogbWorkActivate-"+set.id,set.id===workState.active?"使用中":"この業務を選択");select.disabled=set.id===workState.active;select.onclick=()=>changeWork(x=>{x.active=set.id},"使用する業務セットを変更しました。");
+   const nextText=node("p",data.next?"次："+catalog[data.next]:data.total?"全工程完了":"工程未登録");nextText.style.cssText="margin:4px 0;font-size:.9em";
+   tile.append(title,meter,info,nextText,select);dashboard.append(tile);
+  }
+  if(workState.sets.length)workBody.append(dashboard,node("p","保存状況はツール共通です。業務セットごとに別の台帳が作られるわけではありません。保存済みでも、当該業務の工程が完了したとは限りません。"));
   const create=node("details");create.id="ogbWorkCreatePanel";create.open=!workState.sets.length;
   create.append(node("summary","業務セットを新規作成"));
   const template=workSelect("ogbWorkTemplate",[["","空のセットから作成"],...workflows.map(w=>[w.id,w.name])],"");
@@ -145,7 +180,7 @@ function renderNavigation(){
   const progress=node("p","完了 "+active.done.length+" / "+active.steps.length+" 工程");progress.id="ogbWorkProgress";
   const meter=node("progress");meter.max=Math.max(1,active.steps.length);meter.value=active.done.length;meter.setAttribute("aria-label","業務進捗");meter.style.cssText="width:100%;max-width:420px";box.append(progress,meter);
   const next=workspaceNext(active);if(next){const a=link(next,"次の未完了工程を開く： "+catalog[next]);a.id="ogbWorkNext";box.append(workActions(a))}else if(active.steps.length)box.append(node("p","すべての工程を完了しました。次回の作業では進捗をリセットできます。"));
-  const steps=node("div");steps.id="ogbWorkSteps";
+  const steps=node("div");steps.id="ogbWorkSteps";const detailBySlug=new Map(workspaceSummary(active,localStorage).details.map(d=>[d.slug,d]));
   active.steps.forEach((slug,i)=>{
    const row=node("div");row.style.cssText="border-top:1px solid #e1e9ec;padding:8px 0;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center";
    const check=node("input");check.type="checkbox";check.id="ogbWorkDone-"+slug;check.checked=active.done.includes(slug);check.style.width="auto";check.setAttribute("aria-label",catalog[slug]+"を完了にする");check.onchange=()=>apply(s=>{s.done=check.checked?[...new Set([...s.done,slug])]:s.done.filter(t=>t!==slug)},"進捗を更新しました。");
@@ -153,15 +188,17 @@ function renderNavigation(){
    const up=b("ogbWorkUp-"+slug,"↑"),down=b("ogbWorkDown-"+slug,"↓"),remove=b("ogbWorkRemove-"+slug,"外す");up.disabled=i===0;down.disabled=i===active.steps.length-1;up.setAttribute("aria-label",catalog[slug]+"を上へ");down.setAttribute("aria-label",catalog[slug]+"を下へ");remove.setAttribute("aria-label",catalog[slug]+"をセットから外す");
    up.onclick=()=>apply(s=>workspaceMove(s,slug,-1),"工程の順番を変更しました。");down.onclick=()=>apply(s=>workspaceMove(s,slug,1),"工程の順番を変更しました。");
    remove.onclick=()=>{if(!confirm(catalog[slug]+"をこの業務セットから外しますか？ ツールの保存済みデータは残ります。"))return;apply(s=>{s.steps=s.steps.filter(t=>t!==slug);s.done=s.done.filter(t=>t!==slug)},"工程を外しました。")};
-   row.append(check,a,up,down,remove);steps.append(row);
+   const info=detailBySlug.get(slug),meta=node("span",info.label);meta.dataset.workDraft=slug;meta.style.cssText="font-size:.85em;color:"+(info.state==="check"?"#9a3412":"#435963");
+   row.append(check,a,meta);if(info.state==="saved"){const resume=link(slug,"復元・管理へ");resume.href=ctx.base+slug+"/#"+info.restore;resume.dataset.workRestore=slug;row.append(resume)}row.append(up,down,remove);steps.append(row);
   });box.append(steps);
   const add=workSelect("ogbWorkAddTool",[["","追加するツールを選択"],...Object.entries(catalog).filter(([s])=>!active.steps.includes(s)).map(([s,n])=>[s,n])],"");
   const addButton=b("ogbWorkAdd","工程を追加");addButton.disabled=active.steps.length===47;
   addButton.onclick=()=>{if(!known(add.value)){workStatus.textContent="追加するツールを選択してください。";return}apply(s=>{if(!s.steps.includes(add.value))s.steps.push(add.value)},"工程を追加しました。")};
-  const reset=b("ogbWorkReset","次回用に進捗をリセット"),del=b("ogbWorkDelete","業務セットを削除");reset.disabled=!active.done.length;
+  const reset=b("ogbWorkReset","次回用に進捗をリセット"),del=b("ogbWorkDelete","業務セットを削除"),copy=b("ogbWorkDuplicate","このセットを複製");copy.disabled=workState.sets.length>=workLimit;reset.disabled=!active.done.length;
   reset.onclick=()=>{if(confirm("完了チェックだけを解除しますか？ 保存済みデータ・工程は残ります。"))apply(s=>s.done=[],"完了チェックをリセットしました。")};
   del.onclick=()=>{if(confirm(active.name+"を削除しますか？ 各ツールの保存済みデータは残ります。"))apply((s,x)=>{x.sets=x.sets.filter(t=>t.id!==s.id);x.active=x.sets[0]?.id||""},"業務セットを削除しました。")};
-  box.append(workActions(workLabel("追加する工程",add),addButton),workActions(reset,del),node("p","工程リンクは画面移動のみです。データの直接引継ぎには各ツールの引継ぎボタンを使ってください。作業の完了前に必要なデータを保存してください。"));workBody.append(box);
+  copy.onclick=()=>{if(!confirm("工程と順番を複製します。新しいセットの進捗は未完了になります。"))return;apply((s,x)=>{if(x.sets.length>=workLimit)throw Error("業務セットは20件までです。");const base="w-"+Date.now().toString(36);let id=base;for(let n=1;x.sets.some(t=>t.id===id);n++)id=base+"-"+n;x.sets.push({id,name:s.name.slice(0,55)+"（複製）",steps:[...s.steps],done:[]});x.active=id},"業務セットを複製しました。")};
+  box.append(workActions(workLabel("追加する工程",add),addButton),workActions(reset,copy,del),node("p","工程リンクは画面移動のみです。データの直接引継ぎには各ツールの引継ぎボタンを使ってください。作業の完了前に必要なデータを保存してください。"));workBody.append(box);
  }
  function drawWorkCurrent(){
   const old=document.getElementById("ogbCurrentWork");if(old)old.remove();if(!ctx.slug)return;
@@ -180,33 +217,40 @@ function renderNavigation(){
  const reloadSaved=b("ogbSavedRefresh","保存状況を更新"),filterLabel=node("label","保存済みツールを検索"),filter=document.createElement("input");filter.type="search";filter.id="ogbSavedFilter";filter.placeholder="例：台帳、経費、所得税";filter.style.cssText="width:100%;max-width:440px;box-sizing:border-box;padding:6px 8px;font:inherit";filterLabel.append(filter);
  const savedList=node("div");savedList.id="ogbSavedList";savedPanel.append(summarySaved,reloadSaved,filterLabel,savedList,node("p","保存は同じブラウザ内に限られます。ブラウザのデータ削除・端末変更に備え、各ツールのCSV・編集用ファイル等も保管してください。保存日時を持たない旧形式は日時不明と表示します。"));
 
- const backup=node("details"),backupTitle=node("summary","バックアップ・別端末への移行");backup.id="ogbBackupPanel";backupTitle.style.cssText="cursor:pointer;font-weight:650;margin:10px 0";backup.append(backupTitle,node("p","保存済みの入力・設定をJSONファイルにまとめます。CSV・画像・PDFの元ファイル、未保存の入力、お気に入り、利用履歴、業務セット・進捗は含みません。バックアップは暗号化されません。個人情報や取引情報を含むため、保管場所にご注意ください。"));
+ const backup=node("details"),backupTitle=node("summary","バックアップ・別端末への移行");backup.id="ogbBackupPanel";backupTitle.style.cssText="cursor:pointer;font-weight:650;margin:10px 0";backup.append(backupTitle,node("p","保存済みの入力・設定をJSONファイルにまとめます。CSV・画像・PDFの元ファイル、未保存の入力、お気に入り、利用履歴は含みません。業務セット名・工程・進捗もバックアップ対象です。バックアップは暗号化されません。個人情報や取引情報を含むため、保管場所にご注意ください。"));
  const exportBackup=b("ogbBackupExport","保存済みデータをバックアップ"),fileLabel=node("label","バックアップを読み込む（JSON）"),backupFile=document.createElement("input");backupFile.id="ogbBackupFile";backupFile.type="file";backupFile.accept=".json,application/json";backupFile.style.cssText="max-width:100%;display:block";fileLabel.append(backupFile);
  const previewBackup=node("div");previewBackup.id="ogbBackupPreview";const backupStatus=node("p");backupStatus.id="ogbBackupStatus";backupStatus.setAttribute("role","status");
  const applyBackup=b("ogbBackupApply","選択した未登録データを復元"),cancelBackup=b("ogbBackupCancel","読み込みを取り消す");applyBackup.disabled=cancelBackup.disabled=true;backup.append(exportBackup,fileLabel,previewBackup,applyBackup,cancelBackup,backupStatus);savedPanel.append(backup);
- let backupVersion=0,pendingBackup=[];
- function clearBackup(){backupVersion++;pendingBackup=[];backupFile.value="";previewBackup.replaceChildren();applyBackup.disabled=cancelBackup.disabled=true}
+ let backupVersion=0,pendingBackup=[],pendingWork=[],incomingWork=null;
+ function clearBackup(){backupVersion++;pendingBackup=[];pendingWork=[];incomingWork=null;backupFile.value="";previewBackup.replaceChildren();applyBackup.disabled=cancelBackup.disabled=true}
  exportBackup.onclick=()=>{try{
   const data=makeBackup(localStorage);
-  if(!data.entries.length){backupStatus.textContent="バックアップできる保存データがありません。"+(data.skipped.length?" 形式確認が必要："+data.skipped.map(s=>catalog[s]).join("、"):"");return}
-  if(!confirm(data.entries.length+"種類の保存データを、暗号化されていないJSONファイルに保存します。安全な場所に保管してください。"))return;
+  if(!data.entries.length&&!data.workspace?.sets.length){backupStatus.textContent="バックアップできる保存データがありません。"+(data.skipped.length?" 形式確認が必要："+data.skipped.map(s=>catalog[s]).join("、"):"")+(data.workspaceSkipped?" 業務セットの形式確認が必要です。":"");return}
+  if(!confirm(data.entries.length+"種類の保存データと業務セット "+(data.workspace?.sets.length||0)+"件を、暗号化されていないJSONファイルに保存します。安全な場所に保管してください。"))return;
   const blob=new Blob([data.text],{type:"application/json;charset=utf-8"}),url=URL.createObjectURL(blob),a=node("a");a.href=url;a.download="OGB-Data-Lab-backup-"+new Date().toISOString().slice(0,10)+".json";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
-  backupStatus.textContent=data.entries.length+"種類のバックアップを作成しました。"+(data.skipped.length?" 形式確認のため対象外："+data.skipped.map(s=>catalog[s]).join("、"):"");
+  backupStatus.textContent=data.entries.length+"種類のバックアップを作成しました。 業務セット "+(data.workspace?.sets.length||0)+"件。"+(data.skipped.length?" 形式確認のため対象外："+data.skipped.map(s=>catalog[s]).join("、"):"")+(data.workspaceSkipped?" 業務セットは形式確認のため対象外。":"");
  }catch(e){backupStatus.textContent="バックアップできませんでした。"+e.message}};
- function previewEntries(entries){
-  previewBackup.replaceChildren();pendingBackup=[];const list=node("div");list.style.cssText="margin:8px 0";
+ function previewEntries(data){
+  const {entries,workspace}=data;incomingWork=workspace;previewBackup.replaceChildren();pendingBackup=[];pendingWork=[];const list=node("div");list.style.cssText="margin:8px 0";
   for(const entry of entries){const exists=localStorage.getItem(draftRegistry[entry.slug].key)!==null,row=node("label"),check=document.createElement("input");check.type="checkbox";check.checked=!exists;check.disabled=exists;check.style.width="auto";check.dataset.backupSlug=entry.slug;
    row.style.cssText="display:block;margin:6px 0";row.append(check,document.createTextNode(" "+catalog[entry.slug]+" ／ "+(exists?"保存済みのためスキップ":"復元可能")+(entry.meta.count===null?"":" ／ "+entry.meta.count+(draftRegistry[entry.slug].kind==="expense"?"資料":"件"))));
    list.append(row);pendingBackup.push({entry,check});
   }
-  const update=()=>{applyBackup.disabled=!pendingBackup.some(x=>x.check.checked&&!x.check.disabled)};
+  if(workspace?.sets.length){list.append(node("h3","業務セット・進捗"));let current=null;try{current=parseWorkspace(localStorage.getItem(workKey))}catch{}
+   if(!current)list.append(node("p","現在の業務セットの保存形式を確認できないため、業務セットは復元できません。"));
+   for(const set of workspace.sets){const exists=current?.sets.some(t=>t.id===set.id),full=current&&current.sets.length>=workLimit,row=node("label"),check=node("input");check.type="checkbox";check.disabled=!current||!!exists||!!full;check.checked=!check.disabled;check.style.width="auto";check.dataset.backupWork=set.id;
+    row.style.cssText="display:block;margin:6px 0";row.append(check,document.createTextNode(" "+set.name+" ／ 完了 "+set.done.length+" / "+set.steps.length+" ／ "+(!current?"保存形式確認":exists?"登録済みのためスキップ":full?"登録上限":"復元可能")));list.append(row);pendingWork.push({set,check});
+   }
+   list.append(node("p","業務セットは既存IDを上書きせず、20件の上限まで追加します。既存セットの選択・進捗は維持されます。"));
+  }
+  const update=()=>{applyBackup.disabled=![...pendingBackup,...pendingWork].some(x=>x.check.checked&&!x.check.disabled)};
   list.addEventListener("change",update);previewBackup.append(node("p","復元前の確認：既存データは上書きしません。復元する未登録のツールを選択してください。各ツールで復元・内容確認が必要です。"),list);cancelBackup.disabled=false;update();
  }
- backupFile.addEventListener("change",async()=>{const version=++backupVersion;pendingBackup=[];previewBackup.replaceChildren();applyBackup.disabled=cancelBackup.disabled=true;backupStatus.textContent="";const file=backupFile.files[0];if(!file)return;try{if(file.size>backupLimit)throw Error("12MB以下のバックアップファイルを指定してください。");const raw=await file.text();if(version!==backupVersion)return;const entries=parseBackup(raw);previewEntries(entries);backupStatus.textContent=entries.length+"種類の保存データを確認しました。まだ復元していません。"}catch(e){if(version!==backupVersion)return;clearBackup();backupStatus.textContent="読み込めませんでした。"+e.message}});
+ backupFile.addEventListener("change",async()=>{const version=++backupVersion;pendingBackup=[];pendingWork=[];incomingWork=null;previewBackup.replaceChildren();applyBackup.disabled=cancelBackup.disabled=true;backupStatus.textContent="";const file=backupFile.files[0];if(!file)return;try{if(file.size>backupLimit)throw Error("12MB以下のバックアップファイルを指定してください。");const raw=await file.text();if(version!==backupVersion)return;const data=parseBackup(raw);previewEntries(data);backupStatus.textContent=data.entries.length+"種類の保存データと業務セット "+(data.workspace?.sets.length||0)+"件を確認しました。まだ復元していません。"}catch(e){if(version!==backupVersion)return;clearBackup();backupStatus.textContent="読み込めませんでした。"+e.message}});
  cancelBackup.onclick=()=>{clearBackup();backupStatus.textContent="読み込みを取り消しました。保存データは変更していません。"};
- applyBackup.onclick=()=>{const entries=pendingBackup.filter(x=>x.check.checked&&!x.check.disabled).map(x=>x.entry);if(!entries.length)return;if(!confirm(entries.length+"種類の未登録データを復元します。すでに保存されたデータは上書きしません。"))return;
-  const result=restoreMissing(localStorage,entries);clearBackup();refreshSaved();
-  backupStatus.textContent="復元 "+result.applied.length+"種類、既存データのためスキップ "+result.skipped.length+"種類、保存失敗 "+result.failed.length+"種類。"+(result.failed.length?" 保存できなかったツール："+result.failed.map(s=>catalog[s]).join("、")+"。空き容量・保存設定を確認してください。":"")+" 各ツールを開いて内容を確認してください。";
+ applyBackup.onclick=()=>{const entries=pendingBackup.filter(x=>x.check.checked&&!x.check.disabled).map(x=>x.entry),selected=pendingWork.filter(x=>x.check.checked&&!x.check.disabled).map(x=>x.set.id);if(!entries.length&&!selected.length)return;if(!confirm(entries.length+"種類の未登録データと業務セット "+selected.length+"件を復元します。すでに保存されたデータは上書きしません。"))return;
+  const result=restoreMissing(localStorage,entries),workResult=restoreWorkspace(localStorage,incomingWork,selected);clearBackup();reloadWork(true);refreshSaved();
+  backupStatus.textContent="復元 "+result.applied.length+"種類、既存データのためスキップ "+result.skipped.length+"種類、保存失敗 "+result.failed.length+"種類。"+(result.failed.length?" 保存できなかったツール："+result.failed.map(s=>catalog[s]).join("、")+"。空き容量・保存設定を確認してください。":"")+" 業務セット：復元 "+workResult.applied.length+"件、既存スキップ "+workResult.skipped.length+"件、上限スキップ "+workResult.full.length+"件、失敗 "+workResult.failed.length+"件。各ツールを開いて内容を確認してください。";
  };
 
  let savedRows=[];
@@ -222,7 +266,7 @@ function renderNavigation(){
  function refreshSaved(){
   try{savedRows=inspectDrafts(localStorage);summarySaved.textContent="保存データ："+savedRows.length+"種類（保存対応 "+Object.keys(draftRegistry).length+"種類）";displaySaved()}catch(e){savedRows=[];summarySaved.textContent="このブラウザの保存領域を確認できません。";savedList.replaceChildren()}
  }
- reloadSaved.onclick=refreshSaved;filter.addEventListener("input",displaySaved);
+ reloadSaved.onclick=()=>{refreshSaved();drawWork()};filter.addEventListener("input",displaySaved);
  function drawCurrentDraft(){
   const old=document.getElementById("ogbCurrentDraft");if(old)old.remove();const info=draftRegistry[ctx.slug];if(!info)return;
   const current=node("div");current.id="ogbCurrentDraft";current.style.cssText="margin:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap";let meta;
@@ -261,10 +305,10 @@ function renderNavigation(){
  const heading=main.querySelector("h1")||main.querySelector("h2");if(ctx.directory){const target=document.getElementById("tool-directory");if(target){const entry=document.getElementById("saved-work-entry"),workEntry=document.getElementById("workspace-entry");if(entry)entry.append(savedPanel),entry.before(panel);else target.before(panel,savedPanel);if(workEntry)workEntry.append(workPanel);else target.before(workPanel);}else main.prepend(panel,savedPanel,workPanel);refreshSaved()}else if(heading)heading.after(panel);else main.prepend(panel);
  if(ctx.directory||ctx.slug)reloadWork(true);
  if(ctx.slug){drawCurrentDraft();document.addEventListener("ogb:draft-changed",drawCurrentDraft);document.addEventListener("click",e=>{const info=draftRegistry[ctx.slug];if(!info)return;const id=e.target?.id;if(id===info.restore||id===info.remove||["csvDraftSave","taxDraftSave","rowDraftSave","draftSave","profitDraftSave","expenseDraftSave","save","clear"].includes(id))queueMicrotask(drawCurrentDraft)});document.addEventListener("change",e=>{if(e.target?.id==="csvDraftAuto"||e.target?.id==="ogbGridAuto")queueMicrotask(drawCurrentDraft)});}
- window.addEventListener("storage",e=>{if(e.key===workKey||e.key===null)reloadWork();if(e.key===navKey||e.key===null){state=readState();draw()}if(e.key===null||Object.values(draftRegistry).some(x=>x.key===e.key)){if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()}});
- window.addEventListener("pageshow",()=>{if(ctx.directory||ctx.slug)reloadWork();if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()});
+ window.addEventListener("storage",e=>{if(e.key===workKey||e.key===null)reloadWork();if(e.key===navKey||e.key===null){state=readState();draw()}if(e.key===null||Object.values(draftRegistry).some(x=>x.key===e.key)){if(ctx.directory){refreshSaved();drawWork()}if(ctx.slug)drawCurrentDraft()}});
+ window.addEventListener("pageshow",()=>{if(ctx.directory||ctx.slug)reloadWork();if(ctx.directory){refreshSaved();drawWork()}if(ctx.slug)drawCurrentDraft()});
  window.addEventListener("focus",()=>{if(ctx.directory||ctx.slug)reloadWork();if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()});
- const fragment=location.hash.slice(1);if(fragment==="ogbSavedData"&&ctx.directory||ctx.slug&&draftRegistry[ctx.slug]?.restore===fragment)requestAnimationFrame(()=>document.getElementById(fragment)?.scrollIntoView({block:"center"}));
+ const fragment=location.hash.slice(1);if((fragment==="ogbSavedData"||fragment==="workspace-entry")&&ctx.directory||ctx.slug&&draftRegistry[ctx.slug]?.restore===fragment)requestAnimationFrame(()=>document.getElementById(fragment)?.scrollIntoView({block:"center"}));
 }
 if(typeof document!=="undefined"){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",renderNavigation,{once:true});else queueMicrotask(renderNavigation)}
 

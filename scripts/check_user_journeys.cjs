@@ -30,6 +30,7 @@ for(const s of listed){
 check(tools.includes('id="saved-work-entry"'),'Saved work entry missing');
 check(tools.includes('id="workspace-entry"')&&tools.includes('href="#workspace-entry"'),'Workspace entry missing');
 check(navSource.includes('const workKey="ogb-workspace-v1"')&&navSource.includes('function parseWorkspace('),'Workspace storage missing');
+check(navSource.includes('function restoreWorkspace(')&&navSource.includes('function workspaceSummary(')&&navSource.includes('ogbWorkDashboard'),'Workspace backup or dashboard missing');
 
 check(navCoverage.size===47&&listed.every(s=>navCoverage.has(s)),'Workflow coverage mismatch');
 for(const s of listed){const page=read('tools/'+s+'/index.html');check(page.includes('src="../assets/tool-handoff.js"'),'Missing common navigation: '+s);}
