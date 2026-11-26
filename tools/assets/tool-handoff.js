@@ -1,6 +1,6 @@
 (()=>{"use strict";
 const key="ogb-tool-handoff-v1",ttl=15*60*1000,limit=1000000,byId=id=>document.getElementById(id);
-const labels={"product-listing-prep":"商品登録・出品準備","product-ledger":"商品台帳","inventory-movement":"入出庫・現在庫集計","invoice-maker":"見積書・請求書作成","receivables-report":"売掛金管理","daily-sales-ledger":"日次売上台帳","sales-summary":"月次売上集計","annual-income-summary":"年間所得集計","income-tax-simulator":"所得税計算","resident-tax-simulator":"住民税計算","annual-expense-merge":"年間経費集計","expense-category-report":"経費科目別集計","product-margin-report":"商品別利益集計","channel-profit-report":"販売チャネル別利益集計","side-income-summary":"副業・給与所得集計","order-line-aggregate":"注文別集計","order-payment-reconcile":"受注・決済照合","packing-checklist":"発送準備チェックリスト","inventory-reorder":"在庫・発注点チェック","purchase-receiving":"仕入発注・入荷照合","stocktake-reconcile":"棚卸差異・在庫評価","supplier-payment-reconcile":"仕入先支払照合","shop-sales-performance":"日別売上分析","staff-cost-planner":"人件費計画","recipe-cost-calculator":"レシピ原価計算","project-profit-report":"案件別採算集計","business-expense-allocation":"家事按分","depreciation-calculator":"減価償却費計算","consumption-tax-simulator":"消費税概算","csv-merge":"CSV一括結合","csv-analyzer":"CSV自動分析","list-cleaner":"リスト整理","basic-statistics":"基本統計量"};
+const labels={"shipping-cost-report":"配送コスト集計","marketplace-profit-compare":"メルカリ・ヤフオク利益比較","product-listing-prep":"商品登録・出品準備","product-ledger":"商品台帳","inventory-movement":"入出庫・現在庫集計","invoice-maker":"見積書・請求書作成","receivables-report":"売掛金管理","daily-sales-ledger":"日次売上台帳","sales-summary":"月次売上集計","annual-income-summary":"年間所得集計","income-tax-simulator":"所得税計算","resident-tax-simulator":"住民税計算","annual-expense-merge":"年間経費集計","expense-category-report":"経費科目別集計","product-margin-report":"商品別利益集計","channel-profit-report":"販売チャネル別利益集計","side-income-summary":"副業・給与所得集計","order-line-aggregate":"注文別集計","order-payment-reconcile":"受注・決済照合","packing-checklist":"発送準備チェックリスト","inventory-reorder":"在庫・発注点チェック","purchase-receiving":"仕入発注・入荷照合","stocktake-reconcile":"棚卸差異・在庫評価","supplier-payment-reconcile":"仕入先支払照合","shop-sales-performance":"日別売上分析","staff-cost-planner":"人件費計画","recipe-cost-calculator":"レシピ原価計算","project-profit-report":"案件別採算集計","business-expense-allocation":"家事按分","depreciation-calculator":"減価償却費計算","consumption-tax-simulator":"消費税概算","csv-merge":"CSV一括結合","csv-analyzer":"CSV自動分析","list-cleaner":"リスト整理","basic-statistics":"基本統計量"};
 function node(tag,text){const e=document.createElement(tag);if(text)e.textContent=text;return e}
 function button(id,text){const e=node("button",text);e.type="button";e.id=id;return e}
 function get(){const raw=sessionStorage.getItem(key);if(!raw)return null;let x;try{x=JSON.parse(raw)}catch{sessionStorage.removeItem(key);return null}if(!x||x.v!==1||typeof x.csv!=="string"||!x.csv||x.csv.length>limit||typeof x.created!=="number"||!Number.isFinite(x.created)||Date.now()-x.created>ttl||x.created>Date.now()+60000){sessionStorage.removeItem(key);return null}return x}
@@ -493,5 +493,19 @@ function renderNavigation(){
 }
 if(typeof document!=="undefined"){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",renderNavigation,{once:true});else queueMicrotask(renderNavigation)}
 
-window.OGBToolHandoff={init};
+
+function chooseHandoff(data,groups){
+ const panel=byId("handoffIn"),accept=byId("handoffAccept");
+ let box=byId("ogbHandoffChoice");
+ if(!box){box=node("div");box.id="ogbHandoffChoice";box.style.cssText="margin:8px 0;padding:8px;border:1px solid #d8e4e9;border-radius:6px";
+  box.append(node("p","反映する内容を選んでください。まだ入力は変更していません。"));
+  for(const group of groups){const select=node("select");select.id=group.id;select.style.cssText="display:block;max-width:100%;margin:4px 0";const blank=node("option","選択してください");blank.value="";select.append(blank);for(const [value,label] of group.options){const option=node("option",label);option.value=value;select.append(option)}const label=node("label",group.label);label.htmlFor=select.id;label.append(select);box.append(label)}
+  accept.before(box);accept.textContent="選択した内容を反映";return null;
+ }
+ const selections=groups.map(g=>byId(g.id)?.value);
+ if(selections.some((v,i)=>!groups[i].options.some(o=>o[0]===v)))throw Error("反映する内容を選択してください。");
+ return selections;
+}
+
+window.OGBToolHandoff={init,chooseHandoff};
 })();

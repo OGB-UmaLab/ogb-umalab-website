@@ -9,7 +9,7 @@
 <a class="skip" href="#main">本文へ移動</a><header><a href="/">OGBデータ研究所</a> ／ <a href="/tools/">無料ツール一覧</a></header>
 <main id="main"><h1>メルカリ・ヤフオク 手取り・利益比較</h1>
 <p>同じ商品を異なる販売先で売ったときの手取りと利益を一度に比較できます。販売価格や送料を販売先ごとに変えられるので、値下げや配送方法の違いも試算できます。無料・登録不要です。</p>
-<section class="card"><h2>共通の商品情報</h2><div class="grid">
+<section class="card"><h2>共通の商品情報</h2><div id="handoffIn" style="margin:12px 0" hidden></div><div class="grid">
 <div><label for="item">商品名（任意）</label><input id="item" maxlength="100" placeholder="例：古着のジャケット"></div>
 <div><label for="cost">仕入れ・商品原価（円）</label><input id="cost" type="number" min="0" step="1" value="1500"></div>
 <div><label for="other">その他の共通費用（円）</label><input id="other" type="number" min="0" step="1" value="0"></div>
@@ -17,7 +17,7 @@
 <section class="card"><h2>販売先別の条件</h2><p class="muted">送料込みで販売する場合は出品者負担の送料を入力し、着払いなど購入者が全額負担する場合は0円にしてください。手数料や送料は実際の条件に合わせて変更できます。</p><div class="grid">
 <div><h3>メルカリ</h3><label for="mp">販売価格（円）</label><input id="mp" type="number" min="0" step="1" value="3500"><label for="mf">販売手数料（%）</label><input id="mf" type="number" min="0" max="100" step="0.01" value="10"><label for="ms">送料（出品者負担・円）</label><input id="ms" type="number" min="0" step="1" value="750"><label for="mb">梱包費（円）</label><input id="mb" type="number" min="0" step="1" value="50"></div>
 <div><h3>Yahoo!オークション（個人・通常カテゴリ）</h3><label for="yp">落札価格（円）</label><input id="yp" type="number" min="0" step="1" value="3500"><label for="yf">落札システム利用料（%）</label><input id="yf" type="number" min="0" max="100" step="0.01" value="10"><label for="ys">送料（出品者負担・円）</label><input id="ys" type="number" min="0" step="1" value="750"><label for="yb">梱包費（円）</label><input id="yb" type="number" min="0" step="1" value="50"></div>
-</div><button type="button" id="calc">利益を比較する</button><button type="button" id="same" class="secondary">メルカリの価格・送料・梱包費をヤフオクへコピー</button><button type="button" id="export" class="secondary" disabled>結果をCSV保存</button><p id="status" role="status" aria-live="polite"></p><output id="summary" aria-live="polite"></output><div class="scroll"><table><thead><tr><th>項目</th><th>メルカリ</th><th>Yahoo!オークション</th></tr></thead><tbody id="rows"></tbody></table></div></section>
+</div><button type="button" id="calc">利益を比較する</button><button type="button" id="same" class="secondary">メルカリの価格・送料・梱包費をヤフオクへコピー</button><button type="button" id="export" class="secondary" disabled>結果をCSV保存</button><div id="handoffOut" style="margin:12px 0"></div><p id="status" role="status" aria-live="polite"></p><output id="summary" aria-live="polite"></output><div class="scroll"><table><thead><tr><th>項目</th><th>メルカリ</th><th>Yahoo!オークション</th></tr></thead><tbody id="rows"></tbody></table></div></section>
 <section class="card"><h2>このツールの特徴</h2><p>商品原価は1回だけ入力。販売先ごとに価格・送料・梱包費を変えて、手取り（販売額から販売手数料・送料・梱包費を差し引いた金額）と、利益（さらに仕入れ・共通費用を差し引いた金額）を比較できます。利益率（利益÷販売価格）も表示し、比較結果はCSVで保存できます。販売価格が0円の場合、利益率は算出しません。</p>
 <h2>計算条件と注意点</h2><p>「メルカリの価格・送料・梱包費をヤフオクへコピー」を押すと、共通の商品条件をすぐに揃えられます。販売手数料率はコピーせず、各サービスの設定を維持します。</p><p>メルカリの通常販売手数料は10%です。Yahoo!オークションの個人向け通常カテゴリの落札システム利用料は10%（税込）です。いずれも2026年11月22日に公式案内を確認した値を初期入力しています。特定カテゴリ、キャンペーン、プロモーション、その他の料金は異なるため、実際の明細に合わせて入力値を修正してください。</p>
 <p>メルカリの販売手数料は販売価格の10%を円未満切り捨てとして試算します。Yahoo!オークションは公式の案内に従い、利用料の税抜き額を9.09%で四捨五入し、消費税を切り捨てて算出するため、単純な「落札価格×10%」と1円程度異なる場合があります。手数料率を変更した場合は、両サービスとも変更後の率を円未満切り捨てとして試算します。振込手数料、出品取消料、返金、値引きクーポン、税金、複数個販売は含みません。詳しい計算例は<a href="/guides/marketplace-profit-hands-on/">利益比較の実践ガイド</a>、結果が合わない場合は<a href="/guides/troubleshooting/#marketplace">確認手順</a>をご覧ください。Yahoo!オークションの送料は落札額に含めず、出品者負担額のみ費用として扱います。</p>
@@ -38,4 +38,25 @@ $("calc").addEventListener("click",render);
 for(const id of [...ids,"item"])$(id).addEventListener("input",()=>{current=null;$("export").disabled=true;$("rows").replaceChildren();$("summary").textContent="";$("status").textContent="入力値が変更されました。再計算してください。"});
 $("export").addEventListener("click",()=>{if(!current)return;const {v,m,y,item}=current;const rows=[["項目","メルカリ","Yahoo!オークション"],["商品名",item,item],["販売価格",m.price,y.price],["販売手数料率",v.mf,v.yf],["販売手数料",m.fee,y.fee],["送料",m.shipping,y.shipping],["梱包費",m.packing,y.packing],["仕入れ原価",v.cost,v.cost],["その他共通費用",v.other,v.other],["手取り",m.net,y.net],["利益",m.profit,y.profit],["利益率（販売価格比）",m.price===0?"算出不可":(m.profit/m.price*100).toFixed(1)+"%",y.price===0?"算出不可":(y.profit/y.price*100).toFixed(1)+"%"]];const csv="\ufeff"+rows.map(row=>row.map(csvEscape).join(",")).join("\r\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const a=document.createElement("a");a.href=url;a.download="ogb-marketplace-profit.csv";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);$("status").textContent="CSVを保存しました。"});
 render();
-</script><script src="../assets/tool-handoff.js"></script><script src="../assets/form-draft.js" data-config='{"slug":"marketplace-profit-compare","anchor":"calc","ids":["item","cost","other","mp","mf","ms","mb","yp","yf","ys","yb"]}'></script></body></html>
+</script><script src="../assets/data-transfer.js"></script><script src="../assets/tool-handoff.js"></script><script>
+function marketInt(v,blank=false){return blank&&v===""||/^\d+$/.test(v)&&Number.isSafeInteger(Number(v))}
+function marketApply(fields){for(const [id,value] of Object.entries(fields)){$(id).value=String(value);$(id).dispatchEvent(new Event("input",{bubbles:true}))}}
+function receiveMarket(data){
+ const {headers,rows}=OGBDataTransfer.parse(data.csv);
+ if(data.source==="product-ledger"){
+  if(JSON.stringify(headers)!==JSON.stringify(["SKU","商品名","仕入単価","販売価格"])||rows.length>1000||new Set(rows.map(r=>r[0])).size!==rows.length||rows.some(r=>!r[0]||!r[1]||!marketInt(r[2],true)||!marketInt(r[3],true)))throw Error("商品台帳の引継ぎ形式が一致しません。");
+  const sel=OGBToolHandoff.chooseHandoff(data,[{id:"marketProductChoice",label:"対象商品",options:rows.map((r,i)=>[String(i),r[0]+" ／ "+r[1]+" ／ 原価 "+(r[2]||"未入力")+" ／ 価格 "+(r[3]||"未入力")])}]);if(!sel)return false;
+  const row=rows[Number(sel[0])];if(row[1].length>100)throw Error("商品名が100文字を超えています。商品台帳で確認してください。");
+  if(!confirm(row[0]+" の商品名・仕入原価・両販売先の価格を置き換えますか？ 未入力金額は空欄にします。その他共通費用・送料・梱包費・手数料率は維持するため、対象商品に合うか確認してください。"))return false;
+  OGBFormDraft.prepareHandoff();marketApply({item:row[1],cost:row[2],mp:row[3],yp:row[3]});$("status").textContent="商品台帳から反映しました。残りの費用・条件を確認して比較してください。";return true;
+ }
+ if(data.source==="shipping-cost-report"){
+  if(JSON.stringify(headers)!==JSON.stringify(["配送方法","発送件数","実際の配送費合計"])||rows.length>1000||rows.some(r=>!r[0]||!marketInt(r[1])||Number(r[1])<1||!marketInt(r[2])))throw Error("配送費の引継ぎ形式が一致しません。");
+  const costs=rows.map(r=>Number((BigInt(r[2])+BigInt(r[1])-1n)/BigInt(r[1]))),sel=OGBToolHandoff.chooseHandoff(data,[{id:"marketShippingChoice",label:"配送方法（実績平均・円単位切り上げ）",options:rows.map((r,i)=>[String(i),r[0]+" ／ "+r[1]+"件 ／ 1件 "+costs[i]+"円"])},{id:"marketShippingTarget",label:"反映先",options:[["m","メルカリ"],["y","Yahoo!オークション"],["both","両方"]]}]);if(!sel)return false;
+  const i=Number(sel[0]),amount=costs[i],target=sel[1];if(!confirm(rows[i][0]+" の1件平均配送費 "+amount+"円を選択した販売先の送料欄に置き換えますか？ 出品者が全額負担する前提の目安です。顧客請求送料は相殺せず、梱包費は含みません。"))return false;
+  OGBFormDraft.prepareHandoff();marketApply(target==="both"?{ms:amount,ys:amount}:target==="m"?{ms:amount}:{ys:amount});$("status").textContent="平均配送費の目安を反映しました。実際の出品者負担額を確認して比較してください。";return true;
+ }
+ throw Error("未対応の引継ぎ元です。");
+}
+OGBToolHandoff.init({slug:"marketplace-profit-compare",guard:"export",out:[["pricing-simulator","目標利益から販売価格を逆算"]],inbound:{"product-ledger":"item","shipping-cost-report":"ms"}},()=>{if(!current)throw Error("先に利益を比較してください。");const {v,item}=current;return {csv:OGBDataTransfer.stringify([["販売先","商品名","仕入原価","共通費用","送料","梱包費","手数料率"],["メルカリ",item,v.cost,v.other,v.ms,v.mb,v.mf],["Yahoo!オークション",item,v.cost,v.other,v.ys,v.yb,v.yf]])}},receiveMarket);
+</script><script src="../assets/form-draft.js" data-config='{"slug":"marketplace-profit-compare","anchor":"calc","ids":["item","cost","other","mp","mf","ms","mb","yp","yf","ys","yb"]}'></script></body></html>
