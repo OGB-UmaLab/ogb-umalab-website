@@ -9,6 +9,19 @@ const check = (condition, message) => { if (!condition) failures.push(message); 
 const homepage = read('index.html');
 const tools = read('tools/index.html');
 const labLanding = read('data-lab/index.html');
+
+const navSource=read('tools/assets/tool-handoff.js');
+const navCatalog=JSON.parse(navSource.match(/const catalog=(\{[^\n]+\});/)[1]);
+const navWorkflows=JSON.parse(navSource.match(/const workflows=(\[[^\n]+\]);/)[1]);
+const directory=tools.slice(tools.indexOf('<details id="toolDirectory">'),tools.indexOf('</details>',tools.indexOf('<details id="toolDirectory">')));
+const listed=[...directory.matchAll(/href="\/tools\/([a-z-]+)\/"/g)].map(m=>m[1]);
+check(listed.length===47&&new Set(listed).size===47,'Navigation directory count mismatch');
+check(Object.keys(navCatalog).length===47&&listed.every(s=>Object.hasOwn(navCatalog,s)),'Navigation catalog mismatch');
+const navCoverage=new Set(navWorkflows.flatMap(w=>w.steps));
+check(navCoverage.size===47&&listed.every(s=>navCoverage.has(s)),'Workflow coverage mismatch');
+for(const s of listed){const page=read('tools/'+s+'/index.html');check(page.includes('src="../assets/tool-handoff.js"'),'Missing common navigation: '+s);}
+for(const s of ['online-selling','small-shop','freelance']){const page=read('tools/business/'+s+'/index.html');check(page.includes('id="direct-workflows-title"')&&page.includes('src="../../assets/tool-handoff.js"'),'Business navigation missing: '+s);}
+
 for (const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/', 'marketplace-profit-compare/']) {
   const page = read('tools/' + slug + 'index.html');
   check(/<a\b[^>]*class="(?:skip-link|skip)"[^>]*href="#main"/.test(page), 'Tool keyboard skip link missing: ' + slug);
