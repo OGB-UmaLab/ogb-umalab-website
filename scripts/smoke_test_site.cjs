@@ -468,6 +468,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#clear').click();await page.locator('#calculate').click();
      if(!await page.locator('#export').isDisabled())throw Error('Tax scope unchecked');
    });
+   await test(local('tools/annual-expense-merge/index.html'),async()=>{
+     const header='経費科目,取引件数,支出金額\n',a=header+'通信費,2,12000\n広告費,1,2000',b=header+'通信費,1,4000\n減価償却費,1,60000',c=header+'広告費,1,2000\n通信費,2,12000';
+     await page.locator('#file').setInputFiles([a,b,c].map((v,i)=>({name:'expense'+i+'.csv',mimeType:'text/csv',buffer:Buffer.from(v)})));await waitForText('#status','3ファイル');
+     if(await page.locator('#sources input:checked').count()!==2)throw Error('Duplicate expense default selection');
+     await page.locator('#sources input').nth(2).check();await page.locator('#confirm').check();await page.locator('#calculate').click();if(!await page.locator('#export').isDisabled()||!(await page.locator('#error').innerText()).includes('重複'))throw Error('Duplicate expense accepted');
+     await page.locator('#sources input').nth(2).uncheck();await page.locator('#confirm').check();await page.locator('#calculate').click();if(!(await page.locator('#result').innerText()).includes('78,000円'))throw Error('Expense merge total');
+     const dl=page.waitForEvent('download');await page.locator('#export').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"通信費","3","16000"'))throw Error('Expense merge CSV');
+     await page.goto(local('tools/annual-income-summary/index.html'),{waitUntil:'domcontentloaded'});await page.locator('#file').setInputFiles({name:'merged.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await page.locator('#preview').waitFor({state:'visible'});for(const c of await page.locator('#expenseOptions input').all())await c.check();await page.locator('#confirmPeriod').check();await page.locator('#apply').click();if(await page.locator('#expenses').inputValue()!=='78000')throw Error('Merged annual expense import');
+   });
    await test(local('tools/annual-income-summary/index.html'),async()=>{
      const fill=async(id,v)=>page.locator('#'+id).fill(String(v));
      const calc=async()=>page.locator('#calculate').click();
