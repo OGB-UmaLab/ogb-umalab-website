@@ -33,8 +33,13 @@ check(navSource.includes('const workKey="ogb-workspace-v1"')&&navSource.includes
 check(navSource.includes('function restoreWorkspace(')&&navSource.includes('function workspaceSummary(')&&navSource.includes('ogbWorkDashboard'),'Workspace backup or dashboard missing');
 
 check(navCoverage.size===47&&listed.every(s=>navCoverage.has(s)),'Workflow coverage mismatch');
+const businessPresets=JSON.parse(navSource.match(/const businessPresets=(\[[^\n]+\]);/)[1]);
+check(businessPresets.length===12&&new Set(businessPresets.map(p=>p.id)).size===12,'Business presets count or IDs');
+check(businessPresets.every(p=>p.steps.length>0&&new Set(p.steps).size===p.steps.length&&p.steps.every(s=>listed.includes(s))),'Invalid business preset steps');
+check(['online-selling','small-shop','freelance'].every(s=>businessPresets.filter(p=>p.business===s).length===4),'Business preset coverage');
+check(tools.includes('id="quick-resume-entry"')&&navSource.includes('function drawQuickResume('),'Quick resume entry missing');
 for(const s of listed){const page=read('tools/'+s+'/index.html');check(page.includes('src="../assets/tool-handoff.js"'),'Missing common navigation: '+s);}
-for(const s of ['online-selling','small-shop','freelance']){const page=read('tools/business/'+s+'/index.html');check(page.includes('id="direct-workflows-title"')&&page.includes('src="../../assets/tool-handoff.js"'),'Business navigation missing: '+s);}
+for(const s of ['online-selling','small-shop','freelance']){const page=read('tools/business/'+s+'/index.html');check(page.includes('id="direct-workflows-title"')&&page.includes('id="business-start-entry"')&&page.includes('src="../../assets/tool-handoff.js"'),'Business navigation missing: '+s);}
 
 for (const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/', 'marketplace-profit-compare/']) {
   const page = read('tools/' + slug + 'index.html');

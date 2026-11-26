@@ -79,6 +79,7 @@ function restoreMissing(storage,entries){
 
 
 const workKey="ogb-workspace-v1",workLimit=20;
+const businessPresets=[{"id":"shop-close","business":"small-shop","name":"毎日の売上・レジ締め","description":"日々の売上を記録し、営業終了時に現金を照合します。","steps":["daily-sales-ledger","cash-register-close"]},{"id":"shop-monthly","business":"small-shop","name":"月次売上・人件費の確認","description":"月次集計と店舗の売上分析から人件費を確認します。","steps":["daily-sales-ledger","sales-summary","shop-sales-performance","staff-cost-planner"]},{"id":"shop-cost","business":"small-shop","name":"メニュー原価・採算確認","description":"食材原価から販売価格と採算を確認します。","steps":["recipe-cost-calculator","profit-break-even"]},{"id":"shop-stock","business":"small-shop","name":"仕入・在庫・棚卸","description":"入出庫から発注点、仕入照合、棚卸を管理します。","steps":["product-ledger","inventory-movement","inventory-reorder","purchase-receiving","stocktake-reconcile","supplier-payment-reconcile"]},{"id":"seller-listing","business":"online-selling","name":"新商品の登録・出品準備","description":"商品名・SKU、台帳、画像、価格設定を整えます。","steps":["product-listing-prep","product-ledger","image-batch","marketplace-profit-compare","pricing-simulator"]},{"id":"seller-dispatch","business":"online-selling","name":"毎日の受注・決済・発送","description":"注文明細を集計し、決済と発送準備を確認します。","steps":["order-line-aggregate","order-payment-reconcile","packing-checklist"]},{"id":"seller-after","business":"online-selling","name":"返品・送料・販売利益の確認","description":"返品や配送コストを整理し、販売利益を確認します。","steps":["returns-refunds","shipping-cost-report","product-margin-report","channel-profit-report"]},{"id":"seller-stock","business":"online-selling","name":"仕入・在庫・発注管理","description":"商品台帳から入出庫、発注、入荷、在庫を確認します。","steps":["product-ledger","inventory-movement","inventory-reorder","purchase-receiving","stocktake-reconcile","inventory-aging","supplier-payment-reconcile"]},{"id":"free-invoice","business":"freelance","name":"請求書・入金・資金繰り","description":"請求書を作成し、入金状況と資金予定を確認します。","steps":["invoice-maker","receivables-report","cash-flow-planner"]},{"id":"free-project","business":"freelance","name":"案件ごとの採算確認","description":"案件の報酬・経費・作業時間を確認します。源泉徴収は必要な場合のみ確認します。","steps":["project-profit-report","withholding-tax-calculator"]},{"id":"free-tax","business":"freelance","name":"事業所得・年間経費・納税準備","description":"経費資料を整理し、年間所得と概算税額を確認します。","steps":["expense-category-report","business-expense-allocation","depreciation-calculator","annual-expense-merge","annual-income-summary","income-tax-simulator","resident-tax-simulator","tax-reserve-planner"]},{"id":"free-side","business":"freelance","name":"給与所得者の副業・申告準備","description":"副業を業務に係る雑所得として扱う場合の確認用です。事業所得とは区別します。","steps":["project-profit-report","side-income-summary","tax-filing-check"]}];
 function parseWorkspace(raw){
  if(raw===null)return {version:1,active:"",sets:[]};
  if(typeof raw!=="string"||raw.length>100000)throw Error("業務セットの保存形式を確認してください。");
@@ -116,6 +117,23 @@ function workDraftInfo(slug,storage){
 }
 function workspaceSummary(set,storage){const details=set.steps.map(slug=>({slug,done:set.done.includes(slug),...workDraftInfo(slug,storage)}));return {total:details.length,done:set.done.length,saved:details.filter(d=>d.state==="saved").length,check:details.filter(d=>d.state==="check").length,next:workspaceNext(set),details}}
 
+
+function buildBusinessSets(current,ids,stamp){
+ const next=cleanWorkspace(current),added=[],existing=[],full=[];
+ for(const id of [...new Set(ids)]){
+  const p=businessPresets.find(t=>t.id===id);if(!p)throw Error("未対応の業務テンプレートです。");
+  // Only exact, unmodified sets are considered already registered; renamed or reordered sets remain independent.
+  const same=next.sets.find(s=>s.name===p.name&&JSON.stringify(s.steps)===JSON.stringify(p.steps));
+  if(same){existing.push(same.id);continue}
+  if(next.sets.length>=workLimit){full.push(id);continue}
+  const base="w-"+stamp.toString(36)+"-"+p.id;let setId=base;
+  for(let n=1;next.sets.some(s=>s.id===setId);n++)setId=base+"-"+n;
+  next.sets.push({id:setId,name:p.name,steps:[...p.steps],done:[]});added.push(setId);
+ }
+ if(!next.active&&next.sets.length)next.active=added[0]||existing[0]||next.sets[0].id;
+ return {next,added,existing,full};
+}
+
 function renderNavigation(){
  const ctx=pageContext(location.pathname),main=document.querySelector("main");if(!ctx||!main||document.getElementById("ogbToolNavigation"))return;
  let available=true,state;function readState(){try{return sanitizeNav(JSON.parse(localStorage.getItem(navKey)||"null"))}catch(e){available=false;return sanitizeNav(null)}}
@@ -140,14 +158,14 @@ function renderNavigation(){
  const workActions=(...children)=>{const row=node("div");row.style.cssText="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0";row.append(...children);return row};
  const getActive=()=>workState?.sets.find(s=>s.id===workState.active);
  function reloadWork(force=false){
-  try{const latest=localStorage.getItem(workKey);if(!force&&latest===workRaw&&workState)return;workRaw=latest;workState=parseWorkspace(latest);drawWork();drawWorkCurrent()}
-  catch(e){workState=null;workBody.replaceChildren(node("p","業務セットを読み込めません。保存済みデータを保護するため変更しません。"));workStatus.textContent=e.message;drawWorkCurrent()}
+  try{const latest=localStorage.getItem(workKey);if(!force&&latest===workRaw&&workState)return;workRaw=latest;workState=parseWorkspace(latest);drawWork();drawWorkCurrent();drawBusinessStart();drawQuickResume()}
+  catch(e){workState=null;workBody.replaceChildren(node("p","業務セットを読み込めません。保存済みデータを保護するため変更しません。"));workStatus.textContent=e.message;drawWorkCurrent();drawBusinessStart();drawQuickResume()}
  }
  function changeWork(fn,success){
   try{
    const latest=localStorage.getItem(workKey);if(latest!==workRaw)throw Error("別画面で業務セットが更新されました。最新の状態を確認し、もう一度操作してください。");
-   const next=parseWorkspace(latest);fn(next);const raw=JSON.stringify(next);parseWorkspace(raw);localStorage.setItem(workKey,raw);workRaw=raw;workState=next;workStatus.textContent=success;drawWork();drawWorkCurrent();return true;
-  }catch(e){workStatus.textContent=e.message;if(ctx.slug)message.textContent=e.message;reloadWork();return false}
+   const next=parseWorkspace(latest);fn(next);const raw=JSON.stringify(next);parseWorkspace(raw);localStorage.setItem(workKey,raw);workRaw=raw;workState=next;workStatus.textContent=success;drawWork();drawWorkCurrent();drawBusinessStart();drawQuickResume();return true;
+  }catch(e){workStatus.textContent=e.message;if(ctx.slug||ctx.business)message.textContent=e.message;reloadWork();return false}
  }
  function drawWork(){
   if(!ctx.directory||!workState)return;workBody.replaceChildren();
@@ -211,6 +229,40 @@ function renderNavigation(){
   const next=workspaceNext(s);if(next&&next!==ctx.slug)row.append(link(next,"次の未完了工程へ"));row.append(navLink("#workspace-entry","業務セットへ戻る"));panel.append(row);
  }
 
+
+ const quickResume=node("section");quickResume.id="ogbQuickResume";quickResume.style.cssText="border:1px solid #d8e4e9;border-radius:10px;padding:12px 16px;margin:12px 0;background:#fff;color:#18313a;font:inherit";
+ function drawQuickResume(){
+  quickResume.replaceChildren();if(!ctx.directory)return;const title=node("h2","前回の作業を再開");title.style.cssText="font-size:1.15em;margin:0 0 6px";quickResume.append(title);
+  const active=getActive();
+  if(active){const data=workspaceSummary(active,localStorage);quickResume.append(node("strong",active.name),node("p","完了 "+data.done+" / "+data.total+" 工程 ／ 保存済み "+data.saved+" 種類"));
+   if(data.next){const next=link(data.next,"次の未完了工程を開く："+catalog[data.next]);next.id="ogbQuickNext";const draft=data.details.find(d=>d.slug===data.next);const actions=workActions(next);if(draft?.state==="saved"){const restore=link(data.next,"保存内容を確認・復元");restore.href=ctx.base+data.next+"/#"+draft.restore;actions.append(restore)}quickResume.append(actions)}
+   else quickResume.append(node("p",data.total?"全工程完了。業務セットで次回用の進捗をリセットできます。":"工程未登録。業務セットで工程を追加してください。"));
+   quickResume.append(navLink("#workspace-entry","業務ダッシュボードを開く"));
+  }else{quickResume.append(node("p","使用中の業務セットはありません。業種別ページで仕事を選ぶか、マイ業務セットを作成してください。"));const row=workActions(...Object.entries(businessNames).map(([s,n])=>navLink("business/"+s+"/#business-start-entry",n)),navLink("#workspace-entry","自由に作成"));quickResume.append(row)}
+ }
+ const businessStart=node("section");businessStart.id="ogbBusinessStart";businessStart.style.cssText="border:1px solid #d8e4e9;border-radius:10px;padding:12px 16px;margin:12px 0;background:#fff;color:#18313a;font:inherit;overflow-wrap:anywhere";
+ const businessStatus=node("p");businessStatus.id="ogbBusinessStatus";businessStatus.setAttribute("role","status");
+ const businessSelection=new Set();
+ function drawBusinessStart(){
+  if(!ctx.business)return;businessStart.replaceChildren();const title=node("h2","よく行う仕事を登録して始める");title.style.cssText="font-size:1.2em;margin:0 0 8px";businessStart.append(title,node("p","必要な仕事だけを選んで、マイ業務セットに登録できます。登録後に工程・名前・順番を変更できます。入力や計算結果は自動共有されません。"));
+  if(!workState){businessStart.append(node("p","業務セットを確認できません。保存データを保護するため登録を停止しています。"),businessStatus);return}
+  const groups=businessPresets.filter(p=>p.business===ctx.business),grid=node("div");grid.style.cssText="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:8px";
+  const add=b("ogbBusinessCreate","選択した仕事を登録"),count=node("p");count.id="ogbBusinessCount";const remaining=workLimit-workState.sets.length;
+  function update(){count.textContent="選択 "+businessSelection.size+" 件 ／ 残り登録可能 "+remaining+" 件";add.disabled=!businessSelection.size||businessSelection.size>remaining;if(businessSelection.size>remaining)count.textContent+="（上限を超えています）"}
+  for(const p of groups){const same=workState.sets.find(s=>s.name===p.name&&JSON.stringify(s.steps)===JSON.stringify(p.steps)),tile=node("div");tile.style.cssText="border:1px solid #d8e4e9;border-radius:8px;padding:10px";
+   const check=node("input");check.type="checkbox";check.id="ogbBusinessChoice-"+p.id;check.style.width="auto";check.disabled=!!same;check.checked=!!same||businessSelection.has(p.id);if(same)businessSelection.delete(p.id);
+   const label=workLabel(p.name,check);label.style.cssText="font-weight:650;display:flex;gap:8px;align-items:center;flex-direction:row-reverse;justify-content:flex-end";
+   check.onchange=()=>{if(check.checked)businessSelection.add(p.id);else businessSelection.delete(p.id);update()};
+   const detail=node("details");detail.append(node("summary",p.steps.length+"工程の内容を見る"));const ol=node("ol");for(const slug of p.steps){const li=node("li");li.append(link(slug));ol.append(li)}detail.append(ol);
+   tile.append(label,node("p",p.description),detail);if(same){tile.append(node("p","登録済み：完了 "+same.done.length+" / "+same.steps.length+" 工程"));const use=b("ogbBusinessUse-"+p.id,"この業務を開く");use.onclick=()=>{if(changeWork(x=>{x.active=same.id},"業務セットを選択しました。"))location.assign(ctx.base+"#workspace-entry")};tile.append(use)}grid.append(tile);
+  }
+  add.onclick=()=>{const ids=[...businessSelection];if(!ids.length||ids.length>remaining)return;let result;
+   if(changeWork(x=>{result=buildBusinessSets(x,ids,Date.now());if(result.full.length)throw Error("業務セットの登録上限を超えています。");x.sets=result.next.sets;x.active=result.next.active},"業務セットを登録しました。")){businessSelection.clear();drawBusinessStart();businessStatus.textContent="新規 "+result.added.length+" 件を登録しました。既存 "+result.existing.length+" 件は変更していません。";if(result.added.length)businessStatus.append(document.createTextNode(" "),navLink("#workspace-entry","ダッシュボードで確認する"))}
+   else businessStatus.textContent=message.textContent||"登録できませんでした。";
+  };
+  businessStart.append(grid,count,workActions(add,navLink("#workspace-entry","マイ業務ダッシュボードへ")),businessStatus);update();
+ }
+
  const savedPanel=node("section");savedPanel.id="ogbSavedData";savedPanel.setAttribute("aria-label","保存済みデータ・作業再開");savedPanel.style.cssText="border:1px solid #d8e4e9;border-radius:10px;padding:12px 16px;margin:16px 0;background:#fff;color:#18313a;font:inherit;overflow-wrap:anywhere";
  const savedTitle=node("h2","保存済みデータ・作業再開");savedTitle.style.cssText="font-size:1.15em;margin:0 0 6px";savedPanel.append(savedTitle,node("p","このブラウザに保存されている入力を確認できます。自動復元は行いません。復元・削除は各ツールで操作してください。"));
  const summarySaved=node("p");summarySaved.id="ogbSavedSummary";summarySaved.setAttribute("role","status");
@@ -266,7 +318,7 @@ function renderNavigation(){
  function refreshSaved(){
   try{savedRows=inspectDrafts(localStorage);summarySaved.textContent="保存データ："+savedRows.length+"種類（保存対応 "+Object.keys(draftRegistry).length+"種類）";displaySaved()}catch(e){savedRows=[];summarySaved.textContent="このブラウザの保存領域を確認できません。";savedList.replaceChildren()}
  }
- reloadSaved.onclick=()=>{refreshSaved();drawWork()};filter.addEventListener("input",displaySaved);
+ reloadSaved.onclick=()=>{refreshSaved();drawWork();drawQuickResume()};filter.addEventListener("input",displaySaved);
  function drawCurrentDraft(){
   const old=document.getElementById("ogbCurrentDraft");if(old)old.remove();const info=draftRegistry[ctx.slug];if(!info)return;
   const current=node("div");current.id="ogbCurrentDraft";current.style.cssText="margin:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap";let meta;
@@ -302,13 +354,14 @@ function renderNavigation(){
  }
  fav.onclick=()=>{const old=readState(),exists=old.favorites.includes(ctx.slug);if(saveState({...old,favorites:exists?old.favorites.filter(s=>s!==ctx.slug):[ctx.slug,...old.favorites]})){message.textContent=exists?"お気に入りから外しました。":"お気に入りに追加しました。";draw()}else message.textContent="端末内保存を利用できません。"};
  detail.open=!!ctx.directory;draw();
- const heading=main.querySelector("h1")||main.querySelector("h2");if(ctx.directory){const target=document.getElementById("tool-directory");if(target){const entry=document.getElementById("saved-work-entry"),workEntry=document.getElementById("workspace-entry");if(entry)entry.append(savedPanel),entry.before(panel);else target.before(panel,savedPanel);if(workEntry)workEntry.append(workPanel);else target.before(workPanel);}else main.prepend(panel,savedPanel,workPanel);refreshSaved()}else if(heading)heading.after(panel);else main.prepend(panel);
- if(ctx.directory||ctx.slug)reloadWork(true);
+ const heading=main.querySelector("h1")||main.querySelector("h2");if(ctx.directory){const quickEntry=document.getElementById("quick-resume-entry");if(quickEntry)quickEntry.append(quickResume);else main.prepend(quickResume);const target=document.getElementById("tool-directory");if(target){const entry=document.getElementById("saved-work-entry"),workEntry=document.getElementById("workspace-entry");if(entry)entry.append(savedPanel),entry.before(panel);else target.before(panel,savedPanel);if(workEntry)workEntry.append(workPanel);else target.before(workPanel);}else main.prepend(panel,savedPanel,workPanel);refreshSaved()}else if(heading)heading.after(panel);else main.prepend(panel);
+ if(ctx.business){const entry=document.getElementById("business-start-entry");if(entry)entry.append(businessStart);else panel.after(businessStart)}
+ if(ctx.directory||ctx.slug||ctx.business)reloadWork(true);
  if(ctx.slug){drawCurrentDraft();document.addEventListener("ogb:draft-changed",drawCurrentDraft);document.addEventListener("click",e=>{const info=draftRegistry[ctx.slug];if(!info)return;const id=e.target?.id;if(id===info.restore||id===info.remove||["csvDraftSave","taxDraftSave","rowDraftSave","draftSave","profitDraftSave","expenseDraftSave","save","clear"].includes(id))queueMicrotask(drawCurrentDraft)});document.addEventListener("change",e=>{if(e.target?.id==="csvDraftAuto"||e.target?.id==="ogbGridAuto")queueMicrotask(drawCurrentDraft)});}
- window.addEventListener("storage",e=>{if(e.key===workKey||e.key===null)reloadWork();if(e.key===navKey||e.key===null){state=readState();draw()}if(e.key===null||Object.values(draftRegistry).some(x=>x.key===e.key)){if(ctx.directory){refreshSaved();drawWork()}if(ctx.slug)drawCurrentDraft()}});
- window.addEventListener("pageshow",()=>{if(ctx.directory||ctx.slug)reloadWork();if(ctx.directory){refreshSaved();drawWork()}if(ctx.slug)drawCurrentDraft()});
- window.addEventListener("focus",()=>{if(ctx.directory||ctx.slug)reloadWork();if(ctx.directory)refreshSaved();if(ctx.slug)drawCurrentDraft()});
- const fragment=location.hash.slice(1);if((fragment==="ogbSavedData"||fragment==="workspace-entry")&&ctx.directory||ctx.slug&&draftRegistry[ctx.slug]?.restore===fragment)requestAnimationFrame(()=>document.getElementById(fragment)?.scrollIntoView({block:"center"}));
+ window.addEventListener("storage",e=>{if(e.key===workKey||e.key===null)reloadWork();if(e.key===navKey||e.key===null){state=readState();draw()}if(e.key===null||Object.values(draftRegistry).some(x=>x.key===e.key)){if(ctx.directory){refreshSaved();drawWork();drawQuickResume()}if(ctx.slug)drawCurrentDraft()}});
+ window.addEventListener("pageshow",()=>{if(ctx.directory||ctx.slug||ctx.business)reloadWork();if(ctx.directory){refreshSaved();drawWork();drawQuickResume()}if(ctx.slug)drawCurrentDraft()});
+ window.addEventListener("focus",()=>{if(ctx.directory||ctx.slug||ctx.business)reloadWork();if(ctx.directory){refreshSaved();drawQuickResume()}if(ctx.slug)drawCurrentDraft()});
+ const fragment=location.hash.slice(1);if((fragment==="ogbSavedData"||fragment==="workspace-entry"||fragment==="quick-resume-entry")&&ctx.directory||fragment==="business-start-entry"&&ctx.business||ctx.slug&&draftRegistry[ctx.slug]?.restore===fragment)requestAnimationFrame(()=>document.getElementById(fragment)?.scrollIntoView({block:"center"}));
 }
 if(typeof document!=="undefined"){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",renderNavigation,{once:true});else queueMicrotask(renderNavigation)}
 
