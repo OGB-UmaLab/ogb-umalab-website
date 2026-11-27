@@ -9,11 +9,44 @@
 .skip-link{position:absolute;left:12px;top:-120px;z-index:10000;background:#fff;color:#123c4c;padding:12px 18px;border:2px solid #075e78;border-radius:6px}.skip-link:focus{top:12px}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #d28a00;outline-offset:3px}</style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"CSV分析・グラフ作成ツール","applicationCategory":"BusinessApplication","operatingSystem":"Web","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"JPY"},"url":"https://ogb-umalab.com/tools/csv-analyzer/","inLanguage":"ja"}</script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-7KHMXV2NFC"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-7KHMXV2NFC');</script>
-</head><body><a class="skip-link" href="#main">本文へ移動</a><header><nav><a href="../../">OGBデータ研究所</a><a href="../">無料ツール一覧</a><a href="https://ogb-umalab.com/umalab/">OGBうまラボ</a></nav></header>
+<style>.quick-start,.quick-choice{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0}.quick-start button,.quick-choice button{background:white;color:#075e78;border:1px solid #9abcc7}.quick-choice button[aria-pressed=true]{outline:2px solid #075e78;outline-offset:1px}.quick-choice button:focus-visible{outline:3px solid #d28a00;outline-offset:2px}.primary-action{font-size:1.05rem;font-weight:700;min-height:46px}.quick-note{font-size:.9rem;color:#526a72}.optional-panel{border:1px solid #d7e2e9;background:white;border-radius:8px;padding:12px;margin:12px 0}.optional-panel>summary{cursor:pointer;font-weight:650;color:#075e78}.optional-panel>summary:focus-visible{outline:3px solid #d28a00;outline-offset:2px}@media(max-width:600px){.primary-action{width:100%;box-sizing:border-box}main,section,.grid>div{min-width:0}input[type=file]{max-width:100%;box-sizing:border-box}.quick-choice button{font-size:.9rem;padding:8px 10px}}</style></head><body><a class="skip-link" href="#main">本文へ移動</a><header><nav><a href="../../">OGBデータ研究所</a><a href="../">無料ツール一覧</a><a href="https://ogb-umalab.com/umalab/">OGBうまラボ</a></nav></header>
 <main class="wrap" id="main">
 <p class="pill">無料・登録不要・CSVを端末内で分析</p>
 <h1>売上・経費データを入れると、気になる数字と確認ポイントが自動で分かる。</h1>
 <p class="lead">グラフを自分で作るだけのツールではありません。CSVを読み込むと、合計・平均・増減・上位項目・欠損・外れ値などを自動チェックし、<strong>数字とその読み方をまとめた診断レポート</strong>を表示します。難しい集計式やグラフ設定から始める必要はありません。</p>
+<section class="card" id="load"><h2>1. CSVファイルを読み込む</h2>
+<div class="grid"><div><label for="file">CSVファイル（最大5MB）</label><input type="file" id="file" accept=".csv,text/csv"><div id="handoffIn" hidden style="margin:12px 0"></div></div><div><label for="encoding">文字コード</label><select id="encoding"><option value="utf-8">UTF-8（推奨）</option><option value="shift_jis">Shift_JIS（古いExcel CSVなど）</option></select></div></div>
+<label class="check"><input type="checkbox" id="hasHeader" checked> 先頭行を項目名として使う</label>
+<div class="actions"><button id="sample">入力例で試す（売上）</button><button class="secondary" id="downloadSample">サンプルCSVを保存</button></div>
+<p id="status" role="status" class="muted">ファイルを選ぶか、サンプルデータで試してください。</p>
+<p class="muted">ファイルは端末のブラウザ内で処理し、分析のためにサーバーへアップロードしません。CSVは最大10万データ行・200列まで。大量データでは端末に負荷がかかる場合があります。</p>
+</section><div id="results" hidden><section class="card" id="autoReport"><h2>自動診断レポート</h2><p class="muted">ファイルの数値・分類・日付から確認できる項目を自動で抽出しました。列の内容によって表示項目は異なります。</p><div id="reportMetrics" class="grid"></div><div id="reportFindings" class="grid" style="margin-top:14px"></div><div class="actions"><button id="downloadReport" class="secondary">診断結果をCSV保存</button></div></section>
+<section class="card" id="analyze"><h2>2. どんな分析をしますか？</h2><div class="grid">
+<div><label for="purpose">調べたいこと</label><select id="purpose"><option value="trend">日付・月別の推移</option><option value="compare">商品・項目別の比較</option><option value="share">内訳・構成比</option><option value="hist">数値の分布・ばらつき</option><option value="scatter">2項目の関係（散布図）</option></select></div>
+<div><label for="chartType">グラフ形式</label><select id="chartType"><option value="auto">おすすめを自動選択</option><option value="line">折れ線グラフ</option><option value="bar">棒グラフ</option><option value="pie">円グラフ</option><option value="hist">ヒストグラム</option><option value="scatter">散布図</option></select></div>
+<div><label for="xcol">横軸・分類に使う列</label><select id="xcol"></select></div><div><label for="ycol">集計する数値列</label><select id="ycol"></select></div>
+<div><label for="agg">集計方法</label><select id="agg"><option value="sum">合計</option><option value="avg">平均</option><option value="count">件数</option><option value="max">最大</option><option value="min">最小</option></select></div>
+<div><label for="dateGroup">日付のまとめ方</label><select id="dateGroup"><option value="raw">元データの値ごと</option><option value="day">日別</option><option value="month">月別</option></select></div></div>
+<p id="hint" class="muted"></p><p id="chartError" class="error" role="status"></p>
+<canvas id="chart" width="1100" height="520" aria-label="分析結果のグラフ" role="img"></canvas>
+<div class="actions"><button id="png">グラフをPNG保存</button><button id="exportGroup" class="secondary">集計表をCSV保存</button></div>
+<h3>グラフの元になった集計表</h3><div class="scroll"><table><thead id="groupHead"></thead><tbody id="groupBody"></tbody></table></div>
+<p class="muted">円グラフは上位9項目と「その他」を表示します。棒・折れ線グラフは項目が多い場合、先頭30項目を表示します。全項目の集計結果はCSVで保存できます。</p>
+</section>
+<section class="card"><h2>3. データ全体の統計結果</h2><div id="overview" class="grid"></div><h3>数値列ごとの統計表</h3><div class="scroll"><table><thead><tr><th>列名</th><th>有効数</th><th>欠損数</th><th>合計</th><th>平均</th><th>中央値</th><th>標準偏差</th><th>最小</th><th>最大</th><th>外れ値数</th></tr></thead><tbody id="summary"></tbody></table></div>
+<button id="exportStats" disabled>統計レポートをCSV保存</button><div id="handoffOut" style="margin:12px 0"><p>基本統計は集計する数値列、相関は横軸と集計列の異なる2つの数値列を使用します。欠損・非数値は行単位で除外します。</p></div>
+<p class="muted">標準偏差は標本標準偏差。外れ値は四分位範囲（IQR）の1.5倍を基準に検出します。外れ値が必ず入力ミスとは限りません。</p>
+<h3>数値列間の相関係数</h3><div class="scroll"><table><thead id="corrHead"></thead><tbody id="corrBody"></tbody></table></div>
+<p class="muted">相関係数は−1〜+1の範囲で、+1に近いほど一緒に増える傾向、−1に近いほど一方が増えると他方が減る傾向を示します。相関は因果関係を示しません。先頭12数値列を表示します。</p>
+</section></div>
+<section class="card"><h2>結果をどう読む？ 事業での活用例</h2>
+<div class="grid"><div class="mini"><h3>月別売上の折れ線</h3><p>月ごとの増減を見て、売上が落ちた時期や繁忙期を確認できます。日付列と売上列を選び、集計を「合計」、日付を「月別」にします。</p></div>
+<div class="mini"><h3>商品別売上の棒グラフ</h3><p>商品ごとの売上を比べます。商品列と売上列を選び、集計を「合計」にします。販売数を比較したい場合は数値列を販売数に変更します。</p></div>
+<div class="mini"><h3>経費の円グラフ</h3><p>費目ごとの支出割合を確認できます。費目列と金額列を選び、集計を「合計」にします。負の金額を含む場合は円グラフにできません。</p></div>
+<div class="mini"><h3>売上と客数の散布図</h3><p>2項目が一緒に増減する傾向を確認できます。横軸に客数、縦軸に売上を指定します。因果関係までは分かりません。</p></div></div>
+<h3>CSVファイルを作る際の注意</h3><p>数値列は <code>30000</code> や <code>12.5</code> のように記録してください。<code>30,000円</code> のような単位付き文字列は数値として認識しません。列に文字と数値が混在する場合、その列は数値分析の対象外です。分類名は日本語で構いません。</p>
+<p>日付の自動まとめは <code>YYYY-MM-DD</code>、<code>YYYY/MM/DD</code>、<code>YYYY-MM</code> 形式を想定しています。その他の形式では元の文字列で分類してください。</p>
+<p>統計の基礎は <a href="../../guides/csv-analysis-basics/">CSV分析の基本ガイド</a> でも解説しています。関連する <a href="../">利益・損益分岐点計算などの無料ツール</a> も利用できます。</p></section>
 <section class="card" id="showcase"><div class="actions" style="justify-content:space-between"><h2>まず、完成結果をご覧ください</h2><span class="pill">架空の売上サンプルから計算した表示例</span></div>
 <p>例えば「日付・売上・客数」の10日分のCSVを読み込むと、次のような結果が得られます。</p>
 <div class="grid"><div class="mini"><span>売上合計</span><strong>518,000円</strong><small>10日分の合計</small></div><div class="mini"><span>1日平均売上</span><strong>51,800円</strong><small>売上列の平均</small></div><div class="mini"><span>売上最高日</span><strong>11月6日</strong><small>100,000円</small></div></div>
@@ -41,40 +74,7 @@
 <li><strong>列と集計方法を選ぶ。</strong> 横軸・縦軸、合計・平均・件数などを指定します。選択すると結果が更新されます。</li>
 <li><strong>結果を保存する。</strong> グラフはPNG画像、集計表と統計レポートはCSVで保存できます。</li></ol>
 </section>
-<section class="card" id="load"><h2>1. CSVファイルを読み込む</h2>
-<div class="grid"><div><label for="file">CSVファイル（最大5MB）</label><input type="file" id="file" accept=".csv,text/csv"><div id="handoffIn" hidden style="margin:12px 0"></div></div><div><label for="encoding">文字コード</label><select id="encoding"><option value="utf-8">UTF-8（推奨）</option><option value="shift_jis">Shift_JIS（古いExcel CSVなど）</option></select></div></div>
-<label class="check"><input type="checkbox" id="hasHeader" checked> 先頭行を項目名として使う</label>
-<div class="actions"><button id="sample">売上サンプルを読み込む</button><button class="secondary" id="downloadSample">サンプルCSVを保存</button></div>
-<p id="status" role="status" class="muted">ファイルを選ぶか、サンプルデータで試してください。</p>
-<p class="muted">ファイルは端末のブラウザ内で処理し、分析のためにサーバーへアップロードしません。CSVは最大10万データ行・200列まで。大量データでは端末に負荷がかかる場合があります。</p>
-</section>
-<div id="results" hidden><section class="card" id="autoReport"><h2>自動診断レポート</h2><p class="muted">ファイルの数値・分類・日付から確認できる項目を自動で抽出しました。列の内容によって表示項目は異なります。</p><div id="reportMetrics" class="grid"></div><div id="reportFindings" class="grid" style="margin-top:14px"></div><div class="actions"><button id="downloadReport" class="secondary">診断結果をCSV保存</button></div></section>
-<section class="card" id="analyze"><h2>2. どんな分析をしますか？</h2><div class="grid">
-<div><label for="purpose">調べたいこと</label><select id="purpose"><option value="trend">日付・月別の推移</option><option value="compare">商品・項目別の比較</option><option value="share">内訳・構成比</option><option value="hist">数値の分布・ばらつき</option><option value="scatter">2項目の関係（散布図）</option></select></div>
-<div><label for="chartType">グラフ形式</label><select id="chartType"><option value="auto">おすすめを自動選択</option><option value="line">折れ線グラフ</option><option value="bar">棒グラフ</option><option value="pie">円グラフ</option><option value="hist">ヒストグラム</option><option value="scatter">散布図</option></select></div>
-<div><label for="xcol">横軸・分類に使う列</label><select id="xcol"></select></div><div><label for="ycol">集計する数値列</label><select id="ycol"></select></div>
-<div><label for="agg">集計方法</label><select id="agg"><option value="sum">合計</option><option value="avg">平均</option><option value="count">件数</option><option value="max">最大</option><option value="min">最小</option></select></div>
-<div><label for="dateGroup">日付のまとめ方</label><select id="dateGroup"><option value="raw">元データの値ごと</option><option value="day">日別</option><option value="month">月別</option></select></div></div>
-<p id="hint" class="muted"></p><p id="chartError" class="error" role="status"></p>
-<canvas id="chart" width="1100" height="520" aria-label="分析結果のグラフ" role="img"></canvas>
-<div class="actions"><button id="png">グラフをPNG保存</button><button id="exportGroup" class="secondary">集計表をCSV保存</button></div>
-<h3>グラフの元になった集計表</h3><div class="scroll"><table><thead id="groupHead"></thead><tbody id="groupBody"></tbody></table></div>
-<p class="muted">円グラフは上位9項目と「その他」を表示します。棒・折れ線グラフは項目が多い場合、先頭30項目を表示します。全項目の集計結果はCSVで保存できます。</p>
-</section>
-<section class="card"><h2>3. データ全体の統計結果</h2><div id="overview" class="grid"></div><h3>数値列ごとの統計表</h3><div class="scroll"><table><thead><tr><th>列名</th><th>有効数</th><th>欠損数</th><th>合計</th><th>平均</th><th>中央値</th><th>標準偏差</th><th>最小</th><th>最大</th><th>外れ値数</th></tr></thead><tbody id="summary"></tbody></table></div>
-<button id="exportStats" disabled>統計レポートをCSV保存</button><div id="handoffOut" style="margin:12px 0"><p>基本統計は集計する数値列、相関は横軸と集計列の異なる2つの数値列を使用します。欠損・非数値は行単位で除外します。</p></div>
-<p class="muted">標準偏差は標本標準偏差。外れ値は四分位範囲（IQR）の1.5倍を基準に検出します。外れ値が必ず入力ミスとは限りません。</p>
-<h3>数値列間の相関係数</h3><div class="scroll"><table><thead id="corrHead"></thead><tbody id="corrBody"></tbody></table></div>
-<p class="muted">相関係数は−1〜+1の範囲で、+1に近いほど一緒に増える傾向、−1に近いほど一方が増えると他方が減る傾向を示します。相関は因果関係を示しません。先頭12数値列を表示します。</p>
-</section></div>
-<section class="card"><h2>結果をどう読む？ 事業での活用例</h2>
-<div class="grid"><div class="mini"><h3>月別売上の折れ線</h3><p>月ごとの増減を見て、売上が落ちた時期や繁忙期を確認できます。日付列と売上列を選び、集計を「合計」、日付を「月別」にします。</p></div>
-<div class="mini"><h3>商品別売上の棒グラフ</h3><p>商品ごとの売上を比べます。商品列と売上列を選び、集計を「合計」にします。販売数を比較したい場合は数値列を販売数に変更します。</p></div>
-<div class="mini"><h3>経費の円グラフ</h3><p>費目ごとの支出割合を確認できます。費目列と金額列を選び、集計を「合計」にします。負の金額を含む場合は円グラフにできません。</p></div>
-<div class="mini"><h3>売上と客数の散布図</h3><p>2項目が一緒に増減する傾向を確認できます。横軸に客数、縦軸に売上を指定します。因果関係までは分かりません。</p></div></div>
-<h3>CSVファイルを作る際の注意</h3><p>数値列は <code>30000</code> や <code>12.5</code> のように記録してください。<code>30,000円</code> のような単位付き文字列は数値として認識しません。列に文字と数値が混在する場合、その列は数値分析の対象外です。分類名は日本語で構いません。</p>
-<p>日付の自動まとめは <code>YYYY-MM-DD</code>、<code>YYYY/MM/DD</code>、<code>YYYY-MM</code> 形式を想定しています。その他の形式では元の文字列で分類してください。</p>
-<p>統計の基礎は <a href="../../guides/csv-analysis-basics/">CSV分析の基本ガイド</a> でも解説しています。関連する <a href="../">利益・損益分岐点計算などの無料ツール</a> も利用できます。</p></section>
+
 <section class="card" aria-labelledby="before-analysis"><h2 id="before-analysis">分析の前に：複数ファイルを1つにまとめる</h2><p>月別・店舗別のCSVが複数ある場合は、先に<a href="/tools/csv-merge/">CSV結合ツール</a>で列名や重複行を確認してから分析できます。店舗ごとの別取引を誤って削除しないよう、元ファイル名も確認してください。</p><p><a href="/guides/csv-merge-hands-on/">3店舗のCSV結合から分析までの手順を見る →</a>　／　<a href="/guides/csv-analysis-hands-on/">10日分の売上データで分析を試す →</a></p></section>
 <section id="ogb-related-work" aria-labelledby="ogb-related-title" style="max-width:1050px;margin:26px auto;padding:20px;border:1px solid #d8e4e9;border-radius:12px;background:#fff;color:#18313a;line-height:1.75"><h2 id="ogb-related-title" style="margin:0 0 8px;font-size:1.25rem">このツールが役立つ仕事と次の作業</h2><p><strong>対象：</strong>店舗・データ分析</p><p>売上などのCSVから基本統計・分布・グラフを確認できます。集計結果は元データと照合してください。</p><p><strong>関連する作業：</strong><a href="/tools/csv-merge/">複数CSVを結合する</a> ／ <a href="/tools/pricing-simulator/">販売価格を試算する</a></p><p><a href="/tools/#by-audience">業種・目的別のツール一覧</a> ／ <a href="/guides/">使い方・実践ガイド一覧</a> ／ <a href="/guides/troubleshooting/">読み込み・保存・結果で困ったとき</a></p></section></main><footer>OGBデータ研究所 ｜ <a href="../../data-lab/organization/">運営情報</a>　｜　<a href="/privacy/">プライバシーポリシー</a></footer>
 <script>
