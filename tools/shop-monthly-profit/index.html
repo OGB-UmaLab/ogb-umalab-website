@@ -123,6 +123,8 @@ function monthlyReference(data){
 function replaceMonthlyField(text,month,index,value){const rows=readMonthly(text,true);validMonth(month);if(![1,3,4].includes(index))throw Error("反映項目が不正です。");const n=String(amount(value)),old=rows.find(r=>r[0]===month);if(old)old[index]=n;else{if(rows.length>=maxMonths)throw Error("最大120か月です。");const r=[month,"","","",""];r[index]=n;rows.push(r)}return rows.sort((a,b)=>a[0].localeCompare(b[0]))}
 let monthReview=null;
 function receiveMonth(data){
+ if(data.source==="restaurant-monthly-close"){const incoming=readMonthly(data.csv);if(incoming.length!==1||incoming[0].slice(1).some(v=>v===""))throw Error("月次締めの確認済み1か月分が必要です。");const [m]=incoming[0],rows=readMonthly($("data").value,true),next=[...rows.filter(r=>r[0]!==m),incoming[0]].sort((a,b)=>a[0].localeCompare(b[0]));if(next.length>maxMonths)throw Error("最大120か月です。");if(!confirm(m+"の売上・売上原価・人件費・その他経費を一括で置き換えますか？ 他の月と保存済みデータは維持します。"))return false;const auto=$("csvDraftAuto");if(auto?.checked){auto.checked=false;auto.dispatchEvent(new Event("change",{bubbles:true}))}$("data").value=[header,...next].map(r=>r.join(",")).join("\r\n");$("data").dispatchEvent(new Event("input",{bubbles:true}));$("result").textContent="月次締めの確認済み金額を反映しました。計算して保存してください。";return true}
+
  const refs=monthlyReference(data),isExpense=data.source==="expense-category-report",index=data.source==="sales-summary"?1:["staff-cost-planner","restaurant-shift-planner"].includes(data.source)?3:4,accept=$("handoffAccept");
  if(!monthReview){
  const box=document.createElement("div");box.id="monthlyReferenceReview";const p=document.createElement("p");p.textContent="対象月を選択し、反映額を確認してください。人件費は予算値の場合があります。その他経費には売上原価・人件費を含めないでください。選択した月の該当金額だけを置き換えます。";box.append(p);
@@ -140,5 +142,5 @@ function receiveMonth(data){
  const auto=$("csvDraftAuto");if(auto?.checked){auto.checked=false;auto.dispatchEvent(new Event("change",{bubbles:true}))}
  $("data").value=[header,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\r\n");$("data").dispatchEvent(new Event("input",{bubbles:true}));$("result").textContent="対象月の"+header[index]+"を反映しました。残りの項目を確認して集計・保存してください。";return true
 }
-OGBToolHandoff.init({slug:"shop-monthly-profit",guard:"planExport",out:[["profit-break-even","販売利益・損益分岐点（計画固定費を反映）"]],inbound:{"sales-summary":"file","staff-cost-planner":"file","restaurant-shift-planner":"file","expense-category-report":"file"}},planPayload,receiveMonth);
+OGBToolHandoff.init({slug:"shop-monthly-profit",guard:"planExport",out:[["profit-break-even","販売利益・損益分岐点（計画固定費を反映）"]],inbound:{"sales-summary":"file","staff-cost-planner":"file","restaurant-shift-planner":"file","expense-category-report":"file","restaurant-monthly-close":"file"}},planPayload,receiveMonth);
 </script></body></html>
