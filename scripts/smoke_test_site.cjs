@@ -3229,6 +3229,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        await p.goto(ledgerOrigin+'/tools/salary-slip-summary/',{waitUntil:'domcontentloaded'});await p.locator('#sample').click();const accept=d=>d.accept();p.on('dialog',accept);await p.locator('#handoff-income-tax-simulator').click();await p.waitForURL('**/tools/income-tax-simulator/');await p.locator('#handoffAccept').click();p.off('dialog',accept);if(await p.locator('#other').inputValue()!=='3240000'||await p.locator('#withheld').inputValue()!=='98378'||await p.locator('#scope').isChecked())throw Error('Salary income tax handoff');
      }finally{await context.close()}
    });
+   await test(local('tools/side-tax-preparation/index.html'),async()=>{
+     const context=await browser.newContext({viewport:{width:390,height:850}});const p=await context.newPage();try{
+       await p.goto(ledgerOrigin+'/tools/side-tax-preparation/',{waitUntil:'domcontentloaded'});await p.locator('#sample').click();
+       const k=await p.locator('#kpis').textContent();for(const v of ['3,510,000円','108,588円','586,000円','96,000円'])if(!k.includes(v))throw Error('Final prep total '+v);
+       await p.locator('#socialInside').fill('600001');await p.locator('#calculate').click();if(!await p.locator('#export').isDisabled()||!(await p.locator('#error').textContent()).includes('内書き'))throw Error('Invalid social insurance split');
+       await p.locator('#sample').click();const dl=p.waitForEvent('download');await p.locator('#export').click();if(!(await dl).suggestedFilename().includes('side-tax-preparation-2026'))throw Error('Final prep export');
+       if(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error('Final prep mobile overflow');
+       p.once('dialog',d=>d.accept());await p.locator('#handoff-income-tax-simulator').click();await p.waitForURL('**/tools/income-tax-simulator/');p.once('dialog',d=>d.accept());await p.locator('#handoffAccept').click();
+       for(const [id,v] of Object.entries({business:'0',other:'3510000',social:'586000',deductions:'96000',withheld:'108588'}))if(await p.locator('#'+id).inputValue()!==v)throw Error('Final prep tax handoff '+id);
+       if(await p.locator('#scope').isChecked())throw Error('Tax scope must be reconfirmed');
+       await p.goto(ledgerOrigin+'/tools/salary-slip-summary/',{waitUntil:'domcontentloaded'});await p.locator('#sample').click();p.once('dialog',d=>d.accept());await p.locator('#handoff-side-tax-preparation').click();await p.waitForURL('**/tools/side-tax-preparation/');
+       p.once('dialog',d=>d.accept());await p.locator('#handoffAccept').click();if(await p.locator('#salaryIncome').inputValue()!=='3240000'||await p.locator('#salaryWithheld').inputValue()!=='98378')throw Error('Salary to final prep');
+       const csv='対象年,所得区分,項目,金額\n2026,業務に係る雑所得,収入（源泉徴収前）,300000\n2026,業務に係る雑所得,必要経費の記録額,30000\n2026,業務に係る雑所得,収支差額（税務確認前）,270000\n2026,業務に係る雑所得,報酬の源泉徴収額,10210';
+       p.once('dialog',d=>d.accept());await p.locator('#sourceFile').setInputFiles({name:'misc.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await p.waitForFunction(()=>document.querySelector('#miscRevenue').value==='300000');if(await p.locator('#salaryIncome').inputValue()!=='3240000')throw Error('Import overwrites salary');await p.locator('#scope').check();await p.locator('#calculate').click();if(!(await p.locator('#kpis').textContent()).includes('108,588円'))throw Error('Combined salary and misc withholding');
+     }finally{await context.close()}
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
