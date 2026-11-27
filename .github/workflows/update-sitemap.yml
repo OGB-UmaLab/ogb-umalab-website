@@ -6,6 +6,7 @@ on:
       - "index.html"
       - "**/index.html"
       - "scripts/ensure_daily_metadata.py"
+      - "scripts/ensure_public_canonical.py"
       - "scripts/update_sitemap.py"
       - "scripts/test_update_sitemap.py"
       - "scripts/audit_site_architecture.cjs"
@@ -41,6 +42,10 @@ jobs:
         run: python3 scripts/test_update_sitemap.py
       - name: Generate sitemap from published pages
         run: python3 scripts/update_sitemap.py
+      - name: Test public canonical backfill
+        run: python3 scripts/ensure_public_canonical.py --self-test
+      - name: Add missing canonicals only to public sitemap pages
+        run: python3 scripts/ensure_public_canonical.py --manifest "$RUNNER_TEMP/public-canonical-files"
       - name: Audit generated sitemap against all HTML pages
         # Existing legacy URL issues are reported without blocking daily racing updates.
         continue-on-error: true
@@ -54,13 +59,16 @@ jobs:
           if-no-files-found: warn
       - name: Commit sitemap changes if needed
         run: |
-          if git diff --quiet -- sitemap.xml ogb-data/daily; then
+          git add sitemap.xml ogb-data/daily
+          if [ -s "$RUNNER_TEMP/public-canonical-files" ]; then
+            git add --pathspec-from-file="$RUNNER_TEMP/public-canonical-files" --pathspec-file-nul
+          fi
+          if git diff --cached --quiet; then
             echo "Sitemap is already up to date"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add sitemap.xml ogb-data/daily
-          git commit -m "Update sitemap for newly published pages"
+          git commit -m "Update sitemap and public page canonical metadata"
           git pull --rebase origin main
           git push origin HEAD:main
