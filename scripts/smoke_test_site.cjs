@@ -3217,6 +3217,18 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        if(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error('Bulk import mobile overflow');
      }finally{await context.close()}
    });
+   await test(local('tools/salary-slip-summary/index.html'),async()=>{
+     const context=await browser.newContext({viewport:{width:390,height:850}});const p=await context.newPage();try{
+       await p.goto(ledgerOrigin+'/tools/business/side-job/',{waitUntil:'domcontentloaded'});await p.locator('#salary-summary-link').click();await p.waitForURL('**/tools/salary-slip-summary/');
+       await p.locator('#sample').click();const k=await p.locator('#kpis').textContent();for(const v of ['4,600,000円','1,360,000円','3,240,000円','98,378円','600,000円'])if(!k.includes(v))throw Error('Salary total '+v);
+       if(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error('Salary slip mobile overflow');
+       await p.locator('.gross').first().fill('4001000');if(!await p.locator('#export').isDisabled())throw Error('Stale salary result');
+       await p.locator('#sample').click();p.once('dialog',d=>d.accept());await p.locator('#handoff-tax-filing-check').click();await p.waitForURL('**/tools/tax-filing-check/');await p.locator('#other').fill('10000');p.once('dialog',d=>d.accept());await p.locator('#handoffAccept').click();
+       if(await p.locator('#salary').inputValue()!=='4600000'||await p.locator('#secondary').inputValue()!=='600000'||await p.locator('#employers').inputValue()!=='multiple'||await p.locator('#other').inputValue()!=='10000')throw Error('Salary filing handoff');
+       await p.goto(ledgerOrigin+'/tools/salary-slip-summary/',{waitUntil:'domcontentloaded'});await p.locator('#sample').click();p.once('dialog',d=>d.accept());await p.locator('#handoff-side-income-summary').click();await p.waitForURL('**/tools/side-income-summary/');await p.locator('#miscRevenue').fill('300000');p.once('dialog',d=>d.accept());await p.locator('#handoffAccept').click();if(await p.locator('#salary').inputValue()!=='3240000'||await p.locator('#miscRevenue').inputValue()!=='300000')throw Error('Salary mixed income handoff');
+       await p.goto(ledgerOrigin+'/tools/salary-slip-summary/',{waitUntil:'domcontentloaded'});await p.locator('#sample').click();const accept=d=>d.accept();p.on('dialog',accept);await p.locator('#handoff-income-tax-simulator').click();await p.waitForURL('**/tools/income-tax-simulator/');await p.locator('#handoffAccept').click();p.off('dialog',accept);if(await p.locator('#other').inputValue()!=='3240000'||await p.locator('#withheld').inputValue()!=='98378'||await p.locator('#scope').isChecked())throw Error('Salary income tax handoff');
+     }finally{await context.close()}
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
