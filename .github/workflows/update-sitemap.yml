@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: write
+  statuses: write
 
 concurrency:
   group: sitemap-main
@@ -47,6 +48,7 @@ jobs:
       - name: Add missing canonicals only to public sitemap pages
         run: python3 scripts/ensure_public_canonical.py --manifest "$RUNNER_TEMP/public-canonical-files"
       - name: Audit generated sitemap against all HTML pages
+        id: architecture-audit
         # Existing legacy URL issues are reported without blocking daily racing updates.
         continue-on-error: true
         run: node scripts/audit_site_architecture.cjs
@@ -72,3 +74,20 @@ jobs:
           git commit -m "Update sitemap and public page canonical metadata"
           git pull --rebase origin main
           git push origin HEAD:main
+      - name: Report architecture audit result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_OUTCOME: ${{ steps.architecture-audit.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          state=error
+          description="Architecture audit not completed"
+          if [ "$AUDIT_OUTCOME" = success ]; then
+            state=success
+            description="Architecture audit passed"
+          elif [ "$AUDIT_OUTCOME" = failure ]; then
+            state=failure
+            description="Architecture audit found errors; see logs"
+          fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state="$state" -f context="OGB/site-architecture" -f description="$description" -f target_url="$RUN_URL"
