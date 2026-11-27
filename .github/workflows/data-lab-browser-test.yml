@@ -17,6 +17,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      statuses: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,6 +32,7 @@ jobs:
       - name: Test marketplace browser interactions
         run: node scripts/test_marketplace_browser.cjs
       - name: Run local Data Lab browser tests
+        id: full-browser
         run: node scripts/smoke_test_site.cjs --tools-only
       - name: Upload failure screenshots
         if: failure()
@@ -39,3 +41,20 @@ jobs:
           name: data-lab-test-failures
           path: test-results/
           if-no-files-found: ignore
+      - name: Report browser test result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BROWSER_OUTCOME: ${{ steps.full-browser.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          state=error
+          description="Browser tests not completed; see logs"
+          if [ "$BROWSER_OUTCOME" = success ]; then
+            state=success
+            description="All Data Lab browser test steps passed"
+          elif [ "$BROWSER_OUTCOME" = failure ]; then
+            state=failure
+            description="Data Lab browser tests failed; see logs"
+          fi
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state="$state" -f context="OGB/data-lab-browser" -f description="$description" -f target_url="$RUN_URL"
