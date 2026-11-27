@@ -397,11 +397,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      });
    }
    await test(local('tools/index.html'),async()=>{
-     const all=page.locator('#toolDirectory li');if(await all.count()!==48)throw Error('Tool directory count');
+     const all=page.locator('#toolDirectory li');
+     const expectedTools=[...fs.readFileSync(path.resolve(__dirname,'../sitemap.xml'),'utf8').matchAll(/<loc>https:\/\/ogb-umalab\.com\/(tools\/[^/<>]+\/)\s*<\/loc>/g)].map(m=>'/'+m[1]).sort();
+     const actualTools=(await page.locator('#toolDirectory li a[href]').evaluateAll(nodes=>nodes.map(a=>a.getAttribute('href')))).sort();
+     if(!expectedTools.length||JSON.stringify(actualTools)!==JSON.stringify(expectedTools)||await all.count()!==expectedTools.length)throw Error('Tool directory does not match public sitemap');
+     const label=await page.locator('#toolDirectory summary').innerText();if(!label.includes('全'+expectedTools.length+'種類'))throw Error('Tool directory display count');
      await page.locator('#toolSearch').fill('家事按分');if(!await page.locator('#toolDirectory a[href="/tools/business-expense-allocation/"]').isVisible()||await page.locator('#toolDirectory a[href="/tools/image-batch/"]').isVisible())throw Error('Tool search match');
      await page.locator('#toolSearch').fill('ＰＤＦ');if(!await page.locator('#toolDirectory a[href="/tools/pdf-split-rename/"]').isVisible())throw Error('Tool search full-width');
      await page.locator('#toolSearch').fill('zzzz-nonexistent');if(!await page.locator('#toolSearchEmpty').isVisible())throw Error('Tool search empty');
-     await page.locator('#toolSearch').fill('');if(await page.locator('#toolDirectory li:visible').count()!==48)throw Error('Tool search reset');
+     await page.locator('#toolSearch').fill('');if(await page.locator('#toolDirectory li:visible').count()!==expectedTools.length)throw Error('Tool search reset');
    });
    await test(local('tools/cash-flow-planner/index.html'),async()=>{
      const key=await page.evaluate(()=>{const k='ogb-csv-grid-draft-v1:'+location.pathname.replace(/index\.html$/,'');localStorage.removeItem(k);return k});await page.reload();
@@ -1793,13 +1797,16 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        if(!(await page.locator('#workflows a[href="'+href+'"]').count())) throw new Error('Workflow guide missing: '+href);
        if(!fs.existsSync(path.resolve(__dirname,'..',href,'index.html'))) throw new Error('Workflow guide target missing: '+href);
      }
-     if((await page.locator('#choose-task .task-card').count())!==6) throw new Error('Homepage task choices missing');
+     const requiredTaskLinks=['tools/categories/csv-text/','tools/order-payment-reconcile/','tools/categories/sales-profit/','tools/categories/pdf-image/','tools/categories/statistics/','guides/','tools/business/restaurant/','tools/business/side-job/','tools/#business-workflows'];
+     for(const href of requiredTaskLinks)if(await page.locator('#choose-task .task-card a[href="'+href+'"]').count()!==1)throw Error('Homepage task choice missing or duplicated: '+href);
      if(!(await page.locator('.hero a[href="#choose-task"]').count())) throw new Error('Hero task CTA missing');
      const links=page.locator('#choose-task .task-card a[href]');
      for(let i=0;i<await links.count();i++){
        const href=await links.nth(i).getAttribute('href');
-       const target=path.resolve(__dirname,'..',href,'index.html');
+       const [route,fragment]=href.split('#');
+       const target=path.resolve(__dirname,'..',route,'index.html');
        if(!fs.existsSync(target)) throw new Error('Homepage task link target missing: '+href);
+       if(fragment&&!fs.readFileSync(target,'utf8').includes('id="'+fragment+'"'))throw Error('Homepage task link fragment missing: '+href);
      }
    });
    await test(local('tools/index.html'),async()=>{
@@ -3172,7 +3179,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      }finally{await context.close()}
    });
    await test(local('tools/index.html'),async()=>{
-     await page.goto(ledgerOrigin+'/tools/',{waitUntil:'domcontentloaded'});await page.locator('#toolSearch').fill('家事按分');await page.locator('#toolSearchClear').click();if(await page.locator('#toolSearch').inputValue()!==''||await page.locator('#toolSearchClear').isVisible()||await page.locator('#toolDirectory li:visible').count()!==48)throw Error('Search clear regression');
+     await page.goto(ledgerOrigin+'/tools/',{waitUntil:'domcontentloaded'});await page.locator('#toolSearch').fill('家事按分');await page.locator('#toolSearchClear').click();if(await page.locator('#toolSearch').inputValue()!==''||await page.locator('#toolSearchClear').isVisible()||await page.locator('#toolDirectory li:visible').count()!==await page.locator('#toolDirectory li').count())throw Error('Search clear regression');
      await page.locator('#toolSearch').fill('家事按分');await page.locator('#toolSearch').press('Enter');await page.waitForURL('**/tools/business-expense-allocation/');await page.locator('#ogbToolQuickNav').waitFor();
    });
    await test(local('tools/business/side-job/index.html'),async()=>{
