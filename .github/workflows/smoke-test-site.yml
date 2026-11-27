@@ -5,11 +5,72 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/smoke-test-site.yml'
 permissions:
   contents: read
 jobs:
+  public-content:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify current public assets, privacy policy and indexing files
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+          from urllib.parse import urlsplit
+          from hashlib import sha256
+          import xml.etree.ElementTree as ET
+          import time
+          base = 'https://ogb-umalab.com'
+          def fetch(path):
+              request = Request(base + path, headers={'User-Agent': 'OGB-Public-Verification/1.0', 'Cache-Control': 'no-cache'})
+              with urlopen(request, timeout=15) as response:
+                  if response.status != 200 or urlsplit(response.url).netloc != urlsplit(base).netloc:
+                      raise ValueError(f'{path}: unexpected status or destination')
+                  return response.read()
+          def verify():
+              js = fetch('/tools/assets/tool-handoff.js')
+              expected = Path('tools/assets/tool-handoff.js').read_bytes()
+              if sha256(js).digest() != sha256(expected).digest():
+                  raise ValueError('Public tool-handoff.js does not match checked-out version')
+              print('PASS public tool-handoff.js SHA256', sha256(js).hexdigest(), flush=True)
+              privacy = fetch('/privacy/').decode('utf-8')
+              for marker in ['OGBデータ研究所（Data Lab）', '無料ツールの入力・保存データ', 'ローカルストレージ']:
+                  if marker not in privacy:
+                      raise ValueError('Privacy policy missing: ' + marker)
+              print('PASS public privacy policy', flush=True)
+              robots = fetch('/robots.txt').decode('utf-8')
+              if 'Sitemap: https://ogb-umalab.com/sitemap.xml' not in robots:
+                  raise ValueError('robots.txt missing sitemap')
+              print('PASS public robots.txt', flush=True)
+              ns = {'s': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+              actual = {n.text for n in ET.fromstring(fetch('/sitemap.xml')).findall('s:url/s:loc', ns)}
+              local = {n.text for n in ET.parse('sitemap.xml').getroot().findall('s:url/s:loc', ns)}
+              import re
+              pattern = re.compile(r'https://ogb-umalab\.com/tools/[a-z-]+/')
+              expected_tools = {u for u in local if pattern.fullmatch(u or '')}
+              public_tools = {u for u in actual if pattern.fullmatch(u or '')}
+              if not expected_tools or expected_tools != public_tools:
+                  raise ValueError(f'Public tool sitemap differs: expected {len(expected_tools)}, got {len(public_tools)}')
+              print(f'PASS public sitemap: {len(actual)} URLs; {len(public_tools)} tools', flush=True)
+          for attempt in range(3):
+              try:
+                  verify()
+                  break
+              except Exception as exc:
+                  print(f'Attempt {attempt + 1}: {exc}', flush=True)
+                  if attempt == 2:
+                      raise
+                  time.sleep(8)
+          PY
   smoke:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
