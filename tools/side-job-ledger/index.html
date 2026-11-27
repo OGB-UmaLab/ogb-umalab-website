@@ -28,7 +28,7 @@ $("entry").onsubmit=e=>{e.preventDefault();$("error").textContent="";try{if(!edi
 $("kind").onchange=()=>{const exp=$("kind").value==="expense";if(exp)$("withheld").value="0";$("withheld").disabled=exp};
 $("cancel").onclick=reset;$("year").oninput=$("filter").onchange=render;
 $("sample").onclick=()=>{if(items.length&&!confirm("画面上の全明細を架空の入力例に置き換えますか？"))return;const base={incomeType:"misc",memo:"架空データ",withheld:0};replace([{...base,id:"demo-1",date:"2026-01-15",kind:"income",category:"報酬",amount:100000,withheld:10210},{...base,id:"demo-2",date:"2026-01-20",kind:"expense",category:"通信費",amount:10000},{...base,id:"demo-3",date:"2026-02-10",kind:"income",category:"報酬",amount:200000},{...base,id:"demo-4",date:"2026-02-20",kind:"expense",category:"交通費",amount:20000}]);$("year").value="2026";$("filter").value="misc";reset();render()};
-function dump(){return JSON.stringify({version:1,items})}
+function dump(){return JSON.stringify({version:1,savedAt:new Date().toISOString(),items})}
 function download(name,text,type){const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement("a");a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function csv(rows){return rows.map(r=>r.map(v=>{let s=String(v);if(typeof v==="string"&&/^[\s\uFEFF]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}).join(",")).join("\r\n")}
 $("export").onclick=()=>download("side-job-details-"+$("year").value+"-"+$("filter").value+".csv","\uFEFF"+csv([["計上日","所得区分","取引区分","科目","摘要","金額","源泉徴収額"],...selected().map(x=>[x.date,x.incomeType==="misc"?"業務に係る雑所得":"事業所得",x.kind==="income"?"収入":"経費",x.category,x.memo,x.amount,x.withheld])]),"text/csv;charset=utf-8");
