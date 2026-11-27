@@ -3187,6 +3187,22 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        p.once('dialog',d=>d.accept());await p.locator('#handoff-tax-filing-check').click();await p.waitForURL('**/tools/tax-filing-check/');p.once('dialog',d=>d.accept());await p.locator('#handoffAccept').click();if(await p.locator('#other').inputValue()!=='550000')throw Error('Side job handoff must exclude salary');if(await p.locator('#salary').inputValue()!=='0')throw Error('Salary income used as gross pay');
      }finally{await context.close()}
    });
+   await test(local('tools/side-job-ledger/index.html'),async()=>{
+     const context=await browser.newContext({viewport:{width:390,height:850}});const p=await context.newPage();try{
+       await p.goto(ledgerOrigin+'/tools/business/side-job/',{waitUntil:'domcontentloaded'});await p.locator('.side-actions a[href="/tools/side-job-ledger/"]').click();await p.waitForURL('**/tools/side-job-ledger/');
+       await p.locator('#sample').click();
+       const k=await p.locator('#kpis').textContent();for(const v of ['300,000円','30,000円','270,000円','10,210円','289,790円'])if(!k.includes(v))throw Error('Side ledger total '+v);
+       if(await p.locator('#months tr').count()!==12||!(await p.locator('#months tr').first().textContent()).includes('90,000'))throw Error('Side ledger monthly total');
+       await p.locator('#date').fill('2026-03-01');await p.locator('#incomeType').selectOption('business');await p.locator('#category').fill('売上');await p.locator('#amount').fill('90000');await p.locator('#add').click();
+       if(!(await p.locator('#kpis').textContent()).includes('90,000円')||!(await p.locator('#handoff-side-income-summary').isDisabled()))throw Error('Business income separation');
+       await p.locator('#filter').selectOption('misc');await p.locator('#save').click();await p.reload();await p.locator('#restore').click();if(await p.locator('#rows tr').count()!==4)throw Error('Side ledger restore');
+       await p.locator('#rows tr').first().getByRole('button',{name:'編集'}).click();await p.locator('#amount').fill('120000');await p.locator('#add').click();if(!(await p.locator('#kpis').textContent()).includes('320,000円'))throw Error('Side ledger edit');
+       await p.locator('#year').fill('2025');if(!await p.locator('#export').isDisabled()||!await p.locator('#handoff-side-income-summary').isDisabled())throw Error('Year isolation');
+       await p.locator('#year').fill('2026');const downloadPromise=p.waitForEvent('download');await p.locator('#export').click();const dl=await downloadPromise;if(!dl.suggestedFilename().includes('2026-misc.csv'))throw Error('Side ledger CSV filename');
+       if(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error('Side ledger mobile overflow');
+       p.once('dialog',d=>d.accept());await p.locator('#handoff-side-income-summary').click();await p.waitForURL('**/tools/side-income-summary/');p.once('dialog',d=>d.accept());await p.locator('#handoffAccept').click();if(await p.locator('#miscRevenue').inputValue()!=='320000'||await p.locator('#miscExpense').inputValue()!=='30000'||await p.locator('#scope').isChecked())throw Error('Side ledger handoff');
+     }finally{await context.close()}
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
