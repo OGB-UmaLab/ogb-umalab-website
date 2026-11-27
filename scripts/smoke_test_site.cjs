@@ -3203,6 +3203,20 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        p.once('dialog',d=>d.accept());await p.locator('#handoff-side-income-summary').click();await p.waitForURL('**/tools/side-income-summary/');p.once('dialog',d=>d.accept());await p.locator('#handoffAccept').click();if(await p.locator('#miscRevenue').inputValue()!=='320000'||await p.locator('#miscExpense').inputValue()!=='30000'||await p.locator('#scope').isChecked())throw Error('Side ledger handoff');
      }finally{await context.close()}
    });
+   await test(local('tools/side-job-ledger/index.html'),async()=>{
+     const context=await browser.newContext({viewport:{width:390,height:850}});const p=await context.newPage();try{
+       await p.goto(ledgerOrigin+'/tools/business/side-job/',{waitUntil:'domcontentloaded'});if(await p.locator('#prepChecklist input').count()!==6)throw Error('Missing preparation checklist');
+       await p.locator('#annual-prep a[href="/tools/side-job-ledger/#bulk"]').click();await p.waitForURL('**/tools/side-job-ledger/#bulk');
+       await p.locator('#bulkExample').click();await p.locator('#bulkPreview').click();if(!await p.locator('#bulkApply').isDisabled())throw Error('Import must require row selection and confirmation');
+       await p.locator('#bulkAll').click();await p.locator('#bulkConfirm').check();await p.locator('#bulkApply').click();if(await p.locator('#rows tr').count()!==2||!(await p.locator('#kpis').textContent()).includes('300,000円'))throw Error('Bulk revenue import');
+       await p.locator('#bulkPreview').click();await p.locator('#bulkAll').click();await p.locator('#bulkConfirm').check();if(!await p.locator('#bulkApply').isDisabled()||!(await p.locator('#bulkCounts').textContent()).includes('重複候補 2件'))throw Error('Duplicate import review');
+       await p.locator('#bulkText').fill('利用日\t利用先\t金額\n2026/01/20\t通信会社\t-10000\n2025/01/20\t対象外\t-100\n2026/02/30\t無効日\t-100\n2026/02/20\t私用\t-5000');await p.locator('#bulkRead').click();await p.locator('#bulkKind').selectOption('expense');await p.locator('#bulkSign').selectOption('negative');await p.locator('#bulkDefault').fill('通信費');await p.locator('#bulkPreview').click();
+       const count=await p.locator('#bulkCounts').textContent();if(!count.includes('対象年外 1件')||!count.includes('エラー 1件'))throw Error('Invalid and out-of-year rows');
+       await p.locator('#bulkRows input[type=checkbox]').first().check();await p.locator('#bulkConfirm').check();await p.locator('#bulkApply').click();if(await p.locator('#rows tr').count()!==3||!(await p.locator('#kpis').textContent()).includes('290,000円'))throw Error('Selected expense import');
+       const downloadPromise=p.waitForEvent('download');await p.locator('#taxMemoExport').click();if(!(await downloadPromise).suggestedFilename().includes('tax-preparation-2026-misc'))throw Error('Tax preparation export');
+       if(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error('Bulk import mobile overflow');
+     }finally{await context.close()}
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
