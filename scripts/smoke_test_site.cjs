@@ -474,6 +474,19 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        if((await p.locator('#data').inputValue()).includes('"9"'))throw Error('Changed receipt modified stock');
      }finally{p.off('dialog',accept);await context.close()}
    });
+   await test(local('tools/shipping-cost-report/index.html'),async()=>{
+     const context=await browser.newContext();const p=await context.newPage(),accept=d=>d.accept();p.on('dialog',accept);try{
+       const open=slug=>p.goto(ledgerOrigin+'/tools/'+slug+'/',{waitUntil:'domcontentloaded'}),send=async slug=>{await p.locator('#handoff-'+slug).click();await p.waitForURL('**/tools/'+slug+'/');await p.locator('#handoffAccept').click()};
+       await open('annual-income-summary');await p.locator('#sample').click();await p.locator('#taxDraftSave').click();
+       await open('shipping-cost-report');await p.locator('#sample').click();await send('annual-income-summary');await p.locator('#confirmPeriod').check();await p.locator('#apply').click();if(await p.locator('#shipping').inputValue()!=='17500'||await p.locator('#sales').inputValue()!=='3000000'||await p.locator('#expenses').inputValue()!=='350000')throw Error('Shipping-only annual transfer');
+       await open('shipping-cost-report');await p.locator('#sample').click();await p.locator('#shippingReferenceMonth').fill('2026-11');await send('cash-flow-planner');await p.locator('#cashReferenceChoice').selectOption('0');if(await p.locator('#cashReferenceValue').inputValue()!=='')throw Error('Shipping reference must not auto-fill');await p.locator('#start').fill('2026-11');await p.locator('#cashReferenceDay').fill('2026-12-01');await p.locator('#cashReferenceValue').fill('14000');await p.locator('#cashReferenceConfirm').check();await p.locator('#handoffAccept').click();if(!(await p.locator('#data').inputValue()).includes('14000'))throw Error('Shipping cash plan transfer');
+       await p.locator('#csvDraftSave').click();
+       await open('supplier-payment-reconcile');await p.locator('#sample').click();await send('cash-flow-planner');if(!(await p.locator('#result').textContent()).includes('追加 1件'))throw Error('Supplier new row');
+       const raw=await p.locator('#data').inputValue();await p.locator('#data').evaluate((el,v)=>{el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}))},raw.replace('"","出金","2000"','"2026-12-10","出金","2000"'));await p.locator('#csvDraftSave').click();
+       await open('supplier-payment-reconcile');await p.locator('#data').evaluate(el=>{el.value='仕入先A,INV-001,10000,9000';el.dispatchEvent(new Event('input',{bubbles:true}))});await p.locator('#calculate').click();await send('cash-flow-planner');const updated=await p.locator('#data').inputValue();if(!updated.includes('"2026-12-10","出金","1000"')||updated.includes('"2000"')||!updated.includes('14000'))throw Error('Supplier update retains date and other plans');
+       await p.locator('#csvDraftSave').click();await open('supplier-payment-reconcile');await p.locator('#data').evaluate(el=>{el.value='仕入先A,INV-001,10000,9000';el.dispatchEvent(new Event('input',{bubbles:true}))});await p.locator('#calculate').click();await send('cash-flow-planner');if(!(await p.locator('#result').textContent()).includes('反映済み 1件'))throw Error('Supplier identical repeat');
+     }finally{p.off('dialog',accept);await context.close()}
+   });
    await test(local('tools/shop-sales-performance/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('140,000円')||!s.includes('1,866円')||!s.includes('100.00%')||await page.locator('#weekdayRows tr').count()!==7)throw Error('Shop sales performance sample');
      const dl=page.waitForEvent('download');await page.locator('#weekdayExport').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"月","2","110000","55000","55","2000"'))throw Error('Shop weekday CSV');
