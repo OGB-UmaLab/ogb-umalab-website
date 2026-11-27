@@ -1405,7 +1405,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#scope').check();await page.locator('#calculate').click();await send('resident-tax-simulator');await page.locator('#preview').waitFor({state:'visible'});await page.locator('#apply').click();if(await page.locator('#income').inputValue()!=='25000'||await page.locator('#scope').isChecked())throw Error('Resident handoff');if(await page.evaluate(()=>sessionStorage.getItem('ogb-tool-handoff-v1'))!==null)throw Error('Handoff not consumed');
    });
    await test(local('tools/cash-register-close/index.html'),async()=>{
-     await page.locator('#date').fill('2026-11-26');const h='営業日,決済方法,売上金額,摘要\n',csv=h+'2026-11-26,現金,12000,午前\n2026-11-26,カード,8000,午後\n2026-11-26,現金,3000,夕方\n2026-11-25,現金,40000,前日';
+     await page.locator('#date').fill('2026-11-26');await page.locator('#opening').fill('30000');await page.locator('#cashout').fill('5000');const h='営業日,決済方法,売上金額,摘要\n',csv=h+'2026-11-26,現金,12000,午前\n2026-11-26,カード,8000,午後\n2026-11-26,現金,3000,夕方\n2026-11-25,現金,40000,前日';
      await page.locator('#salesFile').setInputFiles({name:'sales.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});await waitForText('#salesImportStatus','15,000円');if(await page.locator('#salesApply').isDisabled())throw Error('Register cash preview');
      page.once('dialog',d=>d.accept());await page.locator('#salesApply').click();if(await page.locator('#sales').inputValue()!=='15000'||!await page.locator('#download').isDisabled())throw Error('Register cash import');
      await page.locator('#calc').click();if(!(await page.locator('#result').innerText()).includes('40,000円'))throw Error('Register imported balance');
@@ -1437,7 +1437,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#draftSave').click();await page.reload();if(await page.locator('#rows tr').count()!==0)throw Error('Ledger restored without request');
      page.once('dialog',d=>d.accept());await page.locator('#draftRestore').click();
      if(await page.locator('#rows tr').count()!==3||!(await page.locator('#summary').innerText()).includes('26,000円'))throw Error('Daily sales restore');
-     page.once('dialog',d=>d.accept());await page.locator('#draftDelete').click();if(await page.evaluate(k=>localStorage.getItem(k),key)!==null||await page.locator('#rows tr').count()!==3)throw Error('Daily sales delete');
+     await page.locator('#dailyFileOptions > summary').click();page.once('dialog',d=>d.accept());await page.locator('#draftDelete').click();if(await page.evaluate(k=>localStorage.getItem(k),key)!==null||await page.locator('#rows tr').count()!==3)throw Error('Daily sales delete');
    });
    await test(local('tools/daily-sales-ledger/index.html'),async()=>{
      const csv=['営業日,決済方法,売上金額,摘要','2026-11-24,現金,1200,午前','2026-11-24,カード,800,午後'].join(String.fromCharCode(10));
@@ -1470,7 +1470,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#amount').fill('-10');
      await page.locator('#add').click();
      if(!(await page.locator('#error').innerText()).includes('0以上')) throw new Error('Negative sales amount accepted');
-     page.once('dialog',d=>d.accept());
+     await page.locator('#dailyFileOptions > summary').click();page.once('dialog',d=>d.accept());
      await page.locator('#clear').click();
      if(!(await page.locator('#export').isDisabled())) throw new Error('Sales ledger stale CSV export enabled');
    });
@@ -3050,6 +3050,13 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      if(await page.locator('#download').innerText()!=='TXTで保存')throw new Error('TXT export label not restored');
      if(!await page.locator('#download').isDisabled())throw new Error('Old result remained downloadable after mode switch');
    });
+   await test(local('tools/daily-sales-ledger/index.html'),async()=>{
+     const key='ogb-daily-sales-ledger-v1',oldViewport=page.viewportSize();await page.goto(ledgerOrigin+'/tools/daily-sales-ledger/',{waitUntil:'domcontentloaded'});const prior=await page.evaluate(k=>localStorage.getItem(k),key);
+     try{await page.evaluate(k=>localStorage.removeItem(k),key);await page.setViewportSize({width:390,height:850});await page.reload();if(await page.locator('#amount').inputValue()!==''||await page.locator('#importFile').isVisible())throw Error('Daily first-use defaults');await page.locator('#date').fill('2026-11-26');await page.locator('#amount').fill('1200');await page.locator('#amount').press('Enter');await waitForText('#dailyKpis','1,200円');if(await page.locator('#amount').inputValue()!=='')throw Error('Amount not reset');await page.locator('#method').selectOption('カード');await page.locator('#amount').fill('800');await page.locator('#add').click();await waitForText('#dailyKpis','2,000円');await page.locator('#draftSave').click();await waitForText('#draftStatus','保存しました');const stored=await page.evaluate(k=>localStorage.getItem(k),key);
+       await page.goto(ledgerOrigin+'/tools/sales-summary/',{waitUntil:'domcontentloaded'});if(await page.locator('#savedSalesLoad').isDisabled())throw Error('Saved ledger not offered');await page.locator('#savedSalesLoad').click();await waitForText('#salesKpis','2,000円');if(await page.evaluate(k=>localStorage.getItem(k),key)!==stored)throw Error('Saved ledger mutated');if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error('Mobile sales overflow');
+       await page.goto(ledgerOrigin+'/tools/cash-register-close/',{waitUntil:'domcontentloaded'});if(await page.locator('#opening').inputValue()!==''||await page.locator('#sales').inputValue()!=='')throw Error('Example cash mistaken for real data');await page.locator('#opening').fill('1000');await page.locator('#sales').fill('2000');await page.locator('#n1000').fill('3');await waitForText('#cashCountPreview','3,000円');await page.locator('#calc').click();await waitForText('#cashKpis','一致');await page.locator('#n1000').fill('2');if(await page.locator('#download').isEnabled()||await page.locator('#cashKpis > div').count())throw Error('Stale cash result');await page.locator('#calc').click();await waitForText('#cashKpis','現金不足');if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error('Mobile cash overflow');
+     }finally{await page.evaluate(([k,v])=>v===null?localStorage.removeItem(k):localStorage.setItem(k,v),[key,prior]);await page.setViewportSize(oldViewport)}
+   });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
    for(const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/']){
      await test(local('tools/'+slug+'index.html'),async()=>{
@@ -3061,7 +3068,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        if(hash!=='#main') throw new Error('Skip link did not navigate to main: '+hash);
        const main=page.locator('main#main');
        if(await main.count()!==1) throw new Error('Missing unique main landmark');
-       const link=page.locator('main a').first();
+       const link=page.locator('main a:visible').first();
        if(await link.count()){
          await link.focus();
          const outline=await link.evaluate(e=>getComputedStyle(e).outlineStyle);
