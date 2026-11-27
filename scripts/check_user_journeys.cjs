@@ -15,15 +15,18 @@ const navCatalog=JSON.parse(navSource.match(/const catalog=(\{[^\n]+\});/)[1]);
 const navWorkflows=JSON.parse(navSource.match(/const workflows=(\[[^\n]+\]);/)[1]);
 const directory=tools.slice(tools.indexOf('<details id="toolDirectory">'),tools.indexOf('</details>',tools.indexOf('<details id="toolDirectory">')));
 const listed=[...directory.matchAll(/href="\/tools\/([a-z-]+)\/"/g)].map(m=>m[1]);
-check(listed.length===48&&new Set(listed).size===48,'Navigation directory count mismatch');
-check(Object.keys(navCatalog).length===48&&listed.every(s=>Object.hasOwn(navCatalog,s)),'Navigation catalog mismatch');
+const publicTools=[...read('sitemap.xml').matchAll(/<loc>https:\/\/ogb-umalab\.com\/tools\/([a-z-]+)\/<\/loc>/g)].map(m=>m[1]);
+check(publicTools.length>0&&new Set(publicTools).size===publicTools.length&&listed.length===publicTools.length&&new Set(listed).size===listed.length&&publicTools.every(s=>listed.includes(s)),'Navigation directory count or sitemap mismatch');
+check(Object.keys(navCatalog).length===listed.length&&listed.every(s=>Object.hasOwn(navCatalog,s)),'Navigation catalog mismatch');
 const navCoverage=new Set(navWorkflows.flatMap(w=>w.steps));
 
 const drafts=JSON.parse(navSource.match(/const draftRegistry=(\{[^\n]+\});/)[1]);
-check(Object.keys(drafts).length===47&&Object.keys(drafts).every(s=>listed.includes(s)),'Saved work registry count or unknown tool');
+check(Object.keys(drafts).every(s=>listed.includes(s))&&new Set(Object.values(drafts).map(d=>d.key)).size===Object.keys(drafts).length,'Saved work registry unknown tool or duplicate key');
 for(const s of listed){
  const page=read('tools/'+s+'/index.html');
- const hasDraft=/src="\.\.\/assets\/(?:csv-grid-editor|editable-grid|ledger-draft|row-form-draft|tax-form-draft|form-draft)\.js"/.test(page)||/localStorage\.setItem\(/.test(page); // Read-only access to another tool’s saved data is not a draft writer.
+ const external='tools/assets/'+s+'.js';
+ const ownScript=page.includes('src="../assets/'+s+'.js"')&&fs.existsSync(path.join(root,external))?read(external):'';
+ const hasDraft=/src="\.\.\/assets\/(?:csv-grid-editor|editable-grid|ledger-draft|row-form-draft|tax-form-draft|form-draft)\.js"/.test(page)||/localStorage\.setItem\(/.test(page)||/\b(?:localStorage|storage)\.setItem\(/.test(ownScript); // Include tool-specific external draft writers, not read-only storage access.
  check(hasDraft===Object.hasOwn(drafts,s),'Saved work registry does not match tool: '+s);
  if(drafts[s])check(drafts[s].key.startsWith('ogb-')&&typeof drafts[s].restore==='string','Saved work registry invalid: '+s);
 }
@@ -37,14 +40,19 @@ check(navSource.includes('function restoreWorkspace(')&&navSource.includes('func
 check(navSource.includes('function advanceCycle(')&&navSource.includes('function checkCycle(')&&navSource.includes('ogbWorkCycleHistory'),'Recurring workspace cycle missing');
 check(navSource.includes('function deadlineInfo(')&&navSource.includes('function orderedWork(')&&navSource.includes('ogbWorkDeadlineSummary'),'Workspace deadline management missing');
 
-check(navCoverage.size===48&&listed.every(s=>navCoverage.has(s)),'Workflow coverage mismatch');
+check(navCoverage.size===listed.length&&listed.every(s=>navCoverage.has(s))&&navWorkflows.every(w=>w.steps.length>0&&new Set(w.steps).size===w.steps.length),'Workflow coverage mismatch');
 const businessPresets=JSON.parse(navSource.match(/const businessPresets=(\[[^\n]+\]);/)[1]);
-check(businessPresets.length===16&&new Set(businessPresets.map(p=>p.id)).size===16,'Business presets count or IDs');
+check(new Set(businessPresets.map(p=>p.id)).size===businessPresets.length,'Business presets duplicate IDs');
 check(businessPresets.every(p=>p.steps.length>0&&new Set(p.steps).size===p.steps.length&&p.steps.every(s=>listed.includes(s))),'Invalid business preset steps');
-check(['online-selling','small-shop','freelance','side-job'].every(s=>businessPresets.filter(p=>p.business===s).length===({"online-selling":4,"small-shop":5,freelance:4,"side-job":3}[s])),'Business preset coverage');
+const businessMinimum={"online-selling":4,"small-shop":5,freelance:4,"side-job":4,restaurant:5};
+check(Object.keys(businessMinimum).every(s=>businessPresets.filter(p=>p.business===s).length>=businessMinimum[s])&&businessPresets.every(p=>Object.hasOwn(businessMinimum,p.business)),'Business preset coverage');
+for(const [id,expected] of Object.entries({"restaurant-staff":["restaurant-daily-report","restaurant-shift-planner","shop-monthly-profit"],"side-annual":["side-job-ledger","salary-slip-summary","side-tax-preparation","tax-filing-check","income-tax-simulator","resident-tax-simulator","tax-reserve-planner"]})){
+ const preset=businessPresets.find(p=>p.id===id),workflow=navWorkflows.find(w=>w.id===id);
+ check(preset?.steps.join(',')===expected.join(',')&&workflow?.steps.join(',')===expected.join(','),'New business workflow steps missing: '+id);
+}
 check(tools.includes('id="quick-resume-entry"')&&navSource.includes('function drawQuickResume('),'Quick resume entry missing');
 for(const s of listed){const page=read('tools/'+s+'/index.html');check(page.includes('src="../assets/tool-handoff.js"'),'Missing common navigation: '+s);}
-for(const s of ['online-selling','small-shop','freelance','side-job']){const page=read('tools/business/'+s+'/index.html');check(page.includes('id="direct-workflows-title"')&&page.includes('id="business-start-entry"')&&page.includes('src="../../assets/tool-handoff.js"'),'Business navigation missing: '+s);}
+for(const s of Object.keys(businessMinimum)){const page=read('tools/business/'+s+'/index.html');check(page.includes('id="direct-workflows-title"')&&page.includes('id="business-start-entry"')&&page.includes('src="../../assets/tool-handoff.js"'),'Business navigation missing: '+s);}
 
 for (const slug of ['', 'pdf-split-rename/', 'image-batch/', 'list-cleaner/', 'order-line-aggregate/', 'order-payment-reconcile/', 'csv-merge/', 'csv-analyzer/', 'pricing-simulator/', 'marketplace-profit-compare/']) {
   const page = read('tools/' + slug + 'index.html');
@@ -101,7 +109,9 @@ check(mergeTool.includes('id="reset"'), 'CSV merge reset button missing');
 check(mergeTool.includes('$("reset").onclick='), 'CSV merge reset handler missing');
 check(mergeTool.includes('mergeVersion++;$("files").value=""'), 'CSV merge reset must invalidate in-flight merges');
 check(homepage.includes('id="choose-task"'), 'Homepage task section missing');
-check((homepage.match(/class="task-card"/g) || []).length === 6, 'Homepage must show six task choices');
+const taskCards=[...homepage.matchAll(/<article class="task-card">[\s\S]*?<\/article>/g)].map(m=>m[0]);
+const requiredTaskLinks=['tools/business/restaurant/','tools/business/side-job/','tools/#business-workflows','tools/categories/csv-text/','tools/order-payment-reconcile/','tools/categories/sales-profit/','tools/categories/pdf-image/','tools/categories/statistics/','guides/'];
+check(requiredTaskLinks.every(h=>taskCards.filter(c=>c.includes('href="'+h+'"')).length===1),'Homepage required task choices missing or duplicated');
 check(homepage.includes('href="#choose-task"'), 'Hero CTA must target task section');
 check(homepage.includes('href="guides/order-reconciliation-hands-on/"'), 'Homepage must link to hands-on guide');
 check(tools.includes('id="task-quick-title"'), 'Tools directory task navigation missing');
@@ -125,7 +135,11 @@ for (const file of expectedFiles) {
 }
 for (const href of [...homepage.matchAll(/<article class="task-card">[\s\S]*?<\/article>/g)].flatMap(m => [...m[0].matchAll(/href="([^"]+)"/g)].map(x => x[1]))) {
   if (href.startsWith('#') || href.includes('://')) continue;
-  check(fs.existsSync(path.join(root, href, 'index.html')), 'Homepage target missing: ' + href);
+  const [pathname,fragment]=href.split('#',2);
+  const target=path.join(root,pathname.endsWith('.html')?pathname:pathname+'index.html');
+  const exists=fs.existsSync(target);
+  check(exists, 'Homepage target missing: ' + href);
+  if(exists&&fragment)check(fs.readFileSync(target,'utf8').includes('id="'+fragment+'"'),'Homepage target anchor missing: '+href);
 }
 function parseCSV(file) {
   const rows = read(file).replace(/^\uFEFF/, '').trim().split(/\r?\n/).map(line => line.split(','));
