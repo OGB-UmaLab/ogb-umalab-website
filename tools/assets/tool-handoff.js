@@ -213,6 +213,8 @@ function buildBusinessSets(current,ids,stamp){
  return {next,added,existing,full};
 }
 
+function revealToolTarget(target,focus=false){if(!target)return false;for(let el=target.parentElement;el;el=el.parentElement)if(el.tagName==="DETAILS")el.open=true;target.scrollIntoView({block:"center"});if(focus&&!target.disabled&&typeof target.focus==="function")target.focus({preventScroll:true});return true}
+function savedControlId(info){if(!info)return null;return {csv:"csvDraftSave",grid:"ogbGridAuto",tax:"taxDraftSave",row:"rowDraftSave",ledger:"draftSave",product:"rows",profit:"profitDraftSave",form:"formDraftSave",expense:"expenseDraftSave"}[info.kind]||null}
 function renderNavigation(){
  const ctx=pageContext(location.pathname),main=document.querySelector("main");if(!ctx||!main||document.getElementById("ogbToolNavigation"))return;
  let available=true,state;function readState(){try{return sanitizeNav(JSON.parse(localStorage.getItem(navKey)||"null"))}catch(e){available=false;return sanitizeNav(null)}}
@@ -454,14 +456,14 @@ function renderNavigation(){
  }
  reloadSaved.onclick=()=>{refreshSaved();drawWork();drawQuickResume()};filter.addEventListener("input",displaySaved);
  function drawCurrentDraft(){
-  const old=document.getElementById("ogbCurrentDraft");if(old)old.remove();const info=draftRegistry[ctx.slug];if(!info)return;
+  const old=document.getElementById("ogbCurrentDraft");if(old)old.remove();const info=draftRegistry[ctx.slug];refreshTopDraft();if(!info)return;
   const current=node("div");current.id="ogbCurrentDraft";current.style.cssText="margin:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap";let meta;
   try{meta=draftMeta(localStorage.getItem(info.key),info.kind)}catch{current.append(node("span","保存領域を確認できません。"));header.after(current);return}
   if(!meta){current.append(node("span","このツールの保存済みデータはありません。"));header.after(current);return}
   current.append(node("span",meta.state==="check"?"保存データの形式を確認してください。":"保存済みデータがあります。"));
   const resume=b("ogbResumeSaved",info.kind==="product"?"保存済み台帳へ":"保存内容を復元");
-  resume.onclick=()=>{const target=document.getElementById(info.restore);if(!target){message.textContent="このツールの保存・復元欄を確認してください。";return}target.scrollIntoView({block:"center"});if(info.kind==="product"){message.textContent="商品台帳はページを開くと保存内容を読み込みます。";return}if(target.disabled){message.textContent="保存内容を復元できません。保存・復元欄を確認してください。";return}target.click();};
-  const manage=b("ogbManageSaved","保存・削除欄へ");manage.onclick=()=>{const target=document.getElementById(info.remove)||document.getElementById(info.restore);if(target)target.scrollIntoView({block:"center"});else message.textContent="このツールの保存・復元欄を確認してください。"};
+  resume.onclick=()=>{const target=document.getElementById(info.restore);if(!target){message.textContent="このツールの保存・復元欄を確認してください。";return}revealToolTarget(target,true);if(info.kind==="product"){message.textContent="商品台帳はページを開くと保存内容を読み込みます。";return}if(target.disabled){message.textContent="保存内容を復元できません。保存・復元欄を確認してください。";return}target.click();};
+  const manage=b("ogbManageSaved","保存・削除欄へ");manage.onclick=()=>{const target=document.getElementById(info.remove)||document.getElementById(info.restore);if(target)revealToolTarget(target,true);else message.textContent="このツールの保存・復元欄を確認してください。"};
   current.append(resume,manage);header.after(current);
  }
 
@@ -488,14 +490,25 @@ function renderNavigation(){
  }
  fav.onclick=()=>{const old=readState(),exists=old.favorites.includes(ctx.slug);if(saveState({...old,favorites:exists?old.favorites.filter(s=>s!==ctx.slug):[ctx.slug,...old.favorites]})){message.textContent=exists?"お気に入りから外しました。":"お気に入りに追加しました。";draw()}else message.textContent="端末内保存を利用できません。"};
  detail.open=!!ctx.directory;draw();
- const heading=main.querySelector("h1")||main.querySelector("h2");if(ctx.directory){const quickEntry=document.getElementById("quick-resume-entry");if(quickEntry)quickEntry.append(quickResume);else main.prepend(quickResume);const target=document.getElementById("tool-directory");if(target){const entry=document.getElementById("saved-work-entry"),workEntry=document.getElementById("workspace-entry");if(entry)entry.append(savedPanel),entry.before(panel);else target.before(panel,savedPanel);if(workEntry)workEntry.append(workPanel);else target.before(workPanel);}else main.prepend(panel,savedPanel,workPanel);refreshSaved()}else if(document.getElementById("tool-navigation-entry"))document.getElementById("tool-navigation-entry").append(panel);else if(heading)heading.after(panel);else main.prepend(panel);
+ const topNav=node("nav");topNav.id="ogbToolQuickNav";topNav.setAttribute("aria-label","ツール共通のショートカット");topNav.style.cssText="display:flex;gap:6px 12px;flex-wrap:wrap;align-items:center;margin:8px 0 14px;padding:7px 0;border-bottom:1px solid #d8e4e9;font-size:.9em";
+ const topSave=b("ogbQuickSave","保存・復元欄へ"),topRestore=b("ogbQuickRestore","保存済み入力を確認"),topTransfer=b("ogbQuickTransfer","引継ぎデータを確認"),topWork=b("ogbQuickWork","使用中の業務・進捗"),topMore=navLink("#ogbToolNavigation","関連ツール・お気に入り");
+ topMore.href="#ogbToolNavigation";topMore.onclick=e=>{e.preventDefault();detail.open=true;revealToolTarget(panel)};topNav.append(navLink("#tool-directory","全ツール検索"),topSave,topRestore,topTransfer,topWork,topMore);
+ const quickInfo=draftRegistry[ctx.slug];
+ topSave.hidden=!quickInfo;topSave.textContent=quickInfo?.kind==="product"?"登録商品一覧へ":"保存・復元欄へ";
+ topSave.onclick=()=>{const target=document.getElementById(savedControlId(quickInfo))||document.getElementById(quickInfo?.restore);if(!revealToolTarget(target,true))message.textContent="保存・復元欄を確認してください。"};
+ topRestore.onclick=()=>{const target=document.getElementById(quickInfo?.restore);if(!revealToolTarget(target,true))message.textContent="保存・復元欄を確認してください。"};
+ topTransfer.onclick=()=>revealToolTarget(document.getElementById("handoffAccept"),true);topWork.onclick=()=>revealToolTarget(document.getElementById("ogbWorkMark"),true);
+ function refreshTopDraft(){if(!ctx.slug)return;let meta=null;try{if(quickInfo)meta=draftMeta(localStorage.getItem(quickInfo.key),quickInfo.kind)}catch{}topRestore.hidden=!meta;topRestore.textContent=meta?.state==="check"?"保存データの形式を確認":quickInfo?.kind==="product"?"保存済み台帳を確認":"保存済み入力を確認";topTransfer.hidden=!document.getElementById("handoffAccept")||document.getElementById("handoffIn")?.hidden===true;topWork.hidden=!document.getElementById("ogbCurrentWork")}
+ if(ctx.slug){if(!main.id)main.id="main";if(!document.querySelector('a[href="#main"]')){const skip=node("a","本文へ移動");skip.href="#main";skip.id="ogbCommonSkip";skip.style.cssText="position:absolute;left:8px;top:8px;z-index:10000;background:white;color:#075e78;padding:8px;transform:translateY(-200%);";skip.addEventListener("focus",()=>skip.style.transform="translateY(0)");skip.addEventListener("blur",()=>skip.style.transform="translateY(-200%)");document.body.prepend(skip)}const title=main.querySelector("h1")||main.querySelector("h2");if(title)title.after(topNav);else main.prepend(topNav);const transfer=document.getElementById("handoffIn");if(transfer)new MutationObserver(refreshTopDraft).observe(transfer,{attributes:true,attributeFilter:["hidden"],childList:true});refreshTopDraft()}
+ const heading=main.querySelector("h1")||main.querySelector("h2");if(ctx.directory){const quickEntry=document.getElementById("quick-resume-entry");if(quickEntry)quickEntry.append(quickResume);else main.prepend(quickResume);const target=document.getElementById("tool-directory");if(target){const entry=document.getElementById("saved-work-entry"),workEntry=document.getElementById("workspace-entry");if(entry)entry.append(savedPanel),entry.before(panel);else target.before(panel,savedPanel);if(workEntry)workEntry.append(workPanel);else target.before(workPanel);}else main.prepend(panel,savedPanel,workPanel);refreshSaved()}else if(document.getElementById("tool-navigation-entry"))document.getElementById("tool-navigation-entry").append(panel);else if(ctx.slug)main.append(panel);else if(heading)heading.after(panel);else main.prepend(panel);
  if(ctx.business){const entry=document.getElementById("business-start-entry");if(entry){entry.append(businessStart);if(location.hash==="#business-start-entry")for(let el=entry.parentElement;el;el=el.parentElement)if(el.tagName==="DETAILS")el.open=true}else panel.after(businessStart)}
- if(ctx.directory||ctx.slug||ctx.business)reloadWork(true);
+ if(ctx.directory||ctx.slug||ctx.business)reloadWork(true);if(ctx.slug){refreshTopDraft();new MutationObserver(refreshTopDraft).observe(panel,{childList:true});}
  if(ctx.slug){drawCurrentDraft();document.addEventListener("ogb:draft-changed",drawCurrentDraft);document.addEventListener("click",e=>{const info=draftRegistry[ctx.slug];if(!info)return;const id=e.target?.id;if(id===info.restore||id===info.remove||["csvDraftSave","taxDraftSave","rowDraftSave","draftSave","profitDraftSave","expenseDraftSave","save","clear"].includes(id))queueMicrotask(drawCurrentDraft)});document.addEventListener("change",e=>{if(e.target?.id==="csvDraftAuto"||e.target?.id==="ogbGridAuto")queueMicrotask(drawCurrentDraft)});}
  window.addEventListener("storage",e=>{if(e.key===workKey||e.key===null)reloadWork();if(e.key===navKey||e.key===null){state=readState();draw()}if(e.key===null||Object.values(draftRegistry).some(x=>x.key===e.key)){if(ctx.directory){refreshSaved();drawWork();drawQuickResume()}if(ctx.slug)drawCurrentDraft()}});
  window.addEventListener("pageshow",()=>{if(ctx.directory||ctx.slug||ctx.business)reloadWork();if(ctx.directory){refreshSaved();drawWork();drawQuickResume()}if(ctx.slug)drawCurrentDraft()});
  window.addEventListener("focus",()=>{if(ctx.directory||ctx.slug||ctx.business)reloadWork();if(ctx.directory){refreshSaved();drawQuickResume()}if(ctx.slug)drawCurrentDraft()});
- const fragment=location.hash.slice(1);if((fragment==="ogbSavedData"||fragment==="workspace-entry"||fragment==="quick-resume-entry")&&ctx.directory||fragment==="business-start-entry"&&ctx.business||ctx.slug&&draftRegistry[ctx.slug]?.restore===fragment)requestAnimationFrame(()=>document.getElementById(fragment)?.scrollIntoView({block:"center"}));
+ if(ctx.slug)window.addEventListener("hashchange",()=>{const hash=location.hash.slice(1),info=draftRegistry[ctx.slug];if(info&&[info.restore,info.remove,savedControlId(info)].includes(hash))revealToolTarget(document.getElementById(hash),false)});
+ const fragment=location.hash.slice(1);if((fragment==="ogbSavedData"||fragment==="workspace-entry"||fragment==="quick-resume-entry")&&ctx.directory||fragment==="business-start-entry"&&ctx.business||ctx.slug&&draftRegistry[ctx.slug]?.restore===fragment)requestAnimationFrame(()=>revealToolTarget(document.getElementById(fragment),false));
 }
 if(typeof document!=="undefined"){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",renderNavigation,{once:true});else queueMicrotask(renderNavigation)}
 

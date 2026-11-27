@@ -28,6 +28,8 @@ for(const s of listed){
  if(drafts[s])check(drafts[s].key.startsWith('ogb-')&&typeof drafts[s].restore==='string','Saved work registry invalid: '+s);
 }
 check(tools.includes('id="saved-work-entry"'),'Saved work entry missing');
+check(navSource.includes('function revealToolTarget(')&&navSource.includes('ogbToolQuickNav')&&navSource.includes('savedControlId('),'Common tool quick navigation missing');
+check(tools.includes('id="toolSearchClear"'),'Tool search clear missing');
 check(tools.includes('id="workspace-entry"')&&tools.includes('href="#workspace-entry"'),'Workspace entry missing');
 check(navSource.includes('const workKey="ogb-workspace-v1"')&&navSource.includes('function parseWorkspace('),'Workspace storage missing');
 check(navSource.includes('function restoreWorkspace(')&&navSource.includes('function workspaceSummary(')&&navSource.includes('ogbWorkDashboard'),'Workspace backup or dashboard missing');
