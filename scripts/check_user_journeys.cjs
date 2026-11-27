@@ -23,7 +23,7 @@ const drafts=JSON.parse(navSource.match(/const draftRegistry=(\{[^\n]+\});/)[1])
 check(Object.keys(drafts).length===47&&Object.keys(drafts).every(s=>listed.includes(s)),'Saved work registry count or unknown tool');
 for(const s of listed){
  const page=read('tools/'+s+'/index.html');
- const hasDraft=/src="\.\.\/assets\/(?:csv-grid-editor|editable-grid|ledger-draft|row-form-draft|tax-form-draft|form-draft)\.js"/.test(page)||/localStorage\.(?:setItem|getItem)\(/.test(page);
+ const hasDraft=/src="\.\.\/assets\/(?:csv-grid-editor|editable-grid|ledger-draft|row-form-draft|tax-form-draft|form-draft)\.js"/.test(page)||/localStorage\.setItem\(/.test(page); // Read-only access to another tool’s saved data is not a draft writer.
  check(hasDraft===Object.hasOwn(drafts,s),'Saved work registry does not match tool: '+s);
  if(drafts[s])check(drafts[s].key.startsWith('ogb-')&&typeof drafts[s].restore==='string','Saved work registry invalid: '+s);
 }
