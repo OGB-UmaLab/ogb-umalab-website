@@ -3184,7 +3184,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        await p.waitForFunction(()=>document.querySelector('#ogbBusinessStatus')?.textContent.includes('新規 1 件'));
        const w=await p.evaluate(()=>JSON.parse(localStorage.getItem('ogb-workspace-v1')));if(w.sets.length!==1||w.sets[0].steps.join(',')!=='side-income-summary,tax-filing-check,income-tax-simulator,resident-tax-simulator,tax-reserve-planner'||w.sets[0].done.length)throw Error('Side job work preset');
        await p.locator('#ogbBusinessUse-side-misc-tax').click();await p.waitForURL('**/tools/#workspace-entry');await p.locator('#ogbQuickNext').click();await p.waitForURL('**/tools/side-income-summary/');await p.locator('#sample').click();await p.waitForFunction(()=>document.querySelector('#taxKpis')?.textContent.includes('3,550,000円'));
-       p.once('dialog',d=>d.accept());await p.locator('#handoff-tax-filing-check').click();await p.waitForURL('**/tools/tax-filing-check/');await p.locator('#handoffAccept').click();if(await p.locator('#other').inputValue()!=='550000')throw Error('Side job handoff must exclude salary');if(await p.locator('#salary').inputValue()!=='0')throw Error('Salary income used as gross pay');
+       p.once('dialog',d=>d.accept());await p.locator('#handoff-tax-filing-check').click();await p.waitForURL('**/tools/tax-filing-check/');p.once('dialog',d=>d.accept());await p.locator('#handoffAccept').click();if(await p.locator('#other').inputValue()!=='550000')throw Error('Side job handoff must exclude salary');if(await p.locator('#salary').inputValue()!=='0')throw Error('Salary income used as gross pay');
      }finally{await context.close()}
    });
    // Keyboard navigation regression: each free tool must offer a visible skip link.
