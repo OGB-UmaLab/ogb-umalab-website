@@ -70,12 +70,30 @@ def route_path(url):
     relative = route + "index.html"
     return relative if sitemap.included(relative) else None
 
+# Normalize only the known daily archive links, without touching query strings,
+# external URLs, private routes, or any race data.
+DAILY_LINK = re.compile(rb"""(<a\b[^>]*\bhref\s*=\s*)(["'])((?:20\d\d-\d\d-\d\d-[a-z]+|\.\.)/)index\.html\2""", re.I)
+
+def normalize_daily(raw, public_urls):
+    count = 0
+    def replace(match):
+        nonlocal count
+        directory = match.group(3).decode("ascii")
+        url = sitemap.BASE + ("ogb-data/" if directory == "../" else "ogb-data/daily/" + directory)
+        if url not in public_urls:
+            return match.group(0)
+        count += 1
+        return match.group(1) + match.group(2) + match.group(3) + match.group(2)
+    return DAILY_LINK.sub(replace, raw), count
+
 def run(root, xml, manifest):
     counts = {}
     changes = []
+    normalized_links = 0
     urls = [e.text for e in ET.parse(xml).getroot().findall("{*}url/{*}loc")]
     if len(set(urls)) != len(urls):
         raise ValueError("Duplicate sitemap URLs")
+    public_urls = set(urls)
     for url in urls:
         relative = route_path(url or "")
         if relative is None:
@@ -86,15 +104,19 @@ def run(root, xml, manifest):
         raw = file.read_bytes()
         out, status = patch(raw, url)
         counts[status] = counts.get(status, 0) + 1
-        if status == "added":
+        if relative == "ogb-data/daily/index.html" and status in ("added", "correct"):
+            out, count = normalize_daily(out, public_urls)
+            normalized_links += count
+        if out != raw:
             changes.append((relative, file, out))
-        elif status.startswith("review"):
+        if status.startswith("review"):
             print("REVIEW", relative, status)
     # Parse all pages successfully before writing any changes.
     for relative, file, out in changes:
         file.write_bytes(out)
     manifest.write_bytes(b"".join(relative.encode("utf-8") + b"\0" for relative, _, _ in changes))
     print("Public canonical audit:", len(urls), "pages;", counts)
+    print("Normalized daily archive links:", normalized_links)
 
 def self_test():
     url = sitemap.BASE + "tools/test/"
@@ -126,6 +148,11 @@ def self_test():
         assert manifest.read_bytes() == b"tools/test/index.html\0"
         run(root, xml, manifest)
         assert manifest.read_bytes() == b""
+    daily = b'<a href="2026-11-28-kochi/index.html">A</a><a href="../index.html">B</a><a href="2026-11-29-kochi/index.html">C</a><a href="2026-11-28-kochi/index.html?v=1">D</a>'
+    normalized, count = normalize_daily(daily, {sitemap.BASE + "ogb-data/daily/2026-11-28-kochi/", sitemap.BASE + "ogb-data/"})
+    assert count == 2
+    assert normalized == daily.replace(b'2026-11-28-kochi/index.html">', b'2026-11-28-kochi/">').replace(b'../index.html">', b'../">')
+    assert normalize_daily(normalized, {sitemap.BASE + "ogb-data/daily/2026-11-28-kochi/", sitemap.BASE + "ogb-data/"}) == (normalized, 0)
     print("Canonical regression tests passed")
 
 if __name__ == "__main__":
