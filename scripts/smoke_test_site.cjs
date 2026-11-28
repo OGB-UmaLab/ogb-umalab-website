@@ -502,6 +502,13 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        await p.locator('#projectInvoiceTax').selectOption('10');await p.locator('#projectInvoiceConfirm').check();await p.locator('#handoffAccept').click();if(await p.locator('#inputRows tr').first().locator('[data-key=name]').inputValue()!=='制作案件'||await p.locator('#inputRows tr').first().locator('[data-key=price]').inputValue()!=='100000'||await p.locator('#client').inputValue()!=='確認先'||!await p.locator('#print').isDisabled())throw Error('Project invoice transfer');
      }finally{p.off('dialog',accept);await context.close()}
    });
+   await test(local('tools/tax-reserve-planner/index.html'),async()=>{
+     const ctx=await browser.newContext(),p=await ctx.newPage(),accept=d=>d.accept();p.on('dialog',accept);try{
+       const open=slug=>p.goto(ledgerOrigin+'/tools/'+slug+'/',{waitUntil:'domcontentloaded'}),send=async slug=>{await p.locator('#handoff-'+slug).click();await p.waitForURL('**/tools/'+slug+'/');await p.locator('#handoffAccept').click()};
+       await open('tax-reserve-planner');await p.locator('#savings').fill('50000');await p.locator('#taxDraftSave').click();
+       await open('income-tax-simulator');await p.locator('#sample').click();await p.locator('#scope').check();await p.locator('#calculate').click();const taxText=await p.locator('#rows tr').filter({hasText:'納付・還付見込額（負は還付）'}).locator('td').last().textContent(),tax=String(Math.max(0,Number(taxText.replaceAll(',',''))));await send('resident-tax-simulator');await p.locator('#preview').waitFor({state:'visible'});await p.locator('#apply').click();await p.locator('#scope').check();await p.locator('#calculate').click();const resident=(await p.locator('#rows tr').filter({hasText:'年間税額合計'}).locator('td').last().textContent()).replaceAll(',','');await send('tax-reserve-planner');if(await p.locator('#incomeTax').inputValue()!==tax||await p.locator('#residentTax').inputValue()!==resident||await p.locator('#savings').inputValue()!=='50000')throw Error('Combined tax reserve handoff');
+     }finally{p.off('dialog',accept);await ctx.close()}
+   });
    await test(local('tools/shop-sales-performance/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('140,000円')||!s.includes('1,866円')||!s.includes('100.00%')||await page.locator('#weekdayRows tr').count()!==7)throw Error('Shop sales performance sample');
      const dl=page.waitForEvent('download');await page.locator('#weekdayExport').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"月","2","110000","55000","55","2000"'))throw Error('Shop weekday CSV');
