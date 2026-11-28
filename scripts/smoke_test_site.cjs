@@ -487,6 +487,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        await p.locator('#csvDraftSave').click();await open('supplier-payment-reconcile');await p.locator('#data').evaluate(el=>{el.value='仕入先A,INV-001,10000,9000';el.dispatchEvent(new Event('input',{bubbles:true}))});await p.locator('#calculate').click();await send('cash-flow-planner');if(!(await p.locator('#result').textContent()).includes('反映済み 1件'))throw Error('Supplier identical repeat');
      }finally{p.off('dialog',accept);await context.close()}
    });
+   await test(local('tools/receivables-report/index.html'),async()=>{
+     const context=await browser.newContext();const p=await context.newPage(),accept=d=>d.accept();p.on('dialog',accept);try{
+       const open=slug=>p.goto(ledgerOrigin+'/tools/'+slug+'/',{waitUntil:'domcontentloaded'}),send=async slug=>{await p.locator('#handoff-'+slug).click();await p.waitForURL('**/tools/'+slug+'/');await p.locator('#handoffAccept').click()},fill=async(id,v)=>p.locator('#'+id).evaluate((el,value)=>{el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}))},v);
+       await open('receivables-report');await p.locator('#sample').click();await send('cash-flow-planner');if(!(await p.locator('#result').textContent()).includes('追加 2件'))throw Error('Receivable plans initial');const raw=await p.locator('#data').inputValue();await fill('data',raw.replace('"2026-11-26","入金","60000"','"2026-12-02","入金","60000"'));await p.locator('#csvDraftSave').click();
+       const update=async()=>{await open('receivables-report');await p.locator('#asOf').fill('2026-11-26');await fill('data','取引先,請求番号,請求日,入金期限,請求額,入金済額\nA社,A001,2026-10-01,2026-11-20,100000,70000');await p.locator('#calculate').click();await send('cash-flow-planner')};
+       await update();const updated=await p.locator('#data').inputValue();if(!updated.includes('"2026-12-02","入金","30000"')||!updated.includes('"80000"')||updated.includes('"60000"'))throw Error('Receivable updated amount and retained date');await p.locator('#csvDraftSave').click();
+       await update();if(!(await p.locator('#result').textContent()).includes('反映済み 1件'))throw Error('Receivable identical repeat');
+     }finally{p.off('dialog',accept);await context.close()}
+   });
    await test(local('tools/shop-sales-performance/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('140,000円')||!s.includes('1,866円')||!s.includes('100.00%')||await page.locator('#weekdayRows tr').count()!==7)throw Error('Shop sales performance sample');
      const dl=page.waitForEvent('download');await page.locator('#weekdayExport').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"月","2","110000","55000","55","2000"'))throw Error('Shop weekday CSV');
