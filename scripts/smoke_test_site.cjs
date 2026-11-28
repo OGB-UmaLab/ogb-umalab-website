@@ -694,6 +694,15 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
      await page.locator('#operationCsvOptions > summary').click();await page.locator('#data').fill('営業日,売上金額,客数,売上目標\n2026-11-02,1000,1,1000\n2026-11-02,1000,1,1000');if(await page.locator('#weekdayRows tr').count()!==0||!await page.locator('#export').isDisabled())throw Error('Stale shop weekday results');
      await page.locator('#calculate').click();if(!(await page.locator('#error').innerText()).includes('重複'))throw Error('Duplicate shop date accepted');
    });
+   await test(local('tools/shop-sales-performance/index.html')+'#posImport',async()=>{
+     await page.locator('#sample').click();const accept=d=>d.accept();page.on('dialog',accept);try{
+       await page.locator('#posFile').setInputFiles({name:'air.csv',mimeType:'text/csv',buffer:Buffer.from('\uFEFF集計期間,売上,客数\n2026/11/2,"55,000",27\n2026/11/10,10000,5','utf8')});
+       await page.locator('#posPreview').click();if(!(await page.locator('#posSummary').textContent()).includes('追加 1日 ／ 更新 1日'))throw Error('POS preview');await page.locator('#posConfirmed').check();await page.locator('#posApply').click();if(!(await page.locator('#result').textContent()).includes('155,000円')||!(await page.locator('#data').inputValue()).includes('"40000"'))throw Error('POS merge or target preservation');
+       await page.locator('#posPreview').click();if(!(await page.locator('#posSummary').textContent()).includes('変更なし 2日'))throw Error('POS idempotency');
+       await page.locator('#posFile').setInputFiles({name:'dup.csv',mimeType:'text/csv',buffer:Buffer.from('集計期間,売上,客数\n2026/11/2,100,1\n2026/11/2,200,2','utf8')});await page.locator('#posPreview').click();if(!(await page.locator('#posError').textContent()).includes('重複')||!await page.locator('#posApply').isDisabled())throw Error('POS duplicate guard');
+       await page.locator('#posSource').selectOption('custom');await page.locator('#posImport details summary').click();await page.locator('#posPaste').fill('日付\t金額\t来店人数\n2026/11/12\t20000\t10');await page.locator('#posRead').click();await page.locator('#posSales').selectOption('1');await page.locator('#posTax').selectOption('税込');await page.locator('#posPreview').click();await page.locator('#posConfirmed').check();await page.locator('#posApply').click();if(!(await page.locator('#result').textContent()).includes('175,000円'))throw Error('Excel paste');
+     }finally{page.off('dialog',accept)}
+   });
    await test(local('tools/staff-cost-planner/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('22,350円')||!s.includes('22.35%')||await page.locator('#rows tr').count()!==2)throw Error('Staff cost sample');
      const dl=page.waitForEvent('download');await page.locator('#export').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"2026-11","A","720","14400","500","14900"'))throw Error('Staff cost CSV');
