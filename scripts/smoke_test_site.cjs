@@ -496,6 +496,12 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        await update();if(!(await p.locator('#result').textContent()).includes('反映済み 1件'))throw Error('Receivable identical repeat');
      }finally{p.off('dialog',accept);await context.close()}
    });
+   await test(local('tools/project-profit-report/index.html'),async()=>{
+     const context=await browser.newContext();const p=await context.newPage(),accept=d=>d.accept();p.on('dialog',accept);try{
+       await p.goto(ledgerOrigin+'/tools/project-profit-report/',{waitUntil:'domcontentloaded'});await p.locator('#sample').click();await p.locator('#handoff-invoice-maker').click();await p.waitForURL('**/tools/invoice-maker/');await p.locator('#handoffAccept').click();await p.locator('#client').fill('確認先');await p.locator('#projectInvoiceChoice').selectOption('0');if(await p.locator('#projectInvoicePrice').inputValue()!=='100000'||await p.locator('#projectInvoiceTax').inputValue()!=='')throw Error('Project reference data');
+       await p.locator('#projectInvoiceTax').selectOption('10');await p.locator('#projectInvoiceConfirm').check();await p.locator('#handoffAccept').click();if(await p.locator('#inputRows tr').first().locator('[data-key=name]').inputValue()!=='制作案件'||await p.locator('#inputRows tr').first().locator('[data-key=price]').inputValue()!=='100000'||await p.locator('#client').inputValue()!=='確認先'||!await p.locator('#print').isDisabled())throw Error('Project invoice transfer');
+     }finally{p.off('dialog',accept);await context.close()}
+   });
    await test(local('tools/shop-sales-performance/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('140,000円')||!s.includes('1,866円')||!s.includes('100.00%')||await page.locator('#weekdayRows tr').count()!==7)throw Error('Shop sales performance sample');
      const dl=page.waitForEvent('download');await page.locator('#weekdayExport').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"月","2","110000","55000","55","2000"'))throw Error('Shop weekday CSV');
