@@ -75,6 +75,7 @@ check(reconciliationTool.includes('BigInt(digits||"0")'), 'Payment reconciliatio
 check(reconciliationTool.includes('$("excluded").textContent="";$("statusFilter")'), 'Reconciliation errors must clear previous excluded counts');
 const marketplace = read('tools/marketplace-profit-compare/index.html');
 const pdfTool = read('tools/pdf-split-rename/index.html');
+for(const [slug,[marker,targets]] of Object.entries({"restaurant":["restaurant-start",["restaurant-recipe-book","restaurant-daily-report","restaurant-stock-planner","restaurant-shift-planner","restaurant-monthly-close"]],"online-selling":["seller-actions",["order-line-aggregate","order-payment-reconcile","packing-checklist","product-margin-report"]],"small-shop":["shop-actions",["sales-summary","expense-category-report"]],"freelance":["free-actions",["annual-expense-merge","tax-reserve-planner"]],"side-job":["side-actions",["salary-slip-summary","side-tax-preparation"]]})){const html=read('tools/business/'+slug+'/index.html'),start=html.indexOf(marker),end=html.indexOf('</section>',start),entry=html.slice(start,end);check(start>=0&&end>start&&targets.every(t=>entry.includes('href="/tools/'+t+'/"')),'Missing first-use direct entry: '+slug);}
 const guideDirectory = read('guides/index.html');
 const selectionGuide = read('guides/tool-selection/index.html');
 const marketplaceGuide = read('guides/marketplace-profit-hands-on/index.html');
