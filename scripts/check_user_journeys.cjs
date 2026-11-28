@@ -51,6 +51,7 @@ for(const [id,expected] of Object.entries({"restaurant-staff":["restaurant-daily
  const preset=businessPresets.find(p=>p.id===id),workflow=navWorkflows.find(w=>w.id===id);
  check(preset?.steps.join(',')===expected.join(',')&&workflow?.steps.join(',')===expected.join(','),'New business workflow steps missing: '+id);
 }
+check(read('tools/business/restaurant/index.html').includes('id="restaurantSetupControls"')&&navSource.includes('function planRestaurantSetup(')&&businessPresets.some(p=>p.id==='restaurant-pos-close'),'Restaurant setup missing');
 check(tools.includes('id="quick-resume-entry"')&&navSource.includes('function drawQuickResume('),'Quick resume entry missing');
 for(const s of listed){const page=read('tools/'+s+'/index.html');check(page.includes('src="../assets/tool-handoff.js"'),'Missing common navigation: '+s);}
 for(const s of Object.keys(businessMinimum)){const page=read('tools/business/'+s+'/index.html');check(page.includes('id="direct-workflows-title"')&&page.includes('id="business-start-entry"')&&page.includes('src="../../assets/tool-handoff.js"'),'Business navigation missing: '+s);}

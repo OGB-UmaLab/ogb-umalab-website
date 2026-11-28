@@ -428,6 +428,21 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        await p.locator('a[href="/tools/#backup-entry"]').click();await p.waitForURL('**/tools/#backup-entry');await p.locator('#ogbBackupPanel').waitFor();if(!await p.locator('#ogbBackupPanel').evaluate(el=>el.open))throw Error('Backup static link');
      }finally{await ctx.close()}
    });
+   await test(local('tools/business/restaurant/index.html'),async()=>{
+     const ctx=await browser.newContext({viewport:{width:390,height:844}}),p=await ctx.newPage(),key='ogb-workspace-v1',accept=d=>d.accept();p.on('dialog',accept);try{
+       await p.goto(ledgerOrigin+'/tools/business/restaurant/',{waitUntil:'domcontentloaded'});await p.locator('#restaurantSetupPanel summary').click();await p.locator('#restaurantSetupPlan').waitFor();
+       if(!(await p.locator('#restaurantSetupPlan').textContent()).includes('新規 3 件')||await p.evaluate(k=>localStorage.getItem(k),key)!==null)throw Error('Initial setup should be preview only');
+       await p.locator('#restaurantSetupMode').selectOption('existing');await p.locator('#restaurantSetupSales').selectOption('pos');await p.locator('#restaurantSetup-menu').uncheck();await p.locator('#restaurantSetup-staff').check();await p.locator('#restaurantSetup-reservation').check();
+       if(await p.locator('#restaurantSetupGuide a[href="../../shop-sales-performance/#posImport"]').count()!==1||!(await p.locator('#restaurantSetupGuide').textContent()).includes('再入力は不要'))throw Error('POS migration path');
+       const old={version:1,active:'w-existing',sets:[{id:'w-existing',name:'既存の業務',steps:['product-ledger'],done:['product-ledger']}]};
+       await p.evaluate(([k,v])=>localStorage.setItem(k,JSON.stringify(v)),[key,old]);await p.locator('#restaurantSetupRefresh').click();
+       await p.locator('#restaurantSetupCreate').click();await p.waitForFunction(()=>document.querySelector('#restaurantSetupStatus')?.textContent.includes('新規 4 件'));
+       const w=await p.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);if(w.active!=='w-existing'||JSON.stringify(w.sets[0])!==JSON.stringify(old.sets[0])||w.sets.length!==5||!w.sets.some(s=>s.steps[0]==='shop-sales-performance'&&s.cycle?.kind==='daily')||!w.sets.some(s=>s.steps[0]==='restaurant-monthly-close'&&s.cycle?.kind==='monthly')||w.sets.some(s=>s.steps.includes('restaurant-recipe-book')))throw Error('Setup scope or existing workspace changed');
+       if(!await p.locator('#restaurantSetupCreate').isDisabled())throw Error('Duplicate setup enabled');
+       if(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error('Setup mobile overflow');
+       await p.locator('#restaurantSetupGo').click();await p.waitForURL('**/tools/#workspace-entry');if(await p.locator('#ogbWorkDashboard [data-work-set]').count()!==5)throw Error('Setup workspace navigation');
+     }finally{p.off('dialog',accept);await ctx.close()}
+   });
    await test(local('tools/cash-flow-planner/index.html'),async()=>{
      const key=await page.evaluate(()=>{const k='ogb-csv-grid-draft-v1:'+location.pathname.replace(/index\.html$/,'');localStorage.removeItem(k);return k});await page.reload();
      await page.locator('#sample').click();
