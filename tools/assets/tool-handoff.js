@@ -58,6 +58,23 @@ function inspectDrafts(storage){const result=[];for(const [slug,info] of Object.
 
 
 const backupLimit=12000000;
+
+const backupSettings={navigation:{key:navKey,label:"お気に入り・利用履歴設定"},"pos-import":{key:"ogb-pos-import-profiles-v1",label:"レジ・Excel売上の列対応",n:4,required:3},"product-import":{key:"ogb-master-import-profile-product-v1",label:"商品台帳の列対応",n:5,required:2},"menu-import":{key:"ogb-master-import-profile-menu-v1",label:"メニュー台帳の列対応",n:4,required:1}};
+function settingIdentity(id,x){return JSON.stringify([id==="pos-import"?x.source:"",x.h])}
+function cleanBackupSetting(id,v){
+ if(!Object.hasOwn(backupSettings,id))throw Error("未対応の移行設定です。");
+ if(id==="navigation"){if(!v||v.version!==1||!Array.isArray(v.favorites)||v.favorites.length>48||v.favorites.some(s=>!known(s))||new Set(v.favorites).size!==v.favorites.length||typeof v.historyEnabled!=="boolean")throw Error("お気に入り設定の形式を確認してください。");return {version:1,favorites:v.favorites.slice(),historyEnabled:v.historyEnabled}}
+ const c=backupSettings[id],seen=new Set();if(!Array.isArray(v)||v.length>20)throw Error("列対応設定の形式を確認してください。");
+ return v.map(x=>{if(!x||!Array.isArray(x.h)||x.h.length<2||x.h.length>200||x.h.some(h=>typeof h!=="string"||!h||h.length>200||/[\r\n\t]/.test(h))||!Array.isArray(x.idx)||x.idx.length!==c.n||x.idx.some((n,i)=>!Number.isInteger(n)||n<(i<c.required?0:-1)||n>=x.h.length)||new Set(x.idx.filter(n=>n>=0)).size!==x.idx.filter(n=>n>=0).length)throw Error("列対応の見出し・番号を確認してください。");const a={h:x.h.slice(),idx:x.idx.slice()};if(id==="pos-import"){if(!["air","smaregi","custom"].includes(x.source)||!["税込","税抜"].includes(x.tax)||!["客数","取引数"].includes(x.count))throw Error("売上取り込み設定を確認してください。");Object.assign(a,{source:x.source,tax:x.tax,count:x.count})}const k=settingIdentity(id,a);if(seen.has(k))throw Error("列対応設定が重複しています。");seen.add(k);return a})
+}
+function settingRaw(id,raw){if(raw===null)return null;if(typeof raw!=="string"||raw.length>2000000)throw Error("設定容量を確認してください。");return cleanBackupSetting(id,JSON.parse(raw))}
+function settingHasData(id,v){return v!==null&&(id==="navigation"?v.favorites.length>0||v.historyEnabled:v.length>0)}
+function planSetting(storage,id,value){const raw=storage.getItem(backupSettings[id].key),incoming=cleanBackupSetting(id,value),current=settingRaw(id,raw);
+ if(id==="navigation"){const old=current||{version:1,favorites:[],historyEnabled:incoming.historyEnabled},missing=incoming.favorites.filter(s=>!old.favorites.includes(s)),add=missing.slice(0,48-old.favorites.length),next={version:1,favorites:[...old.favorites,...add],historyEnabled:old.historyEnabled,recent:raw===null?[]:sanitizeNav(JSON.parse(raw)).recent};return {raw,next,added:add.length,skipped:incoming.favorites.length-missing.length,full:missing.length-add.length,write:raw===null||add.length>0}}
+ const old=current||[],ids=new Set(old.map(x=>settingIdentity(id,x))),missing=incoming.filter(x=>!ids.has(settingIdentity(id,x))),add=missing.slice(0,20-old.length);return {raw,next:[...old,...add],added:add.length,skipped:incoming.length-missing.length,full:missing.length-add.length,write:add.length>0}
+}
+function restoreSettings(storage,selected){return selected.map(x=>{try{const p=planSetting(storage,x.id,x.value);if(p.raw!==x.raw)throw Error("確認後に設定が変更されました。");if(p.write)storage.setItem(backupSettings[x.id].key,JSON.stringify(p.next));return {id:x.id,applied:p.write,added:p.added,skipped:p.skipped,full:p.full,failed:false}}catch{return {id:x.id,applied:false,added:0,skipped:0,full:0,failed:true}}})}
+
 function validBackupRaw(slug,raw){
  if(!Object.hasOwn(draftRegistry,slug)||typeof raw!=="string")return false;
  const info=draftRegistry[slug],meta=draftMeta(raw,info.kind);
@@ -65,23 +82,25 @@ function validBackupRaw(slug,raw){
  try{const x=JSON.parse(raw);return !["row","form"].includes(info.kind)||x.tool===slug}catch{return false}
 }
 function makeBackup(storage){
- const entries=[],skipped=[];let workspace=null,workspaceSkipped=false;
+ const entries=[],skipped=[],settings=[],settingsSkipped=[];let workspace=null,workspaceSkipped=false;
  for(const [slug,info] of Object.entries(draftRegistry)){const raw=storage.getItem(info.key);if(raw===null||draftMeta(raw,info.kind)===null)continue;if(validBackupRaw(slug,raw))entries.push({slug,raw});else skipped.push(slug)}
  try{const saved=parseWorkspace(storage.getItem(workKey));if(saved.sets.length)workspace=cleanWorkspace(saved)}catch{workspaceSkipped=true}
- const data={format:"ogb-data-lab-backup",version:2,createdAt:new Date().toISOString(),entries,workspace};
+ for(const [id,c] of Object.entries(backupSettings)){try{const v=settingRaw(id,storage.getItem(c.key));if(settingHasData(id,v))settings.push({id,value:v})}catch{settingsSkipped.push(id)}}
+ const data={format:"ogb-data-lab-backup",version:3,createdAt:new Date().toISOString(),entries,workspace,settings};
  const text=JSON.stringify(data);if(new TextEncoder().encode(text).length>backupLimit)throw Error("バックアップの容量が上限を超えています。各ツールのCSV・編集用ファイルをご利用ください。");
- return {text,entries,skipped,workspace,workspaceSkipped};
+ return {text,entries,skipped,workspace,workspaceSkipped,settings,settingsSkipped};
 }
 function parseBackup(text){
  if(typeof text!=="string"||new TextEncoder().encode(text).length>backupLimit)throw Error("バックアップファイルの容量が上限を超えています。");
  const data=JSON.parse(text.replace(/^\uFEFF/,""));
- if(!data||data.format!=="ogb-data-lab-backup"||![1,2].includes(data.version)||!Array.isArray(data.entries)||data.entries.length>Object.keys(draftRegistry).length)throw Error("Data Labのバックアップ形式と一致しません。");
+ if(!data||data.format!=="ogb-data-lab-backup"||![1,2,3].includes(data.version)||!Array.isArray(data.entries)||data.entries.length>Object.keys(draftRegistry).length)throw Error("Data Labのバックアップ形式と一致しません。");
  const seen=new Set(),entries=[];
  for(const e of data.entries){if(!e||typeof e.slug!=="string"||seen.has(e.slug)||!validBackupRaw(e.slug,e.raw))throw Error("未対応のツール、重複、または保存形式に問題があります。元の端末で確認してください。");seen.add(e.slug);entries.push({slug:e.slug,raw:e.raw,meta:draftMeta(e.raw,draftRegistry[e.slug].kind)})}
  let workspace=null;
- if(data.version===2&&data.workspace!==null&&data.workspace!==undefined)workspace=cleanWorkspace(parseWorkspace(JSON.stringify(data.workspace)));
- if(!entries.length&&!workspace?.sets.length)throw Error("復元できるデータがありません。");
- return {entries,workspace};
+ if(data.version>=2&&data.workspace!==null&&data.workspace!==undefined)workspace=cleanWorkspace(parseWorkspace(JSON.stringify(data.workspace)));
+ const settings=[];if(data.version===3){if(!Array.isArray(data.settings)||data.settings.length>4)throw Error("移行設定の形式を確認してください。");const used=new Set();for(const s of data.settings){if(!s||typeof s.id!=="string"||used.has(s.id)||!Object.hasOwn(backupSettings,s.id))throw Error("移行設定が重複・未対応です。");used.add(s.id);const value=cleanBackupSetting(s.id,s.value);if(settingHasData(s.id,value))settings.push({id:s.id,value})}}
+ if(!entries.length&&!workspace?.sets.length&&!settings.length)throw Error("復元できるデータがありません。");
+ return {entries,workspace,settings};
 }
 function restoreMissing(storage,entries){
  const applied=[],skipped=[],failed=[];
@@ -421,21 +440,21 @@ function renderNavigation(){
  const reloadSaved=b("ogbSavedRefresh","保存状況を更新"),filterLabel=node("label","保存済みツールを検索"),filter=document.createElement("input");filter.type="search";filter.id="ogbSavedFilter";filter.placeholder="例：台帳、経費、所得税";filter.style.cssText="width:100%;max-width:440px;box-sizing:border-box;padding:6px 8px;font:inherit";filterLabel.append(filter);
  const savedList=node("div");savedList.id="ogbSavedList";savedPanel.append(summarySaved,reloadSaved,filterLabel,savedList,node("p","保存は同じブラウザ内に限られます。ブラウザのデータ削除・端末変更に備え、各ツールのCSV・編集用ファイル等も保管してください。保存日時を持たない旧形式は日時不明と表示します。"));
 
- const backup=node("details"),backupTitle=node("summary","バックアップ・別端末への移行");backup.id="ogbBackupPanel";backupTitle.style.cssText="cursor:pointer;font-weight:650;margin:10px 0";backup.append(backupTitle,node("p","保存済みの入力・設定をJSONファイルにまとめます。CSV・画像・PDFの元ファイル、未保存の入力、お気に入り、利用履歴は含みません。業務セット名・工程・進捗・業務周期・期間別の進捗履歴・期限・優先度もバックアップ対象です。バックアップは暗号化されません。個人情報や取引情報を含むため、保管場所にご注意ください。"));
+ const backup=node("details"),backupTitle=node("summary","バックアップ・別端末への移行");backup.id="ogbBackupPanel";backupTitle.style.cssText="cursor:pointer;font-weight:650;margin:10px 0";backup.append(backupTitle,node("p","保存済みの入力・設定をJSONファイルにまとめます。CSV・画像・PDFの元ファイル、未保存の入力、閲覧履歴そのものは含みません。お気に入り・利用履歴の有効／無効設定、売上・商品・メニューの列対応設定も対象です。業務セット名・工程・進捗・業務周期・期間別の進捗履歴・期限・優先度もバックアップ対象です。バックアップは暗号化されません。個人情報や取引情報を含むため、保管場所にご注意ください。"));
  const exportBackup=b("ogbBackupExport","保存済みデータをバックアップ"),fileLabel=node("label","バックアップを読み込む（JSON）"),backupFile=document.createElement("input");backupFile.id="ogbBackupFile";backupFile.type="file";backupFile.accept=".json,application/json";backupFile.style.cssText="max-width:100%;display:block";fileLabel.append(backupFile);
  const previewBackup=node("div");previewBackup.id="ogbBackupPreview";const backupStatus=node("p");backupStatus.id="ogbBackupStatus";backupStatus.setAttribute("role","status");
  const applyBackup=b("ogbBackupApply","選択した未登録データを復元"),cancelBackup=b("ogbBackupCancel","読み込みを取り消す");applyBackup.disabled=cancelBackup.disabled=true;backup.append(exportBackup,fileLabel,previewBackup,applyBackup,cancelBackup,backupStatus);savedPanel.append(backup);
- let backupVersion=0,pendingBackup=[],pendingWork=[],incomingWork=null;
- function clearBackup(){backupVersion++;pendingBackup=[];pendingWork=[];incomingWork=null;backupFile.value="";previewBackup.replaceChildren();applyBackup.disabled=cancelBackup.disabled=true}
+ let backupVersion=0,pendingBackup=[],pendingWork=[],pendingSettings=[],incomingWork=null;
+ function clearBackup(){backupVersion++;pendingBackup=[];pendingWork=[];pendingSettings=[];incomingWork=null;backupFile.value="";previewBackup.replaceChildren();applyBackup.disabled=cancelBackup.disabled=true}
  exportBackup.onclick=()=>{try{
   const data=makeBackup(localStorage);
-  if(!data.entries.length&&!data.workspace?.sets.length){backupStatus.textContent="バックアップできる保存データがありません。"+(data.skipped.length?" 形式確認が必要："+data.skipped.map(s=>catalog[s]).join("、"):"")+(data.workspaceSkipped?" 業務セットの形式確認が必要です。":"");return}
-  if(!confirm(data.entries.length+"種類の保存データと業務セット "+(data.workspace?.sets.length||0)+"件を、暗号化されていないJSONファイルに保存します。安全な場所に保管してください。"))return;
+  if(!data.entries.length&&!data.workspace?.sets.length&&!data.settings.length){backupStatus.textContent="バックアップできる保存データがありません。"+(data.skipped.length?" 形式確認が必要："+data.skipped.map(s=>catalog[s]).join("、"):"")+(data.workspaceSkipped?" 業務セットの形式確認が必要です。":"")+(data.settingsSkipped.length?" 移行設定の形式確認が必要です。":"");return}
+  if(!confirm(data.entries.length+"種類の保存データと業務セット "+(data.workspace?.sets.length||0)+"件、移行設定 "+data.settings.length+"種類を、暗号化されていないJSONファイルに保存します。安全な場所に保管してください。"))return;
   const blob=new Blob([data.text],{type:"application/json;charset=utf-8"}),url=URL.createObjectURL(blob),a=node("a");a.href=url;a.download="OGB-Data-Lab-backup-"+new Date().toISOString().slice(0,10)+".json";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
-  backupStatus.textContent=data.entries.length+"種類のバックアップを作成しました。 業務セット "+(data.workspace?.sets.length||0)+"件。"+(data.skipped.length?" 形式確認のため対象外："+data.skipped.map(s=>catalog[s]).join("、"):"")+(data.workspaceSkipped?" 業務セットは形式確認のため対象外。":"");
+  backupStatus.textContent=data.entries.length+"種類のバックアップを作成しました。 業務セット "+(data.workspace?.sets.length||0)+"件。"+(data.skipped.length?" 形式確認のため対象外："+data.skipped.map(s=>catalog[s]).join("、"):"")+(data.workspaceSkipped?" 業務セットは形式確認のため対象外。":"")+" 移行設定 "+data.settings.length+"種類。"+(data.settingsSkipped.length?" 形式確認のため対象外："+data.settingsSkipped.map(s=>backupSettings[s].label).join("、")+"。":"");
  }catch(e){backupStatus.textContent="バックアップできませんでした。"+e.message}};
  function previewEntries(data){
-  const {entries,workspace}=data;incomingWork=workspace;previewBackup.replaceChildren();pendingBackup=[];pendingWork=[];const list=node("div");list.style.cssText="margin:8px 0";
+  const {entries,workspace,settings}=data;incomingWork=workspace;previewBackup.replaceChildren();pendingBackup=[];pendingWork=[];pendingSettings=[];const list=node("div");list.style.cssText="margin:8px 0";
   for(const entry of entries){const exists=localStorage.getItem(draftRegistry[entry.slug].key)!==null,row=node("label"),check=document.createElement("input");check.type="checkbox";check.checked=!exists;check.disabled=exists;check.style.width="auto";check.dataset.backupSlug=entry.slug;
    row.style.cssText="display:block;margin:6px 0";row.append(check,document.createTextNode(" "+catalog[entry.slug]+" ／ "+(exists?"保存済みのためスキップ":"復元可能")+(entry.meta.count===null?"":" ／ "+entry.meta.count+(draftRegistry[entry.slug].kind==="expense"?"資料":"件"))));
    list.append(row);pendingBackup.push({entry,check});
@@ -447,14 +466,17 @@ function renderNavigation(){
    }
    list.append(node("p","業務セットは既存IDを上書きせず、20件の上限まで追加します。既存セットの選択・進捗は維持されます。"));
   }
-  const update=()=>{applyBackup.disabled=![...pendingBackup,...pendingWork].some(x=>x.check.checked&&!x.check.disabled)};
-  list.addEventListener("change",update);previewBackup.append(node("p","復元前の確認：既存データは上書きしません。復元する未登録のツールを選択してください。各ツールで復元・内容確認が必要です。"),list);cancelBackup.disabled=false;update();
+  if(settings.length){list.append(node("h3","取り込み設定・お気に入り"));for(const s of settings){const row=node("label"),check=node("input");check.type="checkbox";check.style.width="auto";check.dataset.backupSetting=s.id;let plan=null;try{plan=planSetting(localStorage,s.id,s.value)}catch{}check.disabled=!plan||!plan.write;check.checked=!check.disabled;row.style.cssText="display:block;margin:6px 0";row.append(check,document.createTextNode(" "+backupSettings[s.id].label+" ／ "+(!plan?"既存設定の形式確認が必要":plan.write?"復元可能・追加 "+plan.added+"件":"追加対象なし")+(plan?" ／ 既存 "+plan.skipped+"件 ／ 上限超過 "+plan.full+"件":"")));list.append(row);pendingSettings.push({...s,raw:plan?.raw,check})}list.append(node("p","同じ見出しの列対応は上書きしません。既存端末の利用履歴設定は維持します。閲覧履歴そのものは移行しません。"))}
+  const all=[...pendingBackup,...pendingWork,...pendingSettings];
+  const update=()=>{applyBackup.disabled=!all.some(x=>x.check.checked&&!x.check.disabled)};
+  const selectAll=b("ogbBackupSelectAll","復元可能な項目をすべて選択"),selectNone=b("ogbBackupSelectNone","選択を解除");selectAll.onclick=()=>{all.forEach(x=>{if(!x.check.disabled)x.check.checked=true});update()};selectNone.onclick=()=>{all.forEach(x=>x.check.checked=false);update()};list.prepend(selectAll,selectNone);
+  list.addEventListener("change",update);previewBackup.append(node("p","復元前の確認：既存データは上書きしません。復元する未登録のツール・業務セット・設定を選択してください。各ツールで復元・内容確認が必要です。"),list);cancelBackup.disabled=false;update();
  }
- backupFile.addEventListener("change",async()=>{const version=++backupVersion;pendingBackup=[];pendingWork=[];incomingWork=null;previewBackup.replaceChildren();applyBackup.disabled=cancelBackup.disabled=true;backupStatus.textContent="";const file=backupFile.files[0];if(!file)return;try{if(file.size>backupLimit)throw Error("12MB以下のバックアップファイルを指定してください。");const raw=await file.text();if(version!==backupVersion)return;const data=parseBackup(raw);previewEntries(data);backupStatus.textContent=data.entries.length+"種類の保存データと業務セット "+(data.workspace?.sets.length||0)+"件を確認しました。まだ復元していません。"}catch(e){if(version!==backupVersion)return;clearBackup();backupStatus.textContent="読み込めませんでした。"+e.message}});
+ backupFile.addEventListener("change",async()=>{const version=++backupVersion;pendingBackup=[];pendingWork=[];pendingSettings=[];incomingWork=null;previewBackup.replaceChildren();applyBackup.disabled=cancelBackup.disabled=true;backupStatus.textContent="";const file=backupFile.files[0];if(!file)return;try{if(file.size>backupLimit)throw Error("12MB以下のバックアップファイルを指定してください。");const raw=await file.text();if(version!==backupVersion)return;const data=parseBackup(raw);previewEntries(data);backupStatus.textContent=data.entries.length+"種類の保存データと業務セット "+(data.workspace?.sets.length||0)+"件、移行設定 "+data.settings.length+"種類を確認しました。まだ復元していません。"}catch(e){if(version!==backupVersion)return;clearBackup();backupStatus.textContent="読み込めませんでした。"+e.message}});
  cancelBackup.onclick=()=>{clearBackup();backupStatus.textContent="読み込みを取り消しました。保存データは変更していません。"};
- applyBackup.onclick=()=>{const entries=pendingBackup.filter(x=>x.check.checked&&!x.check.disabled).map(x=>x.entry),selected=pendingWork.filter(x=>x.check.checked&&!x.check.disabled).map(x=>x.set.id);if(!entries.length&&!selected.length)return;if(!confirm(entries.length+"種類の未登録データと業務セット "+selected.length+"件を復元します。すでに保存されたデータは上書きしません。"))return;
-  const result=restoreMissing(localStorage,entries),workResult=restoreWorkspace(localStorage,incomingWork,selected);clearBackup();reloadWork(true);refreshSaved();
-  backupStatus.textContent="復元 "+result.applied.length+"種類、既存データのためスキップ "+result.skipped.length+"種類、保存失敗 "+result.failed.length+"種類。"+(result.failed.length?" 保存できなかったツール："+result.failed.map(s=>catalog[s]).join("、")+"。空き容量・保存設定を確認してください。":"")+" 業務セット：復元 "+workResult.applied.length+"件、既存スキップ "+workResult.skipped.length+"件、上限スキップ "+workResult.full.length+"件、失敗 "+workResult.failed.length+"件。各ツールを開いて内容を確認してください。";
+ applyBackup.onclick=()=>{const entries=pendingBackup.filter(x=>x.check.checked&&!x.check.disabled).map(x=>x.entry),selected=pendingWork.filter(x=>x.check.checked&&!x.check.disabled).map(x=>x.set.id),settings=pendingSettings.filter(x=>x.check.checked&&!x.check.disabled);if(!entries.length&&!selected.length&&!settings.length)return;if(!confirm(entries.length+"種類の未登録データと業務セット "+selected.length+"件、移行設定 "+settings.length+"種類を復元します。すでに保存されたデータは上書きしません。"))return;
+  const result=restoreMissing(localStorage,entries),workResult=restoreWorkspace(localStorage,incomingWork,selected),settingResult=restoreSettings(localStorage,settings);clearBackup();state=readState();draw();reloadWork(true);refreshSaved();drawQuickResume();
+  backupStatus.textContent="復元 "+result.applied.length+"種類、既存データのためスキップ "+result.skipped.length+"種類、保存失敗 "+result.failed.length+"種類。"+(result.failed.length?" 保存できなかったツール："+result.failed.map(s=>catalog[s]).join("、")+"。空き容量・保存設定を確認してください。":"")+" 業務セット：復元 "+workResult.applied.length+"件、既存スキップ "+workResult.skipped.length+"件、上限スキップ "+workResult.full.length+"件、失敗 "+workResult.failed.length+"件。 移行設定：復元 "+settingResult.filter(x=>x.applied).length+"種類、追加 "+settingResult.reduce((n,x)=>n+x.added,0)+"件、既存スキップ "+settingResult.reduce((n,x)=>n+x.skipped,0)+"件、上限スキップ "+settingResult.reduce((n,x)=>n+x.full,0)+"件、失敗 "+settingResult.filter(x=>x.failed).length+"種類。"+(settingResult.some(x=>x.failed)?" 確認が必要："+settingResult.filter(x=>x.failed).map(x=>backupSettings[x.id].label).join("、")+"。":"")+" 各ツールを開いて内容を確認してください。";
  };
 
  let savedRows=[];
@@ -528,6 +550,7 @@ function renderNavigation(){
  window.addEventListener("pageshow",()=>{if(ctx.directory||ctx.slug||ctx.business)reloadWork();if(ctx.directory){refreshSaved();drawWork();drawQuickResume()}if(ctx.slug)drawCurrentDraft()});
  window.addEventListener("focus",()=>{if(ctx.directory||ctx.slug||ctx.business)reloadWork();if(ctx.directory){refreshSaved();drawQuickResume()}if(ctx.slug)drawCurrentDraft()});
  if(ctx.slug)window.addEventListener("hashchange",()=>{const hash=location.hash.slice(1),info=draftRegistry[ctx.slug];if(info&&[info.restore,info.remove,savedControlId(info)].includes(hash))revealToolTarget(document.getElementById(hash),false)});
+ if(ctx.directory){const openBackup=()=>{if(location.hash==="#ogbBackupPanel"){backup.open=true;requestAnimationFrame(()=>revealToolTarget(backup,false))}};window.addEventListener("hashchange",openBackup);openBackup()}
  const fragment=location.hash.slice(1);if((fragment==="ogbSavedData"||fragment==="workspace-entry"||fragment==="quick-resume-entry")&&ctx.directory||fragment==="business-start-entry"&&ctx.business||ctx.slug&&draftRegistry[ctx.slug]?.restore===fragment)requestAnimationFrame(()=>revealToolTarget(document.getElementById(fragment),false));
 }
 if(typeof document!=="undefined"){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",renderNavigation,{once:true});else queueMicrotask(renderNavigation)}
