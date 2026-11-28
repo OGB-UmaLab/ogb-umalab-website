@@ -31,7 +31,19 @@ body.addEventListener("input",saveDraft);new MutationObserver(saveDraft).observe
 window.addEventListener("storage",e=>{if(e.key!==draftKey&&e.key!==null)return;enable.checked=false;try{storedRaw=localStorage.getItem(draftKey);stored=JSON.parse(storedRaw||"null");draftButtons();status.textContent=" 別画面で保存データが変更されました。自動保存を停止しました。"}catch{stored=null;draftButtons();status.textContent=" 保存データを確認できません。"}});
 const meaningful=list=>list.filter(r=>r.some(v=>v!==""));
 let restoredDraftRaw=null;
-window.OGBEditableGrid={replaceConfirmedRows(incoming){
+window.OGBEditableGrid={appendConfirmedExpenses(incoming){
+ if(JSON.stringify(fields)!==JSON.stringify(["経費科目","支出日","支出金額"]))throw Error("経費集計専用の引継ぎです。");
+ const check=list=>{if(!Array.isArray(list)||list.length>1000||list.some(r=>!Array.isArray(r)||r.length!==3||r.some(v=>typeof v!=="string"||/[\r\n,]/.test(v))))throw Error("明細形式を確認してください。")};
+ check(incoming);if(!incoming.length)throw Error("引継ぎ明細がありません。");
+ let current=meaningful(rows());const latest=localStorage.getItem(draftKey);
+ if(latest!==null){const d=JSON.parse(latest);if(!d||JSON.stringify(d.fields)!==JSON.stringify(fields))throw Error("保存データの形式が異なります。");check(d.data);const saved=meaningful(d.data);if(latest!==restoredDraftRaw&&JSON.stringify(current)!==JSON.stringify(saved)){if(current.length)throw Error("保存済みと編集中の入力があります。先に保存・復元してください。");current=saved}}
+ check(current);
+ const signature=r=>{if(!r[0].trim()||!r[1]||!/^\d+$/.test(r[2])||!Number.isSafeInteger(Number(r[2])))throw Error("現在の明細または引継ぎ明細の空欄・金額を確認してください。");return JSON.stringify([r[1],String(Number(r[2]))])};
+ const seen=new Set(current.map(signature));for(const r of incoming){const id=signature(r);if(seen.has(id))throw Error("同日・同額の支出が既にあるか、引継ぎ内に複数あります："+r[1]+" "+r[2]+"円。別取引の場合も資料を確認して個別登録してください。");seen.add(id)}
+ if(current.length+incoming.length>1000)throw Error("明細は1,000件以内です。");
+ if(!confirm("確認済み経費 "+incoming.length+"件を既存の "+current.length+"件に追加しますか？ 二重計上がないことを確認してください。保存済みデータは変更しません。"))return false;
+ enable.checked=false;storedRaw=latest;stored=JSON.parse(latest||"null");load([...current,...incoming]);restoredDraftRaw=latest;draftButtons();status.textContent=" 引継ぎ後の自動保存は停止中。";msg.textContent="経費 "+incoming.length+"件を追加しました。内容を確認して保存してください。";return true
+},replaceConfirmedRows(incoming){
  if(!Array.isArray(incoming)||!incoming.length||incoming.length>1000||incoming.some(r=>!Array.isArray(r)||r.length!==fields.length||r.some((v,i)=>typeof v!=="string"||/[\r\n,]/.test(v)||!v||types[i]==="number"&&(!/^\d+$/.test(v)||!Number.isSafeInteger(Number(v))))))throw Error("引継ぎ明細を確認してください。");
  const latest=localStorage.getItem(draftKey);if(latest!==null){const d=JSON.parse(latest);if(!d||JSON.stringify(d.fields)!==JSON.stringify(fields)||!Array.isArray(d.data)||d.data.length>1000||d.data.some(r=>!Array.isArray(r)||r.length!==fields.length||r.some(v=>typeof v!=="string")))throw Error("保存データの形式を確認してください。");const current=meaningful(rows()),saved=meaningful(d.data);if(latest!==restoredDraftRaw&&current.length&&JSON.stringify(current)!==JSON.stringify(saved))throw Error("保存済みと編集中の入力があります。先に保存・復元して確認してください。")}
  if(!confirm("対象期間の販売実績 "+incoming.length+"明細で画面の入力全体を置き換えます。既存の保存データは変更しません。追加ではありません。対象期間と金額・重複を確認しましたか？"))return false;

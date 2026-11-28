@@ -562,6 +562,14 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        if(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error('Statement mobile overflow');if(await p.evaluate(()=>Object.keys(localStorage).some(k=>k.includes('bank-statement'))))throw Error('Statement persisted sensitive data');
      }finally{await ctx.close()}
    });
+   await test(local('tools/bank-statement-reconcile/index.html'),async()=>{
+     const ctx=await browser.newContext(),p=await ctx.newPage(),accept=d=>d.accept();p.on('dialog',accept);try{
+       const open=slug=>p.goto(ledgerOrigin+'/tools/'+slug+'/',{waitUntil:'domcontentloaded'}),select=async()=>{await open('bank-statement-reconcile');await p.locator('#sample').click();await p.locator('#expenseTransfer > summary').click();if(await p.locator('#expenseCandidates > div').count()!==1)throw Error('Only unmatched outflow eligible');await p.locator('#expenseCandidates input[type=checkbox]').check();await p.locator('#expenseCandidates [data-field=category]').fill('消耗品費');await p.locator('#expenseConfirm').check()},send=async slug=>{await p.locator('#handoff-'+slug).click();await p.waitForURL('**/tools/'+slug+'/');await p.locator('#handoffAccept').click()};
+       await select();await send('expense-category-report');let data=await p.locator('#data').inputValue();if(data!=='消耗品費,2026-11-05,2000')throw Error('Expense handoff');
+       await p.locator('#ogbGridAuto').check();await select();await send('expense-category-report');if(!(await p.locator('#handoffInStatus').textContent()).includes('同日・同額'))throw Error('Expense duplicate check');
+       await select();await send('side-job-ledger');if(await p.locator('#bulkKind').inputValue()!=='expense'||await p.locator('#bulkType').inputValue()!==''||await p.locator('#rows tr').count()!==0)throw Error('Ledger prefill must not post');await p.locator('#bulkType').selectOption('misc');await p.locator('#bulkPreview').click();await p.locator('#bulkRows input[type=checkbox]').check();await p.locator('#bulkConfirm').check();await p.locator('#bulkApply').click();if(!(await p.locator('#kpis').textContent()).includes('2,000円')||await p.locator('#rows tr').count()!==1)throw Error('Ledger selected expense');
+     }finally{p.off('dialog',accept);await ctx.close()}
+   });
    await test(local('tools/shop-sales-performance/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('140,000円')||!s.includes('1,866円')||!s.includes('100.00%')||await page.locator('#weekdayRows tr').count()!==7)throw Error('Shop sales performance sample');
      const dl=page.waitForEvent('download');await page.locator('#weekdayExport').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"月","2","110000","55000","55","2000"'))throw Error('Shop weekday CSV');
