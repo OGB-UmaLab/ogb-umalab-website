@@ -1,0 +1,56 @@
+"use strict";
+const $=id=>document.getElementById(id),key="ogb-restaurant-sales-target-v1",nf=new Intl.NumberFormat("ja-JP"),fields=["fixed","rate","goal","days","ticket","seats","turns","visitors"];
+let items=[],active="",result=null,revision=0;
+function month(v){if(typeof v!=="string"||!/^\d{4}-(0[1-9]|1[0-2])$/.test(v)||v<"1900-01"||v>"9999-12")throw Error("対象月を確認してください。");return v}
+function monthDays(v){const [y,m]=month(v).split("-").map(Number);return new Date(Date.UTC(y,m,0)).getUTCDate()}
+function integer(v,max=9007199254740991n,positive=false){if(typeof v!=="string"||!/^\d{1,16}$/.test(v)||BigInt(v)>max||positive&&BigInt(v)===0n)throw Error("整数の入力範囲を確認してください。");return BigInt(v)}
+function decimal(v,max=9999999999n,positive=false){if(typeof v!=="string"||!/^\d{1,8}(?:\.\d{1,2})?$/.test(v))throw Error("小数第2位まで入力してください。");const [a,b=""]=v.split("."),n=BigInt(a)*100n+BigInt(b.padEnd(2,"0"));if(n>max||positive&&n===0n)throw Error("数値の入力範囲を確認してください。");return n}
+function raw(n){return String(n/100n)+"."+String(n%100n).padStart(2,"0")}
+function ceil(n,d){return (n+d-1n)/d}
+function money(n){return n===null?"算出不可":nf.format(n)+"円"}
+function count(n,s="人"){return n===null?"算出不可":nf.format(n)+s}
+function rotation(n){return n===null?"算出不可":raw(n)+"回"}
+function pct(n){return n===null?"—":raw(n)+"%"}
+function blank(m){return {month:m,...Object.fromEntries(fields.map(k=>[k,""])),reference:""}}
+function validate(d){month(d.month);if(typeof d.reference!=="string"||d.reference.length>1000||fields.some(k=>typeof d[k]!=="string"))throw Error("計画形式を確認してください。");for(const k of fields){const v=d[k];if(v==="")continue;if(k==="rate")decimal(v);else if(k==="turns")decimal(v,100000n,true);else if(k==="days")integer(v,BigInt(monthDays(d.month)),true);else if(k==="seats")integer(v,10000n,true);else if(k==="ticket")integer(v,100000000n,true);else if(k==="visitors")integer(v,10000000n);else integer(v)}return d}
+function validateAll(a){if(!Array.isArray(a)||a.length>120)throw Error("計画は120か月までです。");const seen=new Set();for(const d of a){validate(d);if(seen.has(d.month))throw Error("対象月が重複しています。");seen.add(d.month)}return a}
+function solve(d){validate(d);if(fields.slice(0,7).some(k=>d[k]===""))throw Error("固定費・変動費率・目標利益・営業日数・客単価・座席数・回転数を入力してください。");const f=integer(d.fixed),r=decimal(d.rate),g=integer(d.goal),days=integer(d.days),ticket=integer(d.ticket),seats=integer(d.seats),turns=decimal(d.turns),visitors=d.visitors===""?null:integer(d.visitors),need=(n)=>r<10000n?ceil(n*10000n,10000n-r):n===0n?0n:null,breakEven=need(f),required=need(f+g),daySales=required===null?null:ceil(required,days),capacity=seats*turns/100n;
+function calc(s){const monthly=required===null?null:ceil(required,s),daily=monthly===null?null:ceil(monthly,days);return {ticket:s,monthly,daily,turns:daily===null?null:ceil(daily*100n,seats),gap:daily===null?null:capacity-daily}}
+const main=calc(ticket),capacitySales=capacity*ticket*days,profit=s=>s-ceil(s*r,10000n)-f,capProfit=profit(capacitySales),minTicket=required===null||!capacity?null:ceil(required,capacity*days),forecastSales=visitors===null?null:visitors*ticket*days,forecastProfit=forecastSales===null?null:profit(forecastSales);
+const scenarios=[80n,90n,100n,110n,120n].map(p=>{const t=(ticket*p+50n)/100n;return calc(t||1n)});
+return {f,r,g,days,ticket,seats,turns,visitors,breakEven,required,daySales,capacity,main,capacitySales,capProfit,minTicket,forecastSales,forecastProfit,scenarios}}
+function getDay(){return items.find(x=>x.month===active)||blank(active)}
+function run(fn){$("error").textContent="";try{fn()}catch(e){$("error").textContent=e.message}}
+function say(s){$("status").textContent=s}
+function node(t,v){const n=document.createElement(t);if(v!==undefined)n.textContent=String(v);return n}
+function commit(d){validate(d);const a=[...items.filter(x=>x.month!==d.month),d];validateAll(a);items=a;revision++}
+function read(){return {month:active,...Object.fromEntries(fields.map(k=>[k,$(k).value.trim()])),reference:getDay().reference}}
+function capture(){const d=read();commit(d);return d}
+function invalidate(){result=null;$("export").disabled=$("handoffReady").disabled=true;for(const k of ["kpis","rows","scenarios"])$(k).replaceChildren();$("summary").textContent="条件を入力して計算してください。";$("summary").className=""}
+function draw(){const d=getDay();$("month").value=active;for(const k of fields)$(k).value=d[k];$("reference").textContent=d.reference;$("reference").hidden=!d.reference;invalidate()}
+function row(host,values){const tr=node("tr");for(const v of values)tr.append(node("td",v));$(host).append(tr)}
+function gap(n){return n===null?"算出不可":n<0n?"不足 "+count(-n):"余裕 "+count(n)}
+function entries(r){return [["損益分岐売上",money(r.breakEven)],["月間必要売上",money(r.required)],["日平均必要売上（切上げ）",money(r.daySales)],["月間必要客数",count(r.main.monthly)],["日平均必要客数（切上げ）",count(r.main.daily)],["必要座席回転数（切上げ）",rotation(r.main.turns)],["想定来店枠（1日）",count(r.capacity)],["来店枠との差",gap(r.main.gap)],["想定来店枠を満たす場合の月間売上",money(r.capacitySales)],["同条件の月間利益",money(r.capProfit)],["来店枠で目標達成に必要な客単価",r.minTicket===null?"算出不可":money(r.minTicket)],["想定実来店客数による月間売上",r.forecastSales===null?"未入力":money(r.forecastSales)],["想定実来店客数による月間利益",r.forecastProfit===null?"未入力":money(r.forecastProfit)],["目標利益との差（想定実来店）",r.forecastProfit===null?"未入力":money(r.forecastProfit-r.g)]]}
+function render(){invalidate();const r=solve(capture());for(const [k,v] of [["月間必要売上",money(r.required)],["日平均必要売上",money(r.daySales)],["日平均必要客数",count(r.main.daily)],["必要座席回転数",rotation(r.main.turns)],["来店枠での必要客単価",money(r.minTicket)],["想定来店枠での利益",money(r.capProfit)]]){const d=node("div");d.append(node("span",k),node("strong",v));$("kpis").append(d)}for(const e of entries(r))row("rows",e);for(const x of r.scenarios)row("scenarios",[money(x.ticket),count(x.monthly),count(x.daily),rotation(x.turns),gap(x.gap)]);$("summary").textContent=r.required===null?"現在の変動費率では目標達成に必要な売上を算出できません。":r.main.gap<0n?"想定来店枠では必要客数に "+count(-r.main.gap)+" 不足します。客単価・回転数・費用条件を見直してください。":"想定来店枠の範囲内で計算上の目標客数を確保できます。";$("summary").className=r.required===null||r.main.gap<0n?"notice":"";result=r;$("export").disabled=false;$("handoffReady").disabled=r.daySales===null||r.daySales>100000000n}
+function csv(rows){return rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n")}
+function download(filename,text,type){const u=URL.createObjectURL(new Blob([text],{type})),a=document.createElement("a");a.href=u;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+function snapshot(){capture();return JSON.stringify({version:1,items,active})}
+function restore(s){if(typeof s!=="string"||s.length>6000000)throw Error("保存容量を確認してください。");const x=JSON.parse(s);if(!x||x.version!==1)throw Error("保存形式を確認してください。");validateAll(x.items);month(x.active);if(!confirm("保存内容で画面を置き換えますか？"))return;items=x.items;active=x.active;revision++;draw();say("復元しました。")}
+function receive(data){const x=JSON.parse(data.csv);if(!x||x.version!==1)throw Error("引継ぎ形式を確認してください。");const old=read();validate(old);let a=items;if(!a.length){const s=localStorage.getItem(key);if(s){const z=JSON.parse(s);if(z.version!==1)throw Error("保存形式を確認してください。");a=validateAll(z.items)}}const m=new Map(a.map(d=>[d.month,d]));if(fields.some(k=>old[k]!=="")||old.reference)m.set(old.month,old);const d={...(m.get(active)||blank(active))};let ref="";
+if(data.source==="shop-monthly-profit"){month(x.referenceMonth);d.fixed=String(integer(x.fixed));d.rate=raw(integer(x.rate,9999999999n));d.goal=String(integer(x.goal));ref=x.referenceMonth+" の改善計画：固定費 "+money(BigInt(d.fixed))+"、変動費率 "+d.rate+"%、目標利益 "+money(BigInt(d.goal));}
+else if(data.source==="restaurant-reservation-ledger"){if(typeof x.date!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(x.date))throw Error("参照日を確認してください。");month(x.date.slice(0,7));d.seats=String(integer(x.seats,10000n,true));const v=integer(x.visitors,100000000n);ref=x.date+" の予約台帳：座席数 "+d.seats+"、記録済み来店 "+count(v)+"（来店計画には自動反映しません）";}
+else if(data.source==="restaurant-daily-report"){if(x.month!=="")month(x.month);const s=integer(x.sales),c=integer(x.customers),n=integer(x.days,10000n,true);if(!c)throw Error("来店人数が0のため客単価を算出できません。");const t=(s+c/2n)/c;if(t<=0n||t>100000000n)throw Error("実績客単価が計画入力範囲外です。");d.ticket=String(t);ref=(x.month||"全表示期間")+" の営業日報： "+n+"日、売上 "+money(s)+"、客数 "+count(c)+"、平均客単価 "+money(t)+"（円単位四捨五入）";}
+else throw Error("引継ぎ元を確認してください。");d.reference=[d.reference,ref].filter(Boolean).join(" ／ ").slice(-1000);m.set(active,d);const next=validateAll([...m.values()]);if(!confirm(active+" の計画に "+ref+" を反映します。該当項目を置換し、それ以外は保持します。"))return false;items=next;revision++;draw();say("引継ぎました。計画対象月・営業条件を確認してください。");return true}
+const now=new Date();active=String(now.getFullYear())+"-"+String(now.getMonth()+1).padStart(2,"0");draw();
+$("month").onchange=()=>run(()=>{const m=$("month").value;try{month(m);capture();active=m;draw()}catch(e){$("month").value=active;throw e}});
+for(const k of fields)$(k).oninput=()=>{revision++;invalidate();$("handoffReady").disabled=true};
+$("calculate").onclick=()=>run(()=>{$("handoffReady").disabled=true;render()});
+$("clear").onclick=()=>run(()=>{if(confirm("対象月の画面入力を消去しますか？ 保存データは変更しません。")){items=items.filter(d=>d.month!==active);revision++;draw();$("handoffReady").disabled=true}});
+$("sample").onclick=()=>run(()=>{if(fields.some(k=>$(k).value)&&!confirm("対象月の入力を架空の例で置き換えますか？"))return;commit({...blank(active),fixed:"400000",rate:"35",goal:"250000",days:"25",ticket:"2000",seats:"20",turns:"1.5",visitors:"28"});draw();render();say("架空の入力例です。")});
+$("draftSave").onclick=()=>run(()=>{if(localStorage.getItem(key)&&!confirm("保存内容を上書きしますか？"))return;localStorage.setItem(key,snapshot());say("保存しました。")});
+$("draftRestore").onclick=()=>run(()=>{const s=localStorage.getItem(key);if(!s)throw Error("保存データがありません。");restore(s);$("handoffReady").disabled=true});
+$("draftDelete").onclick=()=>run(()=>{if(confirm("保存データを削除しますか？")){localStorage.removeItem(key);say("保存データを削除しました。")}});
+$("backup").onclick=()=>run(()=>download("restaurant-sales-target.json",snapshot(),"application/json"));
+$("backupFile").onchange=async()=>{const f=$("backupFile").files[0],token=++revision;try{if(!f)return;if(f.size>6000000)throw Error("6MB以内のJSONを指定してください。");const s=await f.text();if(token===revision)run(()=>{restore(s);$("handoffReady").disabled=true})}catch(e){if(token===revision)$("error").textContent=e.message}finally{$("backupFile").value=""}};
+$("export").onclick=()=>run(()=>{if(!result)throw Error("計算してください。");download("restaurant-sales-target-"+active+".csv","\uFEFF"+csv([["計画対象月",active],["項目","結果"],...entries(result),["客単価","必要月間客数","必要日平均客数","必要回転数","来店枠との差"],...result.scenarios.map(x=>[x.ticket,x.monthly,x.daily,rotation(x.turns),gap(x.gap)])]),"text/csv;charset=utf-8")});
+OGBToolHandoff.init({slug:"restaurant-sales-target",guard:"handoffReady",out:[["restaurant-daily-report","飲食店の営業日報・売上分析"]],inbound:{"shop-monthly-profit":"month","restaurant-reservation-ledger":"month","restaurant-daily-report":"month"}},()=>{if(!result||result.daySales===null||result.daySales>100000000n)throw Error("日平均必要売上を計算してください。");return {csv:JSON.stringify({version:1,month:active,target:String(result.daySales)})}},receive);
