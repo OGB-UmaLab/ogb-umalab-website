@@ -250,7 +250,7 @@ function renderNavigation(){
  const link=(slug,label)=>{const a=node("a",label||catalog[slug]);a.href=ctx.base+slug+"/";a.style.cssText="color:#075e78;text-decoration:underline";return a};
  const navLink=(href,label)=>{const a=node("a",label);a.href=ctx.base+href;a.style.cssText="color:#075e78;text-decoration:underline";return a};
  const b=(id,label)=>{const a=button(id,label);a.style.cssText="margin:0;padding:6px 10px;border:1px solid #9aadb4;border-radius:6px;background:#f5f8fa;color:#18313a;font:inherit;cursor:pointer";return a};
- const message=node("p");message.id="ogbNavStatus";message.setAttribute("role","status");message.style.cssText="margin:6px 0;font-size:.9em";const fav=b("ogbFavorite","☆ お気に入りに追加");if(ctx.slug)header.append(fav);if(!ctx.directory)header.append(navLink("#tool-directory","全ツール検索"),navLink("#ogbSavedData","保存済みデータ"),navLink("#workspace-entry","マイ業務セット"));panel.append(header);
+ const message=node("p");message.id="ogbNavStatus";message.setAttribute("role","status");message.style.cssText="margin:6px 0;font-size:.9em";const fav=b("ogbFavorite","☆ お気に入りに追加");if(ctx.slug)header.append(fav);if(!ctx.directory)header.append(navLink("#tool-directory","全ツール検索"),navLink("#ogbSavedData","保存済みデータ"),navLink("#backup-entry","一括バックアップ・端末移行"),navLink("#workspace-entry","マイ業務セット"));panel.append(header);
 
 
  const workPanel=node("section");workPanel.id="ogbWorkspace";workPanel.setAttribute("aria-label","マイ業務セット");workPanel.style.cssText="border:1px solid #d8e4e9;border-radius:10px;padding:12px 16px;margin:16px 0;background:#fff;color:#18313a;font:inherit;overflow-wrap:anywhere";
@@ -550,7 +550,7 @@ function renderNavigation(){
  window.addEventListener("pageshow",()=>{if(ctx.directory||ctx.slug||ctx.business)reloadWork();if(ctx.directory){refreshSaved();drawWork();drawQuickResume()}if(ctx.slug)drawCurrentDraft()});
  window.addEventListener("focus",()=>{if(ctx.directory||ctx.slug||ctx.business)reloadWork();if(ctx.directory){refreshSaved();drawQuickResume()}if(ctx.slug)drawCurrentDraft()});
  if(ctx.slug)window.addEventListener("hashchange",()=>{const hash=location.hash.slice(1),info=draftRegistry[ctx.slug];if(info&&[info.restore,info.remove,savedControlId(info)].includes(hash))revealToolTarget(document.getElementById(hash),false)});
- if(ctx.directory){const openBackup=()=>{if(location.hash==="#ogbBackupPanel"){backup.open=true;requestAnimationFrame(()=>revealToolTarget(backup,false))}};window.addEventListener("hashchange",openBackup);openBackup()}
+ if(ctx.directory){const openBackup=()=>{if(["#ogbBackupPanel","#backup-entry"].includes(location.hash)){backup.open=true;requestAnimationFrame(()=>revealToolTarget(backup,false))}};window.addEventListener("hashchange",openBackup);openBackup()}
  const fragment=location.hash.slice(1);if((fragment==="ogbSavedData"||fragment==="workspace-entry"||fragment==="quick-resume-entry")&&ctx.directory||fragment==="business-start-entry"&&ctx.business||ctx.slug&&draftRegistry[ctx.slug]?.restore===fragment)requestAnimationFrame(()=>revealToolTarget(document.getElementById(fragment),false));
 }
 if(typeof document!=="undefined"){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",renderNavigation,{once:true});else queueMicrotask(renderNavigation)}
