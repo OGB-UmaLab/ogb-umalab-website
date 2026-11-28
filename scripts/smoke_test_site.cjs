@@ -425,7 +425,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        if(await p.evaluate(x=>Object.entries(x).some(([k,v])=>localStorage.getItem(k)!==JSON.stringify(v)),entries))throw Error('Read-only dashboard changed records');
        await p.evaluate(()=>localStorage.setItem('ogb-restaurant-daily-v1','bad'));await p.locator('#restaurantDashRefresh').click();if(await p.locator('#restaurantDashCards [data-source="daily"][data-state="attention"]').count()!==2||!(await p.locator('#restaurantDashCards [data-source="monthly"]').textContent()).includes('140,000円'))throw Error('Dashboard isolated bad source');
        if(await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))throw Error('Dashboard mobile overflow');
-       await p.locator('a[href="/tools/#backup-entry"]').click();await p.waitForURL('**/tools/#backup-entry');await p.locator('#ogbBackupPanel').waitFor();if(!await p.locator('#ogbBackupPanel').evaluate(el=>el.open))throw Error('Backup static link');
+       const backupLink=p.locator('#restaurant-setup a[href="/tools/#backup-entry"]');if(await backupLink.count()!==1)throw Error('Setup backup link missing');await backupLink.click();await p.waitForURL('**/tools/#backup-entry');await p.locator('#ogbBackupPanel').waitFor();if(!await p.locator('#ogbBackupPanel').evaluate(el=>el.open))throw Error('Backup static link');
      }finally{await ctx.close()}
    });
    await test(local('tools/business/restaurant/index.html'),async()=>{
@@ -433,7 +433,7 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        await p.goto(ledgerOrigin+'/tools/business/restaurant/',{waitUntil:'domcontentloaded'});await p.locator('#restaurantSetupPanel summary').click();await p.locator('#restaurantSetupPlan').waitFor();
        if(!(await p.locator('#restaurantSetupPlan').textContent()).includes('新規 3 件')||await p.evaluate(k=>localStorage.getItem(k),key)!==null)throw Error('Initial setup should be preview only');
        await p.locator('#restaurantSetupMode').selectOption('existing');await p.locator('#restaurantSetupSales').selectOption('pos');await p.locator('#restaurantSetup-menu').uncheck();await p.locator('#restaurantSetup-staff').check();await p.locator('#restaurantSetup-reservation').check();
-       if(await p.locator('#restaurantSetupGuide a[href="../../shop-sales-performance/#posImport"]').count()!==1||!(await p.locator('#restaurantSetupGuide').textContent()).includes('再入力は不要'))throw Error('POS migration path');
+       const posLink=p.locator('#restaurantSetupGuide a').filter({hasText:'既存の売上CSV・Excelを取り込む'});if(await posLink.count()!==1||await posLink.evaluate(a=>a.href)!==new URL('/tools/shop-sales-performance/#posImport',ledgerOrigin).href||!(await p.locator('#restaurantSetupGuide').textContent()).includes('再入力は不要'))throw Error('POS migration path');const posPage=await ctx.newPage();try{await posPage.goto(await posLink.evaluate(a=>a.href),{waitUntil:'domcontentloaded'});if(!await posPage.locator('#posImport').isVisible())throw Error('POS migration target missing');}finally{await posPage.close()}
        const old={version:1,active:'w-existing',sets:[{id:'w-existing',name:'既存の業務',steps:['product-ledger'],done:['product-ledger']}]};
        await p.evaluate(([k,v])=>localStorage.setItem(k,JSON.stringify(v)),[key,old]);await p.locator('#restaurantSetupRefresh').click();
        await p.locator('#restaurantSetupCreate').click();await p.waitForFunction(()=>document.querySelector('#restaurantSetupStatus')?.textContent.includes('新規 4 件'));
