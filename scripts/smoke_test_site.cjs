@@ -509,6 +509,13 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        await open('income-tax-simulator');await p.locator('#sample').click();await p.locator('#scope').check();await p.locator('#calculate').click();const taxText=await p.locator('#rows tr').filter({hasText:'納付・還付見込額（負は還付）'}).locator('td').last().textContent(),tax=String(Math.max(0,Number(taxText.replaceAll(',',''))));await send('resident-tax-simulator');await p.locator('#preview').waitFor({state:'visible'});await p.locator('#apply').click();await p.locator('#scope').check();await p.locator('#calculate').click();const resident=(await p.locator('#rows tr').filter({hasText:'年間税額合計'}).locator('td').last().textContent()).replaceAll(',','');await send('tax-reserve-planner');if(await p.locator('#incomeTax').inputValue()!==tax||await p.locator('#residentTax').inputValue()!==resident||await p.locator('#savings').inputValue()!=='50000')throw Error('Combined tax reserve handoff');
      }finally{p.off('dialog',accept);await ctx.close()}
    });
+   await test(local('tools/side-tax-preparation/index.html'),async()=>{
+     const ctx=await browser.newContext(),p=await ctx.newPage(),accept=d=>d.accept();p.on('dialog',accept);try{
+       await p.goto(ledgerOrigin+'/tools/side-tax-preparation/',{waitUntil:'domcontentloaded'});await p.locator('#sample').click();
+       await p.locator('[data-prep-return][href="/tools/project-profit-report/"]').click();await p.waitForURL('**/tools/project-profit-report/');await p.locator('#sample').click();await p.locator('#handoff-side-tax-preparation').click();await p.waitForURL('**/tools/side-tax-preparation/');await p.locator('#handoffAccept').click();
+       for(const [id,v] of [['miscRevenue','130000'],['miscExpense','15000'],['salaryIncome','3240000'],['miscWithheld','10210'],['socialSlip','600000']])if(await p.locator('#'+id).inputValue()!==v)throw Error('Project preparation field '+id);if(await p.locator('#scope').isChecked())throw Error('Project preparation must reconfirm scope');
+     }finally{p.off('dialog',accept);await ctx.close()}
+   });
    await test(local('tools/shop-sales-performance/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('140,000円')||!s.includes('1,866円')||!s.includes('100.00%')||await page.locator('#weekdayRows tr').count()!==7)throw Error('Shop sales performance sample');
      const dl=page.waitForEvent('download');await page.locator('#weekdayExport').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"月","2","110000","55000","55","2000"'))throw Error('Shop weekday CSV');
