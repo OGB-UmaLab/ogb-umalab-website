@@ -525,6 +525,12 @@ const local = rel => pathToFileURL(path.resolve(__dirname, '..', rel)).href;
        await open('cash-flow-planner');await p.locator('#sample').click();await p.locator('#ogbQuickSaveNow').click();await p.reload();await p.locator('#ogbQuickRestoreNow').click();if(await p.locator('#opening').inputValue()!=='50000')throw Error('Quick CSV restore');
      }finally{p.off('dialog',accept);await ctx.close()}
    });
+   await test(local('tools/project-profit-report/index.html'),async()=>{
+     const ctx=await browser.newContext(),p=await ctx.newPage(),accept=d=>d.accept();p.on('dialog',accept);try{
+       const key='ogb-workspace-v1';await p.goto(ledgerOrigin+'/tools/business/freelance/',{waitUntil:'domcontentloaded'});await p.locator('details:has(#business-start-entry) > summary').click();await p.locator('#ogbBusinessChoice-free-invoice').check();await p.locator('#ogbBusinessCreate').click();await p.locator('#ogbBusinessUse-free-invoice').click();await p.waitForURL('**/tools/#workspace-entry');await p.locator('#ogbQuickNext').click();await p.waitForURL('**/tools/project-profit-report/');
+       const direct=p.locator('#ogbWorkHandoff');if(!await direct.isDisabled())throw Error('Work handoff enabled before valid data');await p.locator('#sample').click();await direct.waitFor();if(!await direct.isEnabled())throw Error('Work handoff not enabled');const before=await p.evaluate(k=>localStorage.getItem(k),key);await direct.click();await p.waitForURL('**/tools/invoice-maker/');await p.locator('#handoffAccept').click();if(await p.locator('#projectInvoiceChoice').count()!==1)throw Error('Work shortcut did not deliver payload');if(await p.evaluate(k=>localStorage.getItem(k),key)!==before)throw Error('Work handoff altered progress');
+     }finally{p.off('dialog',accept);await ctx.close()}
+   });
    await test(local('tools/shop-sales-performance/index.html'),async()=>{
      await page.locator('#sample').click();const s=await page.locator('#result').innerText();if(!s.includes('140,000円')||!s.includes('1,866円')||!s.includes('100.00%')||await page.locator('#weekdayRows tr').count()!==7)throw Error('Shop sales performance sample');
      const dl=page.waitForEvent('download');await page.locator('#weekdayExport').click();const csv=fs.readFileSync(await(await dl).path(),'utf8');if(!csv.includes('"月","2","110000","55000","55","2000"'))throw Error('Shop weekday CSV');

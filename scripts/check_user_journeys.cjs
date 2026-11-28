@@ -44,6 +44,7 @@ check(navCoverage.size===listed.length&&listed.every(s=>navCoverage.has(s))&&nav
 const businessPresets=JSON.parse(navSource.match(/const businessPresets=(\[[^\n]+\]);/)[1]);
 check(new Set(businessPresets.map(p=>p.id)).size===businessPresets.length,'Business presets duplicate IDs');
 check(businessPresets.every(p=>p.steps.length>0&&new Set(p.steps).size===p.steps.length&&p.steps.every(s=>listed.includes(s))),'Invalid business preset steps');
+for(const [id,steps] of Object.entries({'free-invoice':['project-profit-report','invoice-maker','receivables-report','cash-flow-planner'],'side-business-tax':['annual-expense-merge','annual-income-summary','salary-slip-summary','side-tax-preparation','income-tax-simulator','resident-tax-simulator','tax-reserve-planner']}))check(businessPresets.find(p=>p.id===id)?.steps.join(',')===steps.join(','),'Updated handoff preset mismatch: '+id);
 const businessMinimum={"online-selling":4,"small-shop":5,freelance:4,"side-job":4,restaurant:5};
 check(Object.keys(businessMinimum).every(s=>businessPresets.filter(p=>p.business===s).length>=businessMinimum[s])&&businessPresets.every(p=>Object.hasOwn(businessMinimum,p.business)),'Business preset coverage');
 for(const [id,expected] of Object.entries({"restaurant-staff":["restaurant-daily-report","restaurant-shift-planner","shop-monthly-profit"],"side-annual":["side-job-ledger","salary-slip-summary","side-tax-preparation","tax-filing-check","income-tax-simulator","resident-tax-simulator","tax-reserve-planner"]})){
